@@ -1,0 +1,4 @@
+streamlit==1.40.1
+docxtpl==0.19.0
+pydantic==2.9.2
+pandas==2.2.3
