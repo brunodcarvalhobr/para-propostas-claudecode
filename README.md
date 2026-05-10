@@ -1,4 +1,4 @@
-# PMRA — Gerador de Propostas (Streamlit)
+# DocGen by PMRA Legal Tech (Streamlit)
 
 App web para geração de propostas comerciais de prestação de serviços jurídicos
 da PMRA (Porto, Miranda, Rocha Advogados) a partir de um formulário adaptativo.

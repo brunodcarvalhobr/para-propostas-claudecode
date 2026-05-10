@@ -1,4 +1,4 @@
-"""PMRA — Gerador de Propostas (Streamlit) — formulário em etapas."""
+"""DocGen by PMRA Legal Tech (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
 import os
@@ -24,7 +24,7 @@ if os.path.exists(_SVG_PATH):
 
 
 st.set_page_config(
-    page_title="PMRA — Gerador de Propostas",
+    page_title="DocGen by PMRA Legal Tech",
     page_icon="⚖️",
     layout="wide",
 )
@@ -447,7 +447,7 @@ if _LOGO_SVG:
     _logo_html += f'<div style="height:52px;width:52px;flex-shrink:0;">{_LOGO_SVG}</div>'
 _logo_html += """
   <div class="pmra-header-text">
-    <h1>Gerador de Propostas</h1>
+    <h1>DocGen by PMRA Legal Tech</h1>
     <p>Porto, Miranda, Rocha Advogados · O nosso negócio é fazer direito</p>
   </div>
 </div>"""
