@@ -26,7 +26,7 @@ def check_password() -> bool:
     if st.session_state.get("authenticated", False):
         return True
 
-    st.title("PMRA — Gerador de Propostas")
+    st.title("DocGen by PMRA Legal Tech")
     st.caption("Acesso restrito. Informe a senha compartilhada da equipe.")
 
     with st.form("login_form", clear_on_submit=False):
