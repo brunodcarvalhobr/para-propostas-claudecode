@@ -1,18 +1,26 @@
 """PMRA — Gerador de Propostas (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
+import os
 import re
 import traceback
 from datetime import datetime
 
-import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from pmra.auth import check_password
-from pmra.data_mapper import form_to_context
+from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
 from pmra.defaults import proposal_form_default
 from pmra.schema import ProposalForm, UF_OPTIONS
 from pmra.template_engine import render_proposal
+
+# Lê o SVG do logo uma vez no carregamento do módulo
+_SVG_PATH = os.path.join(os.path.dirname(__file__), "pmra-icon.svg")
+_LOGO_SVG: str = ""
+if os.path.exists(_SVG_PATH):
+    with open(_SVG_PATH, "r", encoding="utf-8") as _f:
+        _LOGO_SVG = _f.read()
 
 
 st.set_page_config(
@@ -24,6 +32,208 @@ st.set_page_config(
 if not check_password():
     st.stop()
 
+# ── Estilos PMRA ───────────────────────────────────────────────────────────────
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500&display=swap');
+
+/* Reset geral */
+html, body, [class*="css"] { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+/* Cabeçalho PMRA */
+.pmra-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 0 18px 0;
+    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+.pmra-header svg { height: 48px; width: auto; }
+.pmra-header-text h1 {
+    font-family: 'Fraunces', ui-serif, Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: #0a0a0a;
+    margin: 0;
+    line-height: 1.2;
+}
+.pmra-header-text p {
+    font-size: 0.72rem;
+    color: #737373;
+    font-family: 'Fraunces', ui-serif;
+    font-style: italic;
+    margin: 2px 0 0 0;
+}
+
+/* Botões primários — gradiente ember PMRA exato */
+button[kind="primary"],
+[data-testid="baseButton-primary"] {
+    background: linear-gradient(160deg, #f97316 0%, #ea580c 100%) !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.35) inset,
+        0 6px 18px -6px rgba(249,115,22,0.55),
+        0 2px 6px -2px rgba(234,88,12,0.40) !important;
+    transition: box-shadow 0.18s ease-out, transform 0.15s ease-out !important;
+}
+button[kind="primary"]:hover,
+[data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(160deg, #fb923c 0%, #f97316 100%) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.35) inset,
+        0 10px 28px -8px rgba(249,115,22,0.60),
+        0 4px 10px -4px rgba(234,88,12,0.45) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Botões step concluídos */
+[data-testid="baseButton-secondary"] {
+    border-color: rgba(249,115,22,0.35) !important;
+    color: #c2410c !important;
+}
+
+/* Barra de progresso */
+[data-testid="stProgressBar"] > div > div,
+[data-testid="stProgressBar"] > div {
+    background-color: #f97316 !important;
+}
+
+/* Divisores */
+hr { border-color: rgba(0,0,0,0.07) !important; }
+
+/* Cabeçalho de tabelas row-by-row */
+.pmra-tbl-hdr {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #737373;
+}
+
+/* Compacta o botão ✕ verticalmente */
+[data-testid$="__del"] > div > button {
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
+    font-size: 0.8rem !important;
+    color: #a3a3a3 !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+[data-testid$="__del"] > div > button:hover {
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+/* Subheaders com estilo display */
+h3 {
+    font-family: 'Fraunces', ui-serif !important;
+    font-weight: 500 !important;
+    font-size: 1.1rem !important;
+    color: #0a0a0a !important;
+    margin-top: 0.5rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── Máscara em tempo real (JS via iframe) ──────────────────────────────────────
+
+components.html("""
+<script>
+(function () {
+  function digits(v, n) { return (v || '').replace(/\D/g, '').slice(0, n); }
+
+  function fmtCpf(v) {
+    const d = digits(v, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0,3)+'.'+d.slice(3);
+    if (d.length <= 9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
+    return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
+  }
+  function fmtCnpj(v) {
+    const d = digits(v, 14);
+    if (d.length <= 2) return d;
+    if (d.length <= 5) return d.slice(0,2)+'.'+d.slice(2);
+    if (d.length <= 8) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5);
+    if (d.length <= 12) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8);
+    return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12);
+  }
+  function fmtCep(v) {
+    const d = digits(v, 8);
+    if (d.length <= 5) return d;
+    return d.slice(0,5)+'-'+d.slice(5);
+  }
+  function fmtTel(v) {
+    const d = digits(v, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 6) return '('+d.slice(0,2)+') '+d.slice(2);
+    if (d.length <= 10) return '('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+    return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
+  }
+
+  const LABEL_MASKS = {
+    'CPF': fmtCpf, 'CNPJ': fmtCnpj, 'CEP': fmtCep, 'Telefone': fmtTel,
+  };
+
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+
+  function applyMask(input, maskFn) {
+    if (input._pmraMasked) return;
+    input._pmraMasked = true;
+    input.addEventListener('input', function (e) {
+      if (e._pmra) return;
+      const raw = this.value;
+      const pos = this.selectionStart;
+      const digitsBeforeCursor = raw.slice(0, pos).replace(/\D/g, '').length;
+      const fmt = maskFn(raw);
+      if (fmt === raw) return;
+      setter.call(this, fmt);
+      const ev = new Event('input', { bubbles: true });
+      ev._pmra = true;
+      this.dispatchEvent(ev);
+      // Reposiciona cursor contando dígitos
+      let dc = 0, np = fmt.length;
+      for (let i = 0; i < fmt.length; i++) {
+        if (/\d/.test(fmt[i])) dc++;
+        if (dc >= digitsBeforeCursor) { np = i + 1; break; }
+      }
+      this.setSelectionRange(np, np);
+    });
+  }
+
+  function setupMasks() {
+    const doc = window.parent.document;
+    doc.querySelectorAll('[data-testid="stTextInput"]').forEach(function (wrap) {
+      const label = wrap.querySelector('label');
+      const input = wrap.querySelector('input');
+      if (!label || !input) return;
+      const maskFn = LABEL_MASKS[label.textContent.trim()];
+      if (maskFn) applyMask(input, maskFn);
+    });
+  }
+
+  let debounce;
+  const obs = new MutationObserver(function () {
+    clearTimeout(debounce);
+    debounce = setTimeout(setupMasks, 120);
+  });
+
+  function start() {
+    setupMasks();
+    obs.observe(window.parent.document.body, { childList: true, subtree: true });
+  }
+
+  if (window.parent.document.readyState === 'loading') {
+    window.parent.document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 400); });
+  } else {
+    setTimeout(start, 400);
+  }
+})();
+</script>
+""", height=0)
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -84,6 +294,23 @@ def _fmt_tel(v: str) -> str:
     return f"({d[:2]}) {d[2:7]}-{d[7:]}"
 
 
+# Callbacks on_change para aplicar máscara ao sair do campo
+def _on_cpf_change() -> None:
+    st.session_state["cpf_input"] = _fmt_cpf(st.session_state.get("cpf_input", ""))
+
+def _on_cnpj_change() -> None:
+    st.session_state["cnpj_input"] = _fmt_cnpj(st.session_state.get("cnpj_input", ""))
+
+def _on_cep_change() -> None:
+    st.session_state["cep_input"] = _fmt_cep(st.session_state.get("cep_input", ""))
+
+def _on_tel_change(wk: str) -> None:
+    st.session_state[wk] = _fmt_tel(st.session_state.get(wk, ""))
+
+def _on_money_change(wk: str) -> None:
+    st.session_state[wk] = _money_fmt(st.session_state.get(wk, ""))
+
+
 # ── Inicialização de estado ────────────────────────────────────────────────────
 
 def _init_state() -> None:
@@ -130,9 +357,12 @@ def _apply_formats() -> None:
         st.session_state["cnpj_input"] = c["cnpj"]
     c["endereco"]["cep"] = _fmt_cep(c["endereco"]["cep"])
     st.session_state["cep_input"] = c["endereco"]["cep"]
-    # Formata telefones da tabela de contatos
-    for row in st.session_state.tbl_contatos:
+    # Formata telefones da tabela de contatos e atualiza os widget keys
+    for i, row in enumerate(st.session_state.tbl_contatos):
         row["telefone"] = _fmt_tel(row["telefone"])
+        wk = f"tbl_contatos__telefone__{i}"
+        if wk in st.session_state:
+            st.session_state[wk] = row["telefone"]
 
 
 def _go_next() -> None:
@@ -154,13 +384,18 @@ def _go_to(n: int) -> None:
 current: int = st.session_state.step
 
 
-# ── Cabeçalho e indicador de etapas ───────────────────────────────────────────
+# ── Cabeçalho com logo ────────────────────────────────────────────────────────
 
-st.markdown("## PMRA — Gerador de Propostas")
-st.caption(
-    "Preencha as etapas e clique em **Gerar proposta** na última etapa. "
-    "Campos vazios aparecem como placeholders no .docx — revise antes de enviar."
-)
+_logo_html = f'<div class="pmra-header">'
+if _LOGO_SVG:
+    _logo_html += f'<div style="height:52px;width:52px;flex-shrink:0;">{_LOGO_SVG}</div>'
+_logo_html += """
+  <div class="pmra-header-text">
+    <h1>Gerador de Propostas</h1>
+    <p>Porto, Miranda, Rocha Advogados · O nosso negócio é fazer direito</p>
+  </div>
+</div>"""
+st.markdown(_logo_html, unsafe_allow_html=True)
 
 # Indicador de progresso clicável
 indicator_cols = st.columns(len(STEPS))
@@ -194,44 +429,111 @@ st.progress((current + 1) / len(STEPS))
 st.divider()
 
 
-# ── Helper: tabela editável com persistência estável ──────────────────────────
+# ── Helper: tabela editável row-by-row ────────────────────────────────────────
 
-def _render_table(
+def _sync_rows(ss_key: str, col_keys: list[str]) -> list[dict]:
+    """Lê os widgets de texto e persiste na session_state."""
+    rows: list[dict] = st.session_state.get(ss_key, [])
+    synced = []
+    for i, row in enumerate(rows):
+        new_row = {}
+        for field in col_keys:
+            wk = f"{ss_key}__{field}__{i}"
+            new_row[field] = st.session_state.get(wk, row.get(field, ""))
+        synced.append(new_row)
+    st.session_state[ss_key] = synced
+    return synced
+
+
+def _clear_row_widgets(ss_key: str, col_keys: list[str], n_rows: int) -> None:
+    """Remove as chaves de widget de todas as linhas (força re-render limpo)."""
+    for i in range(n_rows):
+        for field in col_keys:
+            k = f"{ss_key}__{field}__{i}"
+            if k in st.session_state:
+                del st.session_state[k]
+
+
+def _add_row_cb(ss_key: str, col_keys: list[str]) -> None:
+    synced = _sync_rows(ss_key, col_keys)
+    _clear_row_widgets(ss_key, col_keys, len(synced))
+    synced.append({f: "" for f in col_keys})
+    st.session_state[ss_key] = synced
+
+
+def _del_row_cb(ss_key: str, col_keys: list[str], idx: int) -> None:
+    synced = _sync_rows(ss_key, col_keys)
+    _clear_row_widgets(ss_key, col_keys, len(synced))
+    if 0 <= idx < len(synced):
+        synced.pop(idx)
+    if not synced:
+        synced = [{f: "" for f in col_keys}]
+    st.session_state[ss_key] = synced
+
+
+def _render_rows(
     ss_key: str,
     columns: dict[str, str],
-    min_row: dict | None = None,
     help_text: str = "",
+    col_widths: list[int] | None = None,
+    field_formatters: dict[str, callable] | None = None,
 ) -> list[dict]:
-    """Renderiza st.data_editor usando session_state dedicado.
+    """Renderiza tabela como linhas de inputs individuais com botão ✕ por linha.
 
-    Salva o DataFrame completo (não deltas) para evitar dados somindo.
+    field_formatters: mapa campo → função que recebe o widget_key e formata
+    o valor em session_state (chamada via on_change).
     """
-    data: list[dict] = st.session_state.get(ss_key, [])
-    if not data and min_row is not None:
-        data = [min_row]
+    rows: list[dict] = st.session_state.get(ss_key, [])
+    if not rows:
+        rows = [{f: "" for f in columns}]
+        st.session_state[ss_key] = rows
 
-    df = pd.DataFrame(data if data else [{}])
-    for col in columns:
-        if col not in df.columns:
-            df[col] = ""
-    df = df[list(columns.keys())].fillna("").astype(str)
-
-    col_config = {k: st.column_config.TextColumn(v) for k, v in columns.items()}
+    col_keys = list(columns.keys())
+    labels = list(columns.values())
+    n_cols = len(col_keys)
+    widths = (col_widths or [3] * n_cols) + [1]
+    formatters = field_formatters or {}
 
     if help_text:
         st.caption(help_text)
 
-    edited: pd.DataFrame = st.data_editor(
-        df,
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config=col_config,
-        hide_index=True,
+    # Cabeçalho
+    header = st.columns(widths)
+    for j, label in enumerate(labels):
+        header[j].markdown(f"<small><b>{label}</b></small>", unsafe_allow_html=True)
+
+    # Linhas de dados
+    for i, row in enumerate(rows):
+        row_cols = st.columns(widths)
+        for j, field in enumerate(col_keys):
+            wk = f"{ss_key}__{field}__{i}"
+            fmt_fn = formatters.get(field)
+            row_cols[j].text_input(
+                labels[j],
+                value=row.get(field, ""),
+                key=wk,
+                label_visibility="collapsed",
+                on_change=fmt_fn,
+                args=(wk,) if fmt_fn else None,
+            )
+        row_cols[-1].button(
+            "✕",
+            key=f"{ss_key}__del__{i}",
+            on_click=_del_row_cb,
+            args=(ss_key, col_keys, i),
+            use_container_width=True,
+            help="Remover linha",
+            disabled=len(rows) == 1,
+        )
+
+    st.button(
+        "+ Adicionar linha",
+        key=f"{ss_key}__add",
+        on_click=_add_row_cb,
+        args=(ss_key, col_keys),
     )
 
-    records: list[dict] = edited.fillna("").astype(str).to_dict("records")
-    st.session_state[ss_key] = records
-    return records
+    return _sync_rows(ss_key, col_keys)
 
 
 # ── ETAPA 1: CONTRATANTE ───────────────────────────────────────────────────────
@@ -262,6 +564,7 @@ if current == 0:
             value=form["contratante"]["cpf"],
             placeholder="000.000.000-00",
             key="cpf_input",
+            on_change=_on_cpf_change,
         )
     else:
         c1, c2 = st.columns([2, 1])
@@ -275,6 +578,7 @@ if current == 0:
             value=form["contratante"]["cnpj"],
             placeholder="00.000.000/0000-00",
             key="cnpj_input",
+            on_change=_on_cnpj_change,
         )
 
     st.markdown("**Endereço**")
@@ -286,7 +590,7 @@ if current == 0:
 
     c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
     end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
-    end["cep"] = c2.text_input("CEP", value=end["cep"], placeholder="00000-000", key="cep_input")
+    end["cep"] = c2.text_input("CEP", value=end["cep"], placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
     end["cidade"] = c3.text_input("Cidade", value=end["cidade"], key="cidade_input")
     end["uf"] = c4.selectbox(
         "UF",
@@ -302,11 +606,12 @@ if current == 0:
         key="contato_nome_input",
     )
 
-    records_contatos = _render_table(
+    records_contatos = _render_rows(
         "tbl_contatos",
         {"telefone": "Telefone", "email": "E-mail"},
-        min_row={"telefone": "", "email": ""},
-        help_text="Telefone: (31) 99999-0000 — formatado automaticamente ao avançar.",
+        help_text="Telefone: (31) 99999-0000 — formatado ao sair do campo.",
+        col_widths=[2, 3],
+        field_formatters={"telefone": _on_tel_change},
     )
     form["contratante"]["contatos"] = records_contatos
 
@@ -392,10 +697,12 @@ elif current == 2:
 
         if cm["hora_senioridade"]:
             st.markdown("**Tabela de senioridade — consultiva**")
-            form["honorarios_consultiva"]["tabela_senioridade"] = _render_table(
+            form["honorarios_consultiva"]["tabela_senioridade"] = _render_rows(
                 "tbl_sen_cons",
                 {"categoria": "Categoria", "valor": "Valor por hora"},
-                help_text="Ex de valor: R$ 1.050,00",
+                help_text="Ex: Sócio | R$ 1.050,00",
+                col_widths=[3, 2],
+                field_formatters={"valor": _on_money_change},
             )
 
         if cm["hora_fixa"]:
@@ -404,6 +711,8 @@ elif current == 2:
                 value=form["honorarios_consultiva"]["hora_fixa_valor"],
                 placeholder="Ex: R$ 700,00",
                 key="cons_hf_valor",
+                on_change=_on_money_change,
+                args=("cons_hf_valor",),
             )
 
         if cm["fixo_mensal"]:
@@ -413,6 +722,8 @@ elif current == 2:
                 value=form["honorarios_consultiva"]["fixo_mensal_valor"],
                 placeholder="Ex: R$ 15.000,00",
                 key="cons_fm_valor",
+                on_change=_on_money_change,
+                args=("cons_fm_valor",),
             )
             form["honorarios_consultiva"]["fixo_mensal_cap"] = c2.text_input(
                 "Cap de horas inclusas",
@@ -425,6 +736,8 @@ elif current == 2:
                 value=form["honorarios_consultiva"]["fixo_mensal_excedente"],
                 placeholder="Ex: R$ 600,00",
                 key="cons_fm_exc",
+                on_change=_on_money_change,
+                args=("cons_fm_exc",),
             )
 
         if cm["valor_projeto"]:
@@ -433,6 +746,8 @@ elif current == 2:
                 value=form["honorarios_consultiva"]["valor_projeto_total"],
                 placeholder="Ex: R$ 50.000,00",
                 key="cons_vp_total",
+                on_change=_on_money_change,
+                args=("cons_vp_total",),
             )
             form["honorarios_consultiva"]["valor_projeto_forma_pagamento"] = st.text_area(
                 "Forma de pagamento",
@@ -457,19 +772,22 @@ elif current == 2:
 
         if cm["valor_acao"]:
             st.markdown("**Tabela — Valor por Ação**")
-            form["honorarios_contenciosa"]["tabela_acoes"] = _render_table(
+            form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
                 "tbl_acoes",
                 {"natureza": "Natureza da ação", "fase": "Fase processual", "valor": "Valor"},
-                min_row={"natureza": "", "fase": "", "valor": ""},
                 help_text="Ex: Trabalhista | Conhecimento | R$ 5.000,00",
+                col_widths=[3, 3, 2],
+                field_formatters={"valor": _on_money_change},
             )
 
         if cm["valor_ato_processual"]:
             st.markdown("**Tabela — Atos Processuais**")
-            form["honorarios_contenciosa"]["tabela_atos"] = _render_table(
+            form["honorarios_contenciosa"]["tabela_atos"] = _render_rows(
                 "tbl_atos",
                 {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
-                help_text="Edite valores na coluna Valor. Linhas em branco são ignoradas.",
+                help_text="Preencha o valor de cada ato (Ex: R$ 1.500,00). Linhas sem valor são ignoradas.",
+                col_widths=[3, 4, 2],
+                field_formatters={"valor": _on_money_change},
             )
 
         if cm["preco_mensal_massa"]:
@@ -479,6 +797,8 @@ elif current == 2:
                 value=form["honorarios_contenciosa"]["preco_mensal_valor"],
                 placeholder="Ex: R$ 8.000,00",
                 key="cont_pm_valor",
+                on_change=_on_money_change,
+                args=("cont_pm_valor",),
             )
             form["honorarios_contenciosa"]["preco_mensal_maximo_acoes"] = c2.text_input(
                 "Nº máximo de ações cobertas",
@@ -505,6 +825,8 @@ elif current == 2:
                 value=form["honorarios_contenciosa"]["valor_projeto_total"],
                 placeholder="Ex: R$ 30.000,00",
                 key="cont_vp_total",
+                on_change=_on_money_change,
+                args=("cont_vp_total",),
             )
             form["honorarios_contenciosa"]["valor_projeto_fases_cobertas"] = st.text_area(
                 "Ações e fases cobertas",
@@ -519,43 +841,54 @@ elif current == 2:
                 key="cont_vp_forma",
             )
 
-        st.markdown("---")
-        form["honorarios_contenciosa"]["exito_ativo"] = st.checkbox(
-            "Cobrar honorários de êxito?",
-            value=form["honorarios_contenciosa"]["exito_ativo"],
-            key="cont_exito_cb",
-        )
-        if form["honorarios_contenciosa"]["exito_ativo"]:
-            form["honorarios_contenciosa"]["exito_percentual"] = st.text_input(
-                "Percentual de êxito (%)",
-                value=form["honorarios_contenciosa"]["exito_percentual"],
-                placeholder="Ex: 10",
-                key="cont_exito_pct",
-            )
+        cont_tem_modalidade = any([
+            cm["valor_acao"], cm["valor_ato_processual"],
+            cm["preco_mensal_massa"], cm["valor_projeto"],
+        ])
 
-        st.markdown("---")
-        st.markdown("**Horas para serviços extra escopo**")
-        modos = ("senioridade", "horaFixa")
-        form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
-            "Modo de cobrança",
-            options=modos,
-            format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora fixa (valor único)",
-            index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
-            horizontal=True,
-            key="horas_extra_modo_radio",
-        )
-        if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
-            form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_table(
-                "tbl_sen_extra",
-                {"categoria": "Categoria", "valor": "Valor por hora"},
+        if cont_tem_modalidade:
+            st.markdown("---")
+            form["honorarios_contenciosa"]["exito_ativo"] = st.checkbox(
+                "Cobrar honorários de êxito?",
+                value=form["honorarios_contenciosa"]["exito_ativo"],
+                key="cont_exito_cb",
             )
-        else:
-            form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
-                "Valor por hora — extra escopo",
-                value=form["honorarios_contenciosa"]["horas_extra_valor"],
-                placeholder="Ex: R$ 500,00",
-                key="cont_extra_valor",
+            if form["honorarios_contenciosa"]["exito_ativo"]:
+                form["honorarios_contenciosa"]["exito_percentual"] = st.text_input(
+                    "Percentual de êxito (%)",
+                    value=form["honorarios_contenciosa"]["exito_percentual"],
+                    placeholder="Ex: 10",
+                    key="cont_exito_pct",
+                )
+
+            st.markdown("---")
+            st.markdown("**Horas para serviços extra escopo**")
+            modos = ("senioridade", "horaFixa")
+            form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
+                "Modo de cobrança",
+                options=modos,
+                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora fixa (valor único)",
+                index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
+                horizontal=True,
+                key="horas_extra_modo_radio",
             )
+            if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
+                form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_rows(
+                    "tbl_sen_extra",
+                    {"categoria": "Categoria", "valor": "Valor por hora"},
+                    help_text="Ex: Sócio | R$ 1.050,00",
+                    col_widths=[3, 2],
+                    field_formatters={"valor": _on_money_change},
+                )
+            else:
+                form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
+                    "Valor por hora — extra escopo",
+                    value=form["honorarios_contenciosa"]["horas_extra_valor"],
+                    placeholder="Ex: R$ 500,00",
+                    key="cont_extra_valor",
+                    on_change=_on_money_change,
+                    args=("cont_extra_valor",),
+                )
 
 
 # ── ETAPA 4: DESPESAS E DISPOSIÇÕES ───────────────────────────────────────────
@@ -583,6 +916,8 @@ elif current == 3:
         value=form["despesas"]["taxa_manutencao_processual"],
         placeholder="Ex: R$ 50,00 por processo/mês",
         key="desp_taxa_input",
+        on_change=_on_money_change,
+        args=("desp_taxa_input",),
     )
 
     st.markdown("---")
@@ -665,7 +1000,7 @@ if current > 0:
 
 if current < len(STEPS) - 1:
     nav_next.button(
-        "Proximo",
+        "Próximo →",
         on_click=_go_next,
         type="primary",
         use_container_width=True,
