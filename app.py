@@ -41,13 +41,13 @@ st.markdown("""
 /* Reset geral */
 html, body, [class*="css"] { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 
-/* Cabeçalho PMRA */
+/* Cabeçalho PMRA — cores herdadas do tema (funciona em light e dark) */
 .pmra-header {
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 4px 0 18px 0;
-    border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    border-bottom: 0.5px solid rgba(128,128,128,0.2);
     margin-bottom: 20px;
 }
 .pmra-header svg { height: 48px; width: auto; }
@@ -55,13 +55,12 @@ html, body, [class*="css"] { font-family: 'Inter', ui-sans-serif, system-ui, san
     font-family: 'Fraunces', ui-serif, Georgia, serif;
     font-size: 1.35rem;
     font-weight: 500;
-    color: #0a0a0a;
     margin: 0;
     line-height: 1.2;
 }
 .pmra-header-text p {
     font-size: 0.72rem;
-    color: #737373;
+    opacity: 0.55;
     font-family: 'Fraunces', ui-serif;
     font-style: italic;
     margin: 2px 0 0 0;
@@ -112,7 +111,7 @@ hr { border-color: rgba(0,0,0,0.07) !important; }
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #737373;
+    opacity: 0.55;
 }
 
 /* Compacta o botão ✕ verticalmente */
@@ -128,12 +127,11 @@ hr { border-color: rgba(0,0,0,0.07) !important; }
     border-color: #ef4444 !important;
 }
 
-/* Subheaders com estilo display */
+/* Subheaders com estilo display — cor herdada do tema */
 h3 {
     font-family: 'Fraunces', ui-serif !important;
     font-weight: 500 !important;
     font-size: 1.1rem !important;
-    color: #0a0a0a !important;
     margin-top: 0.5rem !important;
 }
 </style>
