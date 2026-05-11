@@ -463,8 +463,9 @@ components.html("""
       tsScript.id = 'teams-sdk-script';
       tsScript.src = 'https://res.cdn.office.net/teams-js/2.11.0/js/MicrosoftTeams.min.js';
       tsScript.onload = function() {
-        if (window.parent.microsoftTeams) {
+        if (window.parent.microsoftTeams && window.parent.microsoftTeams.app) {
           window.parent.microsoftTeams.app.initialize().then(function() {
+            window.parent.microsoftTeams.app.notifySuccess();
             console.log("MS Teams SDK initialized successfully.");
           }).catch(function(e) {
             console.log("Teams initialization failed (or not running in Teams):", e);
