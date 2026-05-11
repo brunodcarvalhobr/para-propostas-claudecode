@@ -822,7 +822,7 @@ elif current == 2:
             c1, c2, c3, c4 = st.columns(4)
             cm["valor_acao"] = c1.checkbox("Valor por ação", value=cm["valor_acao"], key="cont_va")
             cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
-            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal (massa)", value=cm["preco_mensal_massa"], key="cont_pm")
+            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
             cm["valor_projeto"] = c4.checkbox("Valor por projeto", value=cm["valor_projeto"], key="cont_vp")
 
             if cm["valor_acao"]:
