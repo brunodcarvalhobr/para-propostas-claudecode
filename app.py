@@ -36,161 +36,336 @@ if not check_password():
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap');
 
-/* Reset geral */
-html, body, [class*="css"] { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+:root {
+  --color-ink: #0a0a0a;
+  --color-ink-600: #404040;
+  --color-ink-400: #737373;
+  --color-ink-200: #d4d4d4;
+  --color-ink-100: #e5e5e5;
+  --color-paper: #faf9f7;
+  --color-paper-50: #fdfcfa;
+  --color-paper-100: #f5f3ee;
+  --color-paper-200: #ebe7df;
+  --color-ember-200: #fde68a;
+  --color-ember-300: #fbbf24;
+  --color-ember-400: #fb923c;
+  --color-ember-500: #f97316;
+  --color-ember-600: #ea580c;
+  --color-ember-700: #c2410c;
+  --color-glass-white: rgba(255,255,255,0.55);
+  --color-glass-strong: rgba(255,255,255,0.78);
+  --color-glass-border: rgba(255,255,255,0.7);
+  
+  --shadow-glass:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 14px 40px -16px rgba(15,15,20,0.18),
+    0 4px 14px -8px rgba(249,115,22,0.08);
 
-/* Cabeçalho PMRA — cores herdadas do tema (funciona em light e dark) */
+  --shadow-input:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 0.5px rgba(0,0,0,0.06);
+
+  --shadow-button:
+    0 1px 0 0 rgba(255,255,255,0.4) inset,
+    0 6px 18px -6px rgba(249,115,22,0.5),
+    0 2px 6px -2px rgba(234,88,12,0.4);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Base text */
+html, body, [class*="css"] {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    color: var(--color-ink);
+}
+
+/* Ambient Background Blobs (for Streamlit app container) */
+.stApp {
+    background-color: var(--color-paper) !important;
+    background-image: 
+        radial-gradient(circle at 80% 20%, rgba(249,115,22,0.15) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(251,191,36,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 50% 50%, rgba(199,210,254,0.12) 0%, transparent 60%);
+    background-attachment: fixed;
+}
+
+/* Header */
 .pmra-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(253, 252, 250, 0.80);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
+    border-bottom: 0.5px solid rgba(0,0,0,0.06);
+    margin-bottom: 32px;
+    margin-top: -60px; /* pull up into st margin */
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-radius: 0 0 16px 16px;
+}
+.pmra-header-left {
+    display: flex;
+    align-items: center;
     gap: 14px;
-    padding: 4px 0 18px 0;
-    border-bottom: 0.5px solid rgba(128,128,128,0.2);
-    margin-bottom: 20px;
 }
-.pmra-header svg { height: 48px; width: auto; }
+.pmra-header-left svg { height: 32px; width: auto; border-radius: 8px; }
+.pmra-header-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(0,0,0,0.08);
+}
 .pmra-header-text h1 {
-    font-family: 'Fraunces', ui-serif, Georgia, serif;
-    font-size: 1.35rem;
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-size: 14.5px;
+    font-weight: 400;
     margin: 0;
-    line-height: 1.2;
-}
-.pmra-header-text p {
-    font-size: 0.72rem;
-    opacity: 0.55;
-    font-family: 'Fraunces', ui-serif;
-    font-style: italic;
-    margin: 2px 0 0 0;
+    letter-spacing: -0.005em;
+    color: var(--color-ink-600);
 }
 
-/* Botões primários — gradiente ember PMRA exato */
+/* Container override for glassmorphism */
+div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    background: var(--color-glass-white) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border) !important;
+    box-shadow: var(--shadow-glass) !important;
+    border-radius: 18px !important;
+    padding: 32px !important;
+    transition: all 220ms var(--ease-out-soft);
+}
+
+/* Buttons */
 button[kind="primary"],
 [data-testid="baseButton-primary"] {
-    background: linear-gradient(160deg, #f97316 0%, #ea580c 100%) !important;
+    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
     border: none !important;
     color: #FFFFFF !important;
     font-weight: 500 !important;
-    letter-spacing: 0.01em !important;
-    box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.35) inset,
-        0 6px 18px -6px rgba(249,115,22,0.55),
-        0 2px 6px -2px rgba(234,88,12,0.40) !important;
-    transition: box-shadow 0.18s ease-out, transform 0.15s ease-out !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-button) !important;
+    transition: all 220ms var(--ease-out-soft) !important;
 }
 button[kind="primary"]:hover,
 [data-testid="baseButton-primary"]:hover {
-    background: linear-gradient(160deg, #fb923c 0%, #f97316 100%) !important;
-    box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.35) inset,
-        0 10px 28px -8px rgba(249,115,22,0.60),
-        0 4px 10px -4px rgba(234,88,12,0.45) !important;
+    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
+    filter: brightness(1.06);
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.5) inset, 0 8px 22px -6px rgba(249,115,22,0.6), 0 3px 8px -2px rgba(234,88,12,0.45) !important;
     transform: translateY(-1px) !important;
 }
 
-/* Botões step — altura uniforme, sem quebra de linha */
+[data-testid="baseButton-secondary"] {
+    background: rgba(255,255,255,0.7) !important;
+    backdrop-filter: blur(12px) saturate(160%) !important;
+    border: 0.5px solid rgba(0,0,0,0.08) !important;
+    border-radius: 12px !important;
+    color: var(--color-ink) !important;
+    box-shadow: var(--shadow-input) !important;
+    font-weight: 500 !important;
+}
+[data-testid="baseButton-secondary"]:hover {
+    background: rgba(255,255,255,0.9) !important;
+    border-color: rgba(0,0,0,0.14) !important;
+}
+
+/* Step Buttons uniform height */
 [data-testid="stBaseButton-secondary"] > button,
-[data-testid="stBaseButton-primary"] > button,
-[data-testid="baseButton-secondary"],
-[data-testid="baseButton-primary"] {
+[data-testid="stBaseButton-primary"] > button {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    height: 38px !important;
-    min-height: 38px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 999px !important;
 }
 
-/* Botões step concluídos */
-[data-testid="baseButton-secondary"] {
-    border-color: rgba(249,115,22,0.35) !important;
-    color: #c2410c !important;
+/* Input fields */
+[data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"], [data-baseweb="base-input"] {
+    background: rgba(255,255,255,0.7) !important;
+    backdrop-filter: blur(12px) saturate(160%) !important;
+    border: 0.5px solid rgba(0,0,0,0.08) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-input) !important;
+    transition: all 220ms var(--ease-out-soft) !important;
+}
+[data-baseweb="input"]:focus-within, [data-baseweb="textarea"]:focus-within, [data-baseweb="select"]:focus-within {
+    border-color: rgba(249,115,22,0.55) !important;
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 3px rgba(249,115,22,0.16) !important;
 }
 
-/* Barra de progresso */
-[data-testid="stProgressBar"] > div > div,
-[data-testid="stProgressBar"] > div {
-    background-color: #f97316 !important;
+/* Headings */
+h1, h2, h3, .pmra-sub-hdr {
+    font-family: var(--font-display) !important;
+    color: var(--color-ink) !important;
+}
+h2 {
+    font-size: 26px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.01em !important;
+    margin-bottom: 24px !important;
+}
+h3 {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.005em !important;
+    margin-top: 16px !important;
+    margin-bottom: 16px !important;
 }
 
-/* Divisores */
-hr { border-color: rgba(0,0,0,0.07) !important; }
+/* Labels */
+label {
+    font-family: var(--font-sans) !important;
+    font-size: 11.5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+    color: var(--color-ink-600) !important;
+    font-weight: 500 !important;
+}
 
-/* Cabeçalho de tabelas row-by-row */
-.pmra-tbl-hdr {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+/* Selection */
+::selection {
+    background: rgba(249,115,22,0.18);
+    color: var(--color-ink);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(64,64,64,0.18);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(64,64,64,0.32); background-clip: content-box; }
+
+/* Subheaders within cards */
+.pmra-sub-hdr {
+    font-family: var(--font-sans) !important;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    opacity: 0.55;
+    color: var(--color-ember-600);
+    margin-top: 24px;
+    margin-bottom: 16px;
 }
 
-/* Compacta o botão ✕ verticalmente */
+/* Progress Bar container override */
+[data-testid="stProgressBar"] > div > div {
+    background-color: var(--color-ember-500) !important;
+}
+
+/* Width constraint */
+div[data-testid="stMainBlockContainer"] {
+    max-width: 896px !important;
+    margin: 0 auto !important;
+    padding: 32px 28px !important;
+}
+
+/* Table Headers */
+.pmra-tbl-hdr {
+    font-family: var(--font-sans) !important;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-ink-400);
+    margin-bottom: 8px;
+}
+
+/* Divider */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.10), transparent) !important;
+    margin: 32px 0 !important;
+}
+
+/* Compact clear row buttons */
 [data-testid$="__del"] > div > button {
     padding-top: 0.3rem !important;
     padding-bottom: 0.3rem !important;
     font-size: 0.8rem !important;
-    color: #a3a3a3 !important;
+    color: var(--color-ink-400) !important;
     border-color: rgba(0,0,0,0.10) !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 [data-testid$="__del"] > div > button:hover {
-    color: #ef4444 !important;
-    border-color: #ef4444 !important;
+    color: var(--color-danger-600) !important;
+    border-color: var(--color-danger-600) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
 }
 
-/* Subheaders com estilo display — cor herdada do tema */
-h3 {
-    font-family: 'Fraunces', ui-serif !important;
-    font-weight: 500 !important;
-    font-size: 1.1rem !important;
-    margin-top: 0.5rem !important;
-}
-
-/* Largura máxima do formulário — evita esticar em telas grandes */
-div[data-testid="stMainBlockContainer"] {
-    max-width: 920px !important;
-    margin: 0 auto !important;
-}
-
-/* Labels de sub-seção — uppercase discreto, hierarquia clara */
-.pmra-sub-hdr {
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    opacity: 0.5;
-    margin-top: 18px;
-    margin-bottom: 8px;
-}
-
-/* Cards de revisão — etapa 5 */
+/* Review Cards */
 .review-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 .review-card {
-    background: var(--secondary-background-color);
-    border: 0.5px solid rgba(128,128,128,0.15);
-    border-radius: 10px;
-    padding: 14px 16px;
+    background: var(--color-glass-white);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: 18px;
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
 }
 .review-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.07em;
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    opacity: 0.45;
+    color: var(--color-ember-600);
 }
 .review-value {
-    font-family: 'Fraunces', ui-serif, Georgia, serif;
-    font-size: 1.0rem;
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--color-ink);
+}
+
+/* Footer style */
+.pmra-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 28px;
+    background: rgba(253, 252, 250, 0.60);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 0.5px solid rgba(0,0,0,0.05);
+    font-size: 11px;
+    color: var(--color-ink-400);
+    margin-top: 64px;
+    border-radius: 16px 16px 0 0;
+}
+.pmra-footer-left {
+    font-family: var(--font-display);
+    font-style: italic;
+    letter-spacing: 0.005em;
+}
+.pmra-footer-right {
+    font-variant-numeric: tabular-nums;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -461,15 +636,18 @@ if st.session_state.get("scroll_to_top", False):
 
 # ── Cabeçalho com logo ────────────────────────────────────────────────────────
 
-_logo_html = f'<div class="pmra-header">'
+_logo_html = f'<div class="pmra-header"><div class="pmra-header-left">'
 if _LOGO_SVG:
-    _logo_html += f'<div style="height:52px;width:52px;flex-shrink:0;">{_LOGO_SVG}</div>'
+    _logo_html += f'{_LOGO_SVG}'
+else:
+    _logo_html += f'<div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;"><span style="font-family:var(--font-display);font-style:italic;color:white;font-size:14px;font-weight:500;letter-spacing:-0.02em">PM</span></div>'
+
 _logo_html += """
+  <div class="pmra-header-divider"></div>
   <div class="pmra-header-text">
-    <h1>DocGen by PMRA Legal Tech</h1>
-    <p>Porto, Miranda, Rocha Advogados · O nosso negócio é fazer direito</p>
+    <h1>Gerador de Propostas</h1>
   </div>
-</div>"""
+</div></div>"""
 st.markdown(_logo_html, unsafe_allow_html=True)
 
 # Indicador de progresso clicável
@@ -1105,3 +1283,10 @@ if current < len(STEPS) - 1:
         use_container_width=True,
         key="nav_next",
     )
+
+st.markdown("""
+<div class="pmra-footer">
+    <div class="pmra-footer-left">O nosso negócio é fazer direito</div>
+    <div class="pmra-footer-right">PMRA Propostas · v0.1.0</div>
+</div>
+""", unsafe_allow_html=True)
