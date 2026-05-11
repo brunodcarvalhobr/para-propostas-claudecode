@@ -447,11 +447,13 @@ current: int = st.session_state.step
 if st.session_state.get("scroll_to_top", False):
     components.html("""
     <script>
-        const doc = window.parent.document;
-        const main = doc.querySelector('.main');
-        if (main) {
-            main.scrollTo({top: 0, behavior: 'smooth'});
-        }
+        const win = window.parent;
+        win.scrollTo({top: 0, behavior: 'smooth'});
+        const selectors = ['.stApp', '.main', '[data-testid="stAppViewContainer"]', '[data-testid="stMain"]'];
+        selectors.forEach(sel => {
+            const el = win.document.querySelector(sel);
+            if (el) el.scrollTo({top: 0, behavior: 'smooth'});
+        });
     </script>
     """, height=0)
     st.session_state.scroll_to_top = False
@@ -549,6 +551,7 @@ def _render_rows(
     help_text: str = "",
     col_widths: list[int] | None = None,
     field_formatters: dict[str, callable] | None = None,
+    text_areas: list[str] | None = None,
 ) -> list[dict]:
     """Renderiza tabela como linhas de inputs individuais com botão ✕ por linha.
 
@@ -574,20 +577,31 @@ def _render_rows(
     for j, label in enumerate(labels):
         header[j].markdown(f'<div class="pmra-tbl-hdr">{label}</div>', unsafe_allow_html=True)
 
+    text_areas_list = text_areas or []
     # Linhas de dados
     for i, row in enumerate(rows):
         row_cols = st.columns(widths)
         for j, field in enumerate(col_keys):
             wk = f"{ss_key}__{field}__{i}"
             fmt_fn = formatters.get(field)
-            row_cols[j].text_input(
-                labels[j],
-                value=row.get(field, ""),
-                key=wk,
-                label_visibility="collapsed",
-                on_change=fmt_fn,
-                args=(wk,) if fmt_fn else None,
-            )
+            if field in text_areas_list:
+                row_cols[j].text_area(
+                    labels[j],
+                    value=row.get(field, ""),
+                    key=wk,
+                    label_visibility="collapsed",
+                    on_change=fmt_fn,
+                    args=(wk,) if fmt_fn else None,
+                )
+            else:
+                row_cols[j].text_input(
+                    labels[j],
+                    value=row.get(field, ""),
+                    key=wk,
+                    label_visibility="collapsed",
+                    on_change=fmt_fn,
+                    args=(wk,) if fmt_fn else None,
+                )
         row_cols[-1].button(
             "✕",
             key=f"{ss_key}__del__{i}",
@@ -975,6 +989,7 @@ elif current == 3:
             {"categoria": "Categoria (Ex: Despesas Gerais)", "descricao": "Descrição"},
             help_text="Adicione ou remova despesas conforme aplicável ao escopo.",
             col_widths=[3, 6],
+            text_areas=["categoria", "descricao"],
         )
 
         st.markdown('<div class="pmra-sub-hdr">Taxa de manutenção processual</div>', unsafe_allow_html=True)

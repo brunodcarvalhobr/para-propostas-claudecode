@@ -178,6 +178,29 @@ def replace_placeholders(xml: str) -> str:
     return xml
 
 
+def _replace_cap_horas_before_globals(xml: str) -> str:
+    """Substitui o placeholder na linha 'Cap de Horas' ANTES do replace_placeholders
+    global, pois o mesmo texto e usado para CPF/CNPJ."""
+    row_re_local = re.compile(r"<w:tr\b[^>]*>.*?</w:tr>", flags=re.DOTALL)
+    cell_re_local = re.compile(r"<w:tc\b[^>]*>.*?</w:tc>", flags=re.DOTALL)
+    text_re_local = re.compile(r"<w:t[^>]*>([^<]*)</w:t>")
+
+    for m in row_re_local.finditer(xml):
+        cells = list(cell_re_local.finditer(m.group(0)))
+        if not cells:
+            continue
+        first_text = "".join(text_re_local.findall(cells[0].group(0))).strip()
+        if first_text != "Cap de Horas":
+            continue
+        last_cell = cells[-1].group(0)
+        new_cell = _replace_cell_with_placeholder(last_cell, "{{consultiva.fixo_mensal_cap}}")
+        new_row = m.group(0)[: cells[-1].start()] + new_cell + m.group(0)[cells[-1].end():]
+        xml = xml[: m.start()] + new_row + xml[m.end():]
+        print("  [pre] Cap de Horas substituido.")
+        break
+    return xml
+
+
 # -- Step 2.5: reinjetar tags perdidas ----------------------------------------
 LOST_PLACEHOLDERS: list[tuple[str, str]] = [
     ("Contatos", "{{contratante.contatos_texto}}"),
@@ -191,7 +214,7 @@ SCALAR_FIELD_REPLACEMENTS: list[tuple[str, str, str, int]] = [
     ("Valor por Hora",                   "{{R$ XXXX,XX}}", "{{consultiva.hora_fixa_valor}}",            0),
     # Consultiva: Fixo Mensal
     ("Valor Mensal",                     "{{R$ XXXX,XX}}", "{{consultiva.fixo_mensal_valor}}",          0),
-    ("Cap de Horas",                     "{{R$ XXXX,XX}}", "{{consultiva.fixo_mensal_cap}}",            0),
+    # Cap de Horas: substituido em _replace_cap_horas_before_globals() (pre-step)
     ("Valor da Hora Excedente",          "{{R$ XXXX,XX}}", "{{consultiva.fixo_mensal_excedente}}",      0),
     # Consultiva: Valor do Projeto
     ("Valor Total",                      "{{R$ XXXX,XX}}", "{{consultiva.valor_projeto_total}}",        0),
@@ -513,11 +536,19 @@ def replace_scalar_fields(xml: str) -> str:
             continue
         m = matched_rows[occurrence]
         row = m.group(0)
-        if placeholder not in row:
-            print(f"  ! placeholder {placeholder!r} nao esta na linha {row_label!r} #{occurrence}")
-            continue
-        new_row = row.replace(placeholder, replacement, 1)
-        xml = xml[: m.start()] + new_row + xml[m.end():]
+        if placeholder in row:
+            new_row = row.replace(placeholder, replacement, 1)
+            xml = xml[: m.start()] + new_row + xml[m.end():]
+        else:
+            # placeholder pode estar fragmentado em multiplos runs — usa texto logico da celula de valor
+            cells = list(cell_re.finditer(row))
+            value_cell = cells[-1].group(0) if cells else None
+            if value_cell and placeholder in _para_text(value_cell):
+                new_value_cell = _replace_cell_with_placeholder(value_cell, replacement)
+                new_row = row[: cells[-1].start()] + new_value_cell + row[cells[-1].end():]
+                xml = xml[: m.start()] + new_row + xml[m.end():]
+            else:
+                print(f"  ! placeholder {placeholder!r} nao esta na linha {row_label!r} #{occurrence}")
 
     return xml
 
@@ -785,6 +816,8 @@ def neutralize_leftover_placeholders(xml: str) -> str:
 
 # -- Pipeline ------------------------------------------------------------------
 def transform_document_xml(xml: str) -> str:
+    print("[0/8] Pre-substituindo Cap de Horas (conflito de placeholder)...")
+    xml = _replace_cap_horas_before_globals(xml)
     print("[1/8] Removendo runs de instrucao (cor EE0000)...")
     xml = remove_red_runs(xml)
     print("[2/8] Substituindo placeholders por tags Jinja2...")
