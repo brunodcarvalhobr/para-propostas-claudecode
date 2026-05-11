@@ -455,6 +455,24 @@ components.html("""
   function start() {
     setupMasks();
     obs.observe(window.parent.document.body, { childList: true, subtree: true });
+    
+    // Inject and initialize MS Teams SDK in the parent document
+    const parentDoc = window.parent.document;
+    if (!parentDoc.getElementById('teams-sdk-script')) {
+      const tsScript = parentDoc.createElement('script');
+      tsScript.id = 'teams-sdk-script';
+      tsScript.src = 'https://res.cdn.office.net/teams-js/2.11.0/js/MicrosoftTeams.min.js';
+      tsScript.onload = function() {
+        if (window.parent.microsoftTeams) {
+          window.parent.microsoftTeams.app.initialize().then(function() {
+            console.log("MS Teams SDK initialized successfully.");
+          }).catch(function(e) {
+            console.log("Teams initialization failed (or not running in Teams):", e);
+          });
+        }
+      };
+      parentDoc.head.appendChild(tsScript);
+    }
   }
 
   if (window.parent.document.readyState === 'loading') {
