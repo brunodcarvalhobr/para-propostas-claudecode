@@ -198,7 +198,7 @@ SCALAR_FIELD_REPLACEMENTS: list[tuple[str, str, str, int]] = [
     ("Forma de pagamento",
      "{{Definir como será pago, se parcelado, ao final, por marcos de entrega, datas específicas ou periodicidade específica, ou ao final do projeto}}",
      "{{consultiva.valor_projeto_forma_pagamento}}",                                                    0),
-    # Contenciosa: Preco Mensal para Massa Processual
+    # Contenciosa: Preco Mensal
     ("Valor Mensal Fixo",                "{{R$ XXXX,XX}}", "{{contenciosa.preco_mensal_valor}}",        0),
     ("Número Máximo de Ações Cobertas",  "{{X}}",          "{{contenciosa.preco_mensal_maximo_acoes}}", 0),
     ("Número Máximo de Ações Cobertas",  "{{por extenso}}", "{{contenciosa.preco_mensal_maximo_acoes_extenso}}", 0),
@@ -692,13 +692,13 @@ def add_conditionals(xml: str) -> str:
     xml = wrap_range(
         xml,
         "Valor por Ato Processual",
-        "Preço Mensal para Massa Processual",
+        "Preço Mensal",
         "contenciosa.show_valor_ato",
         inclusive_end=False,
     )
     xml = wrap_range(
         xml,
-        "Preço Mensal para Massa Processual",
+        "Preço Mensal",
         "Valor por Projeto",
         "contenciosa.show_preco_mensal",
         inclusive_end=False,
