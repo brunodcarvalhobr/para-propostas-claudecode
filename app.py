@@ -172,8 +172,8 @@ div[data-testid="stMainBlockContainer"] {
     margin-bottom: 20px;
 }
 .review-card {
-    background: white;
-    border: 0.5px solid rgba(0,0,0,0.08);
+    background: var(--secondary-background-color);
+    border: 0.5px solid rgba(128,128,128,0.15);
     border-radius: 10px;
     padding: 14px 16px;
     display: flex;
