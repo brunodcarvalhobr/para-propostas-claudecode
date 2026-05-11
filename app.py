@@ -850,7 +850,7 @@ if current == 0:
 
         c1, c2 = st.columns([3, 1])
         end["logradouro"] = c1.text_input("Logradouro", value=end["logradouro"], key="logradouro_input")
-        end["numero"] = c2.text_input("Número", value=end["numero"], key="numero_input")
+        end["numero"] = c2.text_input("Número/Complemento", value=end["numero"], key="numero_input")
 
         c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
         end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
