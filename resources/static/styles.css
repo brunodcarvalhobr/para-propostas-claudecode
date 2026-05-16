@@ -101,12 +101,17 @@ html, body, .stApp,
     color: var(--color-ink) !important;
 }
 
-/* Labels: titulos acima de cada campo (TIPO DE PESSOA, RAZAO SOCIAL, etc.) */
+/* Labels: titulos acima de cada campo (TIPO DE PESSOA, RAZAO SOCIAL, etc.).
+   Tambem zera border/background herdado para nao aparecer "caixinha" em
+   volta do texto em dark mode. */
 .stApp [data-testid="stWidgetLabel"],
 .stApp [data-testid="stWidgetLabel"] *,
 .stApp [data-baseweb="form-control"] label,
 .stApp [data-baseweb="form-control"] label * {
     color: var(--color-ink-600) !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 /* Labels das opcoes de checkbox e radio (HORA POR SENIORIDADE, etc.) */
@@ -115,6 +120,7 @@ html, body, .stApp,
 .stApp [data-baseweb="radio"] label,
 .stApp [data-baseweb="radio"] label * {
     color: var(--color-ink) !important;
+    background: transparent !important;
 }
 
 /* Texto geral em markdown nativo (st.write, st.text, st.caption) */
@@ -162,67 +168,46 @@ html, body, .stApp,
     opacity: 0.6;
 }
 
-/* Checkbox visual: o quadradinho clicavel.
-   Streamlit usa Baseweb que renderiza um <span> contendo um <input> oculto
-   e um <span> visivel com fundo. Cobrimos varias variantes possiveis. */
-.stApp [data-testid="stCheckbox"] label > div:first-child,
-.stApp [data-testid="stCheckbox"] label > span:first-child,
-.stApp [data-testid="stCheckbox"] label > div:first-child > div,
-.stApp [data-testid="stCheckbox"] label > span:first-child > span,
-.stApp [data-testid="stCheckbox"] [data-baseweb] > div:first-child,
-.stApp [data-baseweb="checkbox"] > label > span:first-child,
-.stApp [data-baseweb="checkbox"] > label > div:first-child {
-    background-color: rgba(255,255,255,0.92) !important;
-    border: 1px solid rgba(0,0,0,0.30) !important;
-    border-radius: 4px !important;
-}
-/* Quando marcado: ember */
-.stApp [data-testid="stCheckbox"] input:checked + div,
-.stApp [data-testid="stCheckbox"] input:checked + span,
-.stApp [data-testid="stCheckbox"] input:checked ~ div:first-child,
-.stApp [data-baseweb="checkbox"][aria-checked="true"] > label > span:first-child,
-.stApp [data-baseweb="checkbox"][aria-checked="true"] > label > div:first-child {
-    background-color: var(--color-ember-500) !important;
-    border-color: var(--color-ember-600) !important;
-}
-.stApp [data-testid="stCheckbox"] svg,
-.stApp [data-baseweb="checkbox"] svg {
-    color: #ffffff !important;
-    fill: #ffffff !important;
-}
-
-/* Radio visual: idem checkbox */
-.stApp [data-testid="stRadio"] label > div:first-child,
-.stApp [data-baseweb="radio"] > label > div:first-child,
-.stApp [data-baseweb="radio"] [role="radio"] {
-    background-color: rgba(255,255,255,0.92) !important;
-    border: 1px solid rgba(0,0,0,0.30) !important;
+/* Checkbox/radio: usa accent-color nativo (CSS3) em vez de hackear DOM Baseweb.
+   Funciona em light e dark mode sem efeitos colaterais. O quadrado/circulo
+   adota tema light por causa do color-scheme: light declarado acima. */
+.stApp input[type="checkbox"],
+.stApp input[type="radio"] {
+    accent-color: var(--color-ember-500) !important;
+    color-scheme: light !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    DROPDOWN POPUP (UF selectbox, demais selects)
    IMPORTANTE: o popup do Streamlit/Baseweb e renderizado em PORTAL no body,
    FORA de .stApp. Por isso os seletores aqui NAO sao prefixados com .stApp.
+   As cores sao hardcoded (nao usam var(--...)) porque o portal pode estar
+   fora do escopo onde as variaveis CSS sao definidas.
    ────────────────────────────────────────────────────────────────────────────*/
 [data-baseweb="popover"],
 [data-baseweb="menu"],
 [role="listbox"],
 [data-baseweb="select-dropdown"] {
-    background-color: rgba(255,255,255,0.98) !important;
-    color: var(--color-ink, #0a0a0a) !important;
+    background-color: #ffffff !important;
+    color: #0a0a0a !important;
     border: 1px solid rgba(0,0,0,0.10) !important;
     box-shadow: 0 8px 24px -4px rgba(15,15,20,0.15) !important;
+}
+[data-baseweb="popover"] *,
+[data-baseweb="menu"] *,
+[role="listbox"] *,
+[role="option"],
+[role="option"] * {
+    color: #0a0a0a !important;
 }
 [data-baseweb="menu"] li,
 [role="listbox"] li,
 [role="option"] {
-    color: var(--color-ink, #0a0a0a) !important;
     background-color: transparent !important;
 }
 [role="option"]:hover,
 [role="option"][aria-selected="true"] {
     background-color: rgba(249,115,22,0.12) !important;
-    color: var(--color-ink, #0a0a0a) !important;
 }
 
 /* Header */
