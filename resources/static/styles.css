@@ -360,13 +360,16 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     transition: all 220ms var(--ease-out-soft);
 }
 
-/* X delete button (ultimo coluna do row em _render_rows): como o X nao tem
-   label e os outros inputs tem (Categoria, Valor por hora, etc.), as colunas
-   ficavam com alturas diferentes e o X ficava colado no topo. Flex-end alinha
-   o conteudo da coluna do X com o bottom, casando com o input ao lado.
-   Usa :has() para identificar coluna que contem apenas um button (sem input). */
-[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child:has([data-testid="stButton"]):not(:has([data-baseweb])) {
-    justify-content: flex-end;
+/* X delete button (ultima coluna do row em _render_rows): como o X nao tem
+   label individual e os outros inputs tem (Categoria, Valor por hora, etc.),
+   o botao ficava colado no topo da linha, desalinhado com o input ao lado.
+   Solucao: margin-top = altura aproximada do label + gap (~1.7rem) na ultima
+   coluna do row APENAS em desktop (mobile colapsa vertical, nao precisa).
+   Nao afeta nav buttons (estao em coluna do meio, nao last-child). */
+@media (min-width: 721px) {
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > div > [data-testid="stElementContainer"]:first-child > [data-testid="stButton"] {
+        margin-top: 1.7rem;
+    }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
