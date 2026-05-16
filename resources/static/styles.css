@@ -96,18 +96,33 @@ footer,
 }
 
 /* Compensa o espaco que o header ocupava (puxa o conteudo para cima) */
-/* Zera o padding-top em TODOS os wrappers que o Streamlit adiciona por padrao
-   acima do conteudo. Sem isso, sobra ~150-200px de espaco vazio acima do
-   .pmra-header. Cobertura ampla porque Streamlit varia os wrappers entre
-   versoes. */
+/* Zera padding-top em TODOS os wrappers da cadeia ancestral. Streamlit
+   aplica padding-top: 6rem (~96px) no .block-container por padrao para deixar
+   espaco para o header nativo — como o header esta escondido, esse padding
+   vira espaco vazio orfao no topo. Cobertura ultra-ampla para garantir que
+   pega TODAS as variantes em qualquer versao do Streamlit. */
+html,
+body,
+#root,
 .stApp,
+[data-testid="stApp"],
 [data-testid="stAppViewContainer"],
-[data-testid="stMain"],
 [data-testid="stAppViewContainer"] > section,
 [data-testid="stAppViewContainer"] > .main,
+[data-testid="stMain"],
+[data-testid="stMain"] > div,
 [data-testid="stMain"] > .block-container,
+section[data-testid="stMain"],
+section[data-testid="stMain"] > div,
+.main,
+.main > div,
+.block-container,
+section.main,
+section.main > .block-container,
+div.block-container,
 div[data-testid="stMainBlockContainer"] {
     padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 /* Primeiro filho do container principal nao deve ter margin-top */
