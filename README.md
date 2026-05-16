@@ -25,11 +25,10 @@ no repositório irmão.
 │   ├── data_mapper.py              # form -> contexto do template
 │   ├── defaults.py                 # Valores pré-preenchidos (tabela senioridade etc.)
 │   ├── schema.py                   # Modelos Pydantic
-│   ├── template_engine.py          # Renderização docxtpl + pós-processamento de \n
-│   └── validators.py               # CPF/CNPJ por dígito verificador
+│   └── template_engine.py          # Renderização docxtpl + pós-processamento de \n
 ├── scripts/
 │   └── smoke_test.py               # End-to-end: 3 cenários -> out/*.docx
-├── tests/                          # Suíte pytest (validators, data_mapper, schema)
+├── tests/                          # Suíte pytest (data_mapper, schema)
 ├── resources/
 │   ├── static/styles.css           # CSS extraído do app.py
 │   └── templates/
@@ -63,7 +62,7 @@ Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
 
 ```bash
 pip install pytest
-pytest tests/                 # unitários (validators, data_mapper, schema)
+pytest tests/                 # unitários (data_mapper, schema)
 python scripts/smoke_test.py  # end-to-end: gera 3 .docx em out/
 ```
 

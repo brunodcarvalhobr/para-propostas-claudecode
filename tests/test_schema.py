@@ -1,6 +1,3 @@
-import pytest
-from pydantic import ValidationError
-
 from pmra.schema import Contratante, Escopo
 
 
@@ -30,23 +27,20 @@ class TestContratanteCrossfield:
         assert c.razao_social == "Acme"
 
 
-class TestContratanteDocumentValidation:
-    def test_pf_cpf_valido(self):
-        Contratante(tipo_pessoa="fisica", cpf="111.444.777-35")
+class TestContratanteAceitaQualquerCpfCnpj:
+    # Gerador de propostas aceita CPF/CNPJ temporario/ficticio — sem validacao
+    # de digito verificador (usuario pode estar testando ou usando placeholder).
+    def test_cpf_qualquer_string(self):
+        Contratante(tipo_pessoa="fisica", cpf="000.000.000-00")
+        Contratante(tipo_pessoa="fisica", cpf="111.111.111-11")
+        Contratante(tipo_pessoa="fisica", cpf="123.456.789-00")
 
-    def test_pf_cpf_invalido(self):
-        with pytest.raises(ValidationError, match="CPF invalido"):
-            Contratante(tipo_pessoa="fisica", cpf="111.444.777-36")
-
-    def test_pj_cnpj_valido(self):
-        Contratante(tipo_pessoa="juridica", cnpj="11.222.333/0001-81")
-
-    def test_pj_cnpj_invalido(self):
-        with pytest.raises(ValidationError, match="CNPJ invalido"):
-            Contratante(tipo_pessoa="juridica", cnpj="11.222.333/0001-82")
+    def test_cnpj_qualquer_string(self):
+        Contratante(tipo_pessoa="juridica", cnpj="00.000.000/0000-00")
+        Contratante(tipo_pessoa="juridica", cnpj="11.111.111/1111-11")
+        Contratante(tipo_pessoa="juridica", cnpj="98.765.432/0001-99")
 
     def test_cpf_vazio_permitido(self):
-        # Form parcial deve ser aceito (defaults vazios)
         Contratante(tipo_pessoa="fisica")
 
     def test_cnpj_vazio_permitido(self):

@@ -1119,15 +1119,12 @@ elif current == 4:
             with st.spinner("Gerando proposta…"):
                 st.session_state.generated_doc = render_proposal(context)
             st.success("Proposta gerada com sucesso. Clique em **Baixar .docx** para salvar.")
-        except Exception as e:
+        except Exception:
             logger.exception("Falha ao gerar proposta")
-            # Mensagem amigavel + classe/mensagem da excecao (sem traceback completo,
-            # que poderia expor caminhos internos). Suficiente para diagnostico.
             st.error(
                 "Não foi possível gerar a proposta. Verifique os campos preenchidos "
                 "e tente novamente. Se o problema persistir, contate o suporte."
             )
-            st.caption(f"Detalhe técnico: `{type(e).__name__}: {e}`")
 
     if st.session_state.generated_doc:
         safe_name = (

@@ -5,14 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **Suíte de testes pytest** em `tests/` (validators, data_mapper, schema) — 50 testes.
+- **Suíte de testes pytest** em `tests/` (data_mapper, schema).
 - **Smoke test com asserções de conteúdo** (`scripts/smoke_test.py`) verificando que dados específicos aparecem no `.docx` renderizado.
 - **CI** em `.github/workflows/ci.yml` rodando pytest + smoke test em PR.
-- **`pmra/validators.py`**: validação de CPF/CNPJ por dígito verificador.
 - **`resources/static/styles.css`**: CSS extraído de `app.py` (340 linhas inline → arquivo dedicado).
 
 ### Changed
-- Schema `Contratante` agora valida CPF/CNPJ (dígito verificador) e zera campos cruzados PF/PJ.
+- Schema `Contratante` agora zera campos cruzados PF/PJ (CPF/CNPJ aceitam qualquer string para permitir números temporários ou de teste).
 - `requirements.txt` com pinning estrito (`pydantic==2.13.4`, `pandas==2.3.3`).
 - `.streamlit/config.toml`: `enableXsrfProtection = true` (estava desativado).
 - `.devcontainer/devcontainer.json`: removidos flags `--enableCORS false --enableXsrfProtection false`.
