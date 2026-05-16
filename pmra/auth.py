@@ -59,15 +59,17 @@ def check_password() -> bool:
 
     # HTML em uma linha por elemento (sem indentacao) para evitar que o parser
     # markdown do Streamlit interprete whitespace antes do texto como margem.
+    # Usa <div> em vez de <h1>/<p> para evitar estilos default do Streamlit
+    # em headings/paragrafos que podem aplicar padding/margin assimetrico.
     login_html = (
         '<div class="pmra-login">'
         f'<div class="pmra-login-logo">{logo_svg}</div>'
-        '<h1 class="pmra-login-title">Gerador de Propostas PMRA</h1>'
-        '<p class="pmra-login-subtitle">Desenvolvido pelo Legal Tech PMRA</p>'
-        '<p class="pmra-login-message">'
+        '<div class="pmra-login-title">Gerador de Propostas PMRA</div>'
+        '<div class="pmra-login-subtitle">Desenvolvido pelo Legal Tech PMRA</div>'
+        '<div class="pmra-login-message">'
         'Acesso restrito. Informe a senha mestra para acesso ao app. '
         'Não compartilhe a senha com pessoas não autorizadas ou fora da organização.'
-        '</p>'
+        '</div>'
         '</div>'
     )
     st.markdown(login_html, unsafe_allow_html=True)

@@ -706,9 +706,13 @@ hr {
 .pmra-login-message {
     display: block !important;
     width: 100% !important;
+    align-self: stretch !important;
     text-align: center !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
 }
 .pmra-login-title {
     font-family: var(--font-display) !important;
