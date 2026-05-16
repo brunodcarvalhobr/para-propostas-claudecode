@@ -19,7 +19,8 @@ VARIAVEIS: dict[str, str] = {
     "{{contratante.endereco_completo}}": "[ENDERECO]",
     "{{contratante.contato_nome}}": "[CONTATO_NOME]",
     "{{contratante.contatos_texto}}": "[CONTATOS]",
-    "{{meta.nome_ou_razao_social}}": "[NOME_OU_RAZAO]",
+    # Renderizado via RichText (negrito + caixa alta) — prefixo `r` necessario
+    "{{r meta.nome_ou_razao_social}}": "[NOME_OU_RAZAO]",
 
     "{{escopo.atuacao_consultiva}}": "[ATUACAO_CONSULTIVA]",
     "{{escopo.atuacao_contenciosa}}": "[ATUACAO_CONTENCIOSA]",

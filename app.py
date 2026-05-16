@@ -1,4 +1,4 @@
-"""DocGen by PMRA Legal Tech (Streamlit) — formulário em etapas."""
+"""Gerador de Propostas PMRA (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
 import html
@@ -28,7 +28,7 @@ if os.path.exists(_SVG_PATH):
 
 
 st.set_page_config(
-    page_title="DocGen by PMRA Legal Tech",
+    page_title="Gerador de Propostas PMRA",
     page_icon="⚖️",
     layout="wide",
 )
@@ -142,7 +142,7 @@ components.html("""
 
 STEPS = [
     "Contratante",
-    "Escopo e SLA",
+    "Escopo",
     "Honorários",
     "Despesas",
     "Gerar Proposta",
@@ -478,6 +478,7 @@ if current == 0:
     st.subheader("Identificação do contratante")
 
     with st.container(border=True):
+        st.markdown('<div class="pmra-sub-hdr">Identificação</div>', unsafe_allow_html=True)
         form["contratante"]["tipo_pessoa"] = st.radio(
             "Tipo de pessoa",
             options=("fisica", "juridica"),
@@ -553,11 +554,10 @@ if current == 0:
         form["contratante"]["contatos"] = records_contatos
 
 
-# ── ETAPA 2: ESCOPO E SLA ──────────────────────────────────────────────────────
+# ── ETAPA 2: ESCOPO ───────────────────────────────────────────────────────────
 
 elif current == 1:
-    _titulo = "Escopo da contratação" if form["escopo"]["modalidade"] == "contenciosa" else "Escopo da contratação e SLA"
-    st.subheader(_titulo)
+    st.subheader("Escopo da contratação")
 
     with st.container(border=True):
         modalidades = ("consultiva", "contenciosa", "mista")
@@ -586,25 +586,10 @@ elif current == 1:
                 placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
             )
 
-        if modal in ("contenciosa", "mista"):
-            st.markdown('<div class="pmra-sub-hdr">Atuação Contenciosa</div>', unsafe_allow_html=True)
-            form["escopo"]["atuacao_contenciosa"] = st.text_area(
-                "Matérias, foros, instâncias e atos processuais",
-                value=form["escopo"]["atuacao_contenciosa"],
-                height=150,
-                key="atuacao_contenciosa_ta",
-                placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
-            )
-
-    # SLA so faz sentido para escopo consultivo ou misto. Em escopo puramente
-    # contencioso a secao some e qualquer valor previamente salvo e zerado
-    # (defesa em camadas: aqui na UI e tambem no validator do schema).
-    if modal == "contenciosa":
-        form["escopo"]["sla_ativo"] = False
-        form["escopo"]["sla_descricao"] = ""
-    else:
-        with st.container(border=True):
-            st.markdown('<div class="pmra-sub-hdr">SLA por complexidade</div>', unsafe_allow_html=True)
+            # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
+            # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
+            # o else abaixo zera os campos.
+            st.markdown('<div class="pmra-sub-hdr">SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
             form["escopo"]["sla_ativo"] = st.checkbox(
                 "Definir prazos de resposta por complexidade?",
                 value=form["escopo"]["sla_ativo"],
@@ -618,6 +603,21 @@ elif current == 1:
                     key="sla_descricao_ta",
                     placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
                 )
+        else:
+            # Modal == contenciosa: SLA nao se aplica, zera por defesa em camadas
+            # (alem do validator do schema).
+            form["escopo"]["sla_ativo"] = False
+            form["escopo"]["sla_descricao"] = ""
+
+        if modal in ("contenciosa", "mista"):
+            st.markdown('<div class="pmra-sub-hdr">Atuação Contenciosa</div>', unsafe_allow_html=True)
+            form["escopo"]["atuacao_contenciosa"] = st.text_area(
+                "Matérias, foros, instâncias e atos processuais",
+                value=form["escopo"]["atuacao_contenciosa"],
+                height=150,
+                key="atuacao_contenciosa_ta",
+                placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
+            )
 
 
 # ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────
@@ -626,6 +626,12 @@ elif current == 2:
     modal = form["escopo"]["modalidade"]
     show_consultiva = modal in ("consultiva", "mista")
     show_contenciosa = modal in ("contenciosa", "mista")
+
+    # Defesa em camadas: se nao ha modalidade contenciosa, taxa de manutencao
+    # processual (que foi movida para esta secao) nao se aplica.
+    if not show_contenciosa:
+        form["despesas"]["taxa_manutencao_ativa"] = False
+        form["despesas"]["taxa_manutencao_processual"] = ""
 
     # ── 3a. Consultiva
     if show_consultiva:
@@ -695,10 +701,11 @@ elif current == 2:
                     args=("cons_vp_total",),
                 )
                 form["honorarios_consultiva"]["valor_projeto_forma_pagamento"] = st.text_area(
-                    "Forma de pagamento",
+                    "Forma ou prazos de pagamento",
                     value=form["honorarios_consultiva"]["valor_projeto_forma_pagamento"],
                     height=80,
                     key="cons_vp_forma",
+                    placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
                 )
 
     # ── 3b. Contenciosa
@@ -729,7 +736,7 @@ elif current == 2:
                 form["honorarios_contenciosa"]["tabela_atos"] = _render_rows(
                     "tbl_atos",
                     {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
-                    help_text="Preencha o valor de cada ato (Ex: R$ 1.500,00). Linhas sem valor são ignoradas.",
+                    help_text="Preencha o valor de cada ato (Ex: R$ 1.500,00). Linhas sem valor são ignoradas. Use o X para remover atos não aplicáveis ou acrescente novos ao seu critério.",
                     col_widths=[3, 4, 2],
                     field_formatters={"valor": _on_money_change},
                 )
@@ -779,16 +786,32 @@ elif current == 2:
                     key="cont_vp_fases",
                 )
                 form["honorarios_contenciosa"]["valor_projeto_forma_pagamento"] = st.text_area(
-                    "Forma de pagamento",
+                    "Forma ou prazos de pagamento",
                     value=form["honorarios_contenciosa"]["valor_projeto_forma_pagamento"],
                     height=80,
                     key="cont_vp_forma",
+                    placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
                 )
 
         cont_tem_modalidade = any([
             cm["valor_acao"], cm["valor_ato_processual"],
             cm["preco_mensal_massa"], cm["valor_projeto"],
         ])
+
+        # Horas para servicos extra escopo: so faz sentido se NAO houver nenhuma
+        # modalidade horaria definida na consultiva (senioridade, hora media ou
+        # fixo mensal com hora excedente). Se ja existe valor de hora consultivo,
+        # ele se aplica ao extra escopo contencioso tambem.
+        consultiva_mods = form["honorarios_consultiva"]["modalidades"]
+        ja_tem_hora_consultiva = (
+            consultiva_mods["hora_senioridade"]
+            or consultiva_mods["hora_fixa"]
+            or consultiva_mods["fixo_mensal"]
+        )
+        show_horas_extra_escopo = (
+            modal == "contenciosa"
+            or (modal == "mista" and not ja_tem_hora_consultiva)
+        )
 
         if cont_tem_modalidade:
             with st.container(border=True):
@@ -805,34 +828,65 @@ elif current == 2:
                         key="cont_exito_pct",
                     )
 
-            with st.container(border=True):
-                st.markdown('<div class="pmra-sub-hdr">Horas para serviços extra escopo</div>', unsafe_allow_html=True)
-            modos = ("senioridade", "horaFixa")
-            form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
-                "Modo de cobrança",
-                options=modos,
-                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
-                index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
-                horizontal=True,
-                key="horas_extra_modo_radio",
-            )
-            if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
-                form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_rows(
-                    "tbl_sen_extra",
-                    {"categoria": "Categoria", "valor": "Valor por hora"},
-                    help_text="Ex: Sócio | R$ 1.050,00",
-                    col_widths=[3, 2],
-                    field_formatters={"valor": _on_money_change},
+                # Taxa de manutencao processual — checkbox com a mesma logica do Exito
+                form["despesas"]["taxa_manutencao_ativa"] = st.checkbox(
+                    "Cobrar taxa de manutenção processual?",
+                    value=form["despesas"]["taxa_manutencao_ativa"],
+                    key="desp_taxa_ativa_cb",
                 )
+                if form["despesas"]["taxa_manutencao_ativa"]:
+                    form["despesas"]["taxa_manutencao_processual"] = st.text_input(
+                        "Valor da taxa",
+                        value=form["despesas"]["taxa_manutencao_processual"],
+                        placeholder="Ex: R$ 50,00 por processo/mês",
+                        key="desp_taxa_input",
+                        on_change=_on_money_change,
+                        args=("desp_taxa_input",),
+                    )
+                else:
+                    # Zera o valor quando desativado para nao vazar para o documento
+                    form["despesas"]["taxa_manutencao_processual"] = ""
+
+            if show_horas_extra_escopo:
+                with st.container(border=True):
+                    st.markdown('<div class="pmra-sub-hdr">Horas para serviços extra escopo</div>', unsafe_allow_html=True)
+                    st.caption("Obrigatório inserir ao menos uma das modalidades para serviços excedentes.")
+                    modos = ("senioridade", "horaFixa")
+                    form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
+                        "Modo de cobrança",
+                        options=modos,
+                        format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
+                        index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
+                        horizontal=True,
+                        key="horas_extra_modo_radio",
+                    )
+                    if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
+                        form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_rows(
+                            "tbl_sen_extra",
+                            {"categoria": "Categoria", "valor": "Valor por hora"},
+                            help_text="Ex: Sócio | R$ 1.050,00",
+                            col_widths=[3, 2],
+                            field_formatters={"valor": _on_money_change},
+                        )
+                    else:
+                        form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
+                            "Valor por hora — extra escopo",
+                            value=form["honorarios_contenciosa"]["horas_extra_valor"],
+                            placeholder="Ex: R$ 500,00",
+                            key="cont_extra_valor",
+                            on_change=_on_money_change,
+                            args=("cont_extra_valor",),
+                        )
             else:
-                form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
-                    "Valor por hora — extra escopo",
-                    value=form["honorarios_contenciosa"]["horas_extra_valor"],
-                    placeholder="Ex: R$ 500,00",
-                    key="cont_extra_valor",
-                    on_change=_on_money_change,
-                    args=("cont_extra_valor",),
-                )
+                # Inherita rate horario da consultiva — zera dados de horas extra
+                # para nao deixar restos no documento.
+                form["honorarios_contenciosa"]["horas_extra_senioridade"] = []
+                form["honorarios_contenciosa"]["horas_extra_valor"] = ""
+        else:
+            # Sem modalidade contenciosa selecionada — Taxa de manutencao tambem nao
+            # se aplica.
+            form["despesas"]["taxa_manutencao_ativa"] = False
+            form["despesas"]["taxa_manutencao_processual"] = ""
 
 
 # ── ETAPA 4: DESPESAS E DISPOSIÇÕES ───────────────────────────────────────────
@@ -842,26 +896,29 @@ elif current == 3:
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr">Despesas previstas</div>', unsafe_allow_html=True)
+        st.caption(
+            "Adicione ou remova despesas conforme aplicável ao escopo. "
+            "Caso a natureza do projeto seja apenas consultiva, remova Despesas Gerais "
+            "(aplicáveis à atuação contenciosa). O texto preenchido já vem exibido na "
+            "proposta por padrão; você pode inserir, alterar ou remover qualquer "
+            "conteúdo. Para adicionar nova categoria de despesa, use o campo "
+            '"Adicionar".'
+        )
         form["despesas"]["tabela_despesas"] = _render_rows(
             "tbl_despesas",
             {"categoria": "Categoria (Ex: Despesas Logísticas)", "descricao": "Descrição"},
-            help_text="Adicione ou remova despesas conforme aplicável ao escopo.",
+            help_text="",
             col_widths=[3, 6],
             text_areas=["categoria", "descricao"],
         )
 
-        st.markdown('<div class="pmra-sub-hdr">Taxa de manutenção processual</div>', unsafe_allow_html=True)
-        form["despesas"]["taxa_manutencao_processual"] = st.text_input(
-            "Taxa de manutenção processual (deixe vazio para não cobrar)",
-            value=form["despesas"]["taxa_manutencao_processual"],
-            placeholder="Ex: R$ 50,00 por processo/mês",
-            key="desp_taxa_input",
-            on_change=_on_money_change,
-            args=("desp_taxa_input",),
-        )
-
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr">Disposições específicas</div>', unsafe_allow_html=True)
+        st.caption(
+            "Inclua aqui quaisquer outras disposições específicas que serão aplicáveis "
+            "fora das condições gerais do Escritório. Elas prevalecerão sobre as "
+            "condições gerais."
+        )
         form["disposicoes"]["ativo"] = st.checkbox(
             "Incluir seção de disposições específicas no contrato?",
             value=form["disposicoes"]["ativo"],
@@ -885,36 +942,105 @@ elif current == 4:
     tipo = form["contratante"]["tipo_pessoa"]
     nome_cliente = form["contratante"]["nome"] if tipo == "fisica" else form["contratante"]["razao_social"]
     doc_cliente = form["contratante"]["cpf"] if tipo == "fisica" else form["contratante"]["cnpj"]
-    cidade = form["contratante"]["endereco"]["cidade"]
-    uf = form["contratante"]["endereco"]["uf"]
+    end = form["contratante"]["endereco"]
+    cidade_uf = "/".join(p for p in [end["cidade"], end["uf"]] if p) or "—"
 
-    localidade = f"{cidade}/{uf}" if cidade else "—"
-    review_nome = html.escape(nome_cliente or "—")
-    review_doc = html.escape(doc_cliente or "—")
-    review_localidade = html.escape(localidade)
-    review_modal = html.escape(modal.capitalize())
-    st.markdown(f"""
-<div class="review-grid">
-  <div class="review-card">
-    <div class="review-label">Contratante</div>
-    <div class="review-value">{review_nome}</div>
-  </div>
-  <div class="review-card">
-    <div class="review-label">Documento</div>
-    <div class="review-value">{review_doc}</div>
-  </div>
-  <div class="review-card">
-    <div class="review-label">Localidade</div>
-    <div class="review-value">{review_localidade}</div>
-  </div>
-  <div class="review-card">
-    <div class="review-label">Modalidade</div>
-    <div class="review-value">{review_modal}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    def _esc(s: str) -> str:
+        return html.escape(str(s)) if s else "—"
 
-    st.markdown("---")
+    # ── Card Contratante
+    contratante_linhas = [
+        "Pessoa Física" if tipo == "fisica" else "Pessoa Jurídica",
+        _esc(nome_cliente),
+        f"{'CPF' if tipo == 'fisica' else 'CNPJ'}: {_esc(doc_cliente)}",
+        _esc(cidade_uf),
+        f"Contato: {_esc(form['contratante']['contato_nome'])}",
+    ]
+
+    # ── Card Escopo e SLA
+    modalidade_label = {"consultiva": "Consultiva", "contenciosa": "Contenciosa", "mista": "Mista"}[modal]
+    escopo_linhas = [f"Modalidade: {modalidade_label}"]
+    if modal in ("consultiva", "mista"):
+        cons_texto = (form["escopo"]["atuacao_consultiva"] or "").strip()
+        if cons_texto:
+            escopo_linhas.append(f"Consultiva: {_esc(cons_texto[:80])}{'…' if len(cons_texto) > 80 else ''}")
+    if modal in ("contenciosa", "mista"):
+        cont_texto = (form["escopo"]["atuacao_contenciosa"] or "").strip()
+        if cont_texto:
+            escopo_linhas.append(f"Contenciosa: {_esc(cont_texto[:80])}{'…' if len(cont_texto) > 80 else ''}")
+    if modal != "contenciosa":
+        escopo_linhas.append(f"SLA: {'sim' if form['escopo']['sla_ativo'] else 'não'}")
+
+    # ── Card Honorários
+    mod_labels_cons = {
+        "hora_senioridade": "Hora por senioridade",
+        "hora_fixa": "Hora Média",
+        "fixo_mensal": "Fixo Mensal/Cap",
+        "valor_projeto": "Preço Global",
+    }
+    mod_labels_cont = {
+        "valor_acao": "Valor Mensal Por Processo",
+        "valor_ato_processual": "Valor por ato processual",
+        "preco_mensal_massa": "Preço mensal",
+        "valor_projeto": "Preço Global",
+    }
+    honorarios_linhas = []
+    if modal in ("consultiva", "mista"):
+        cons_mods = form["honorarios_consultiva"]["modalidades"]
+        cons_selecionados = [lbl for k, lbl in mod_labels_cons.items() if cons_mods[k]]
+        honorarios_linhas.append(
+            f"Consultiva: {_esc(', '.join(cons_selecionados)) if cons_selecionados else 'nenhuma modalidade'}"
+        )
+    if modal in ("contenciosa", "mista"):
+        cont_mods = form["honorarios_contenciosa"]["modalidades"]
+        cont_selecionados = [lbl for k, lbl in mod_labels_cont.items() if cont_mods[k]]
+        honorarios_linhas.append(
+            f"Contenciosa: {_esc(', '.join(cont_selecionados)) if cont_selecionados else 'nenhuma modalidade'}"
+        )
+        exito = form["honorarios_contenciosa"]["exito_ativo"]
+        pct = form["honorarios_contenciosa"]["exito_percentual"]
+        honorarios_linhas.append(f"Êxito: {('sim — ' + _esc(pct) + '%') if exito and pct else ('sim' if exito else 'não')}")
+        taxa_ativa = form["despesas"]["taxa_manutencao_ativa"]
+        taxa_valor = form["despesas"]["taxa_manutencao_processual"]
+        honorarios_linhas.append(
+            f"Taxa manutenção: {(_esc(taxa_valor) if taxa_valor else 'sim') if taxa_ativa else 'não'}"
+        )
+
+    # ── Card Despesas
+    despesas = form["despesas"]["tabela_despesas"] or []
+    despesas_validas = [d for d in despesas if (d.get("categoria") or d.get("descricao"))]
+    despesas_linhas = [f"{len(despesas_validas)} categoria(s) prevista(s)"]
+    for d in despesas_validas[:3]:
+        cat = (d.get("categoria") or "").strip() or "(sem nome)"
+        despesas_linhas.append(f"• {_esc(cat)}")
+    if len(despesas_validas) > 3:
+        despesas_linhas.append(f"• … +{len(despesas_validas) - 3}")
+    disp_ativo = form["disposicoes"]["ativo"]
+    despesas_linhas.append(f"Disposições específicas: {'sim' if disp_ativo else 'não'}")
+
+    cards = [
+        ("Contratante", contratante_linhas),
+        ("Escopo e SLA" if modal != "contenciosa" else "Escopo", escopo_linhas),
+        ("Honorários", honorarios_linhas),
+        ("Despesas", despesas_linhas),
+    ]
+    cards_html = "\n".join(
+        f"""<div class="review-card">
+  <div class="review-label">{label}</div>
+  <div class="review-summary">{'<br>'.join(linhas)}</div>
+</div>"""
+        for label, linhas in cards
+    )
+    st.markdown(f'<div class="review-grid">{cards_html}</div>', unsafe_allow_html=True)
+
+    st.info(
+        "A proposta será gerada com base no preenchimento de todos os campos do "
+        "formulário. Qualquer necessidade de alteração de conteúdo ou condição a "
+        "partir deste ponto deverá ser feita manualmente no Word. Esta proposta "
+        "deverá ser salva no seu dispositivo e **não será arquivada** neste gerador "
+        "de propostas. Após finalizada a proposta, lembre-se de iniciar o Fluxo "
+        "Comercial no Autojur."
+    )
 
     gen_col, dl_col = st.columns([1, 2])
 
