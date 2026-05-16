@@ -58,8 +58,12 @@ st.markdown(f"<style>{_load_text_asset('resources/static/styles.css')}</style>",
 
 
 # ── Máscara em tempo real (JS via iframe) ──────────────────────────────────────
+# Esta funcao injeta um iframe com JS que aplica masks em tempo real nos campos
+# do Step 0 (CPF/CNPJ/CEP/telefone). Sera chamada CONDICIONALMENTE so quando
+# current == 0, para evitar overhead de ~50-100ms por rerun em outras etapas.
 
-components.html("""
+def _inject_input_masks() -> None:
+    components.html("""
 <script>
 (function () {
   function digits(v, n) { return (v || '').replace(/\D/g, '').slice(0, n); }
@@ -152,6 +156,7 @@ components.html("""
 })();
 </script>
 """, height=0)
+
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -328,6 +333,12 @@ def _go_to(n: int) -> None:
 
 
 current: int = st.session_state.step
+
+# Iframe JS de masks roda so na etapa Contratante (CPF/CNPJ/CEP/tel). Em outras
+# etapas o iframe nao e necessario e a remocao reduz ~50-100ms de overhead por
+# rerun (alivia o lag percebido em toggles de checkbox).
+if current == 0:
+    _inject_input_masks()
 
 if st.session_state.get("scroll_to_top", False):
     components.html("""
@@ -512,180 +523,12 @@ def _render_rows(
     return _sync_rows(ss_key, col_keys)
 
 
-# ── ETAPA 1: CONTRATANTE ───────────────────────────────────────────────────────
-
-if current == 0:
-    st.subheader("Identificação do contratante")
-
-    _info_note(
-        "Todos os campos são opcionais. Caso algum campo não seja preenchido, "
-        "ele não será exibido no documento final e o ajuste deverá ser manual. "
-        "Sempre que possível, emita a proposta com todos os campos necessários "
-        "preenchidos, em especial os campos de identificação do "
-        "Contratante/Cliente, para facilitar as rotinas de Fluxo Comercial e "
-        "Cadastro pelo time Financeiro do PMRA."
-    )
-
-    with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Identificação</div>', unsafe_allow_html=True)
-        form["contratante"]["tipo_pessoa"] = st.radio(
-            "Tipo de pessoa",
-            options=("fisica", "juridica"),
-            format_func=lambda x: "Pessoa Física" if x == "fisica" else "Pessoa Jurídica",
-            index=0 if form["contratante"]["tipo_pessoa"] == "fisica" else 1,
-            horizontal=True,
-            key="tipo_pessoa",
-        )
-
-        if form["contratante"]["tipo_pessoa"] == "fisica":
-            c1, c2 = st.columns([2, 1])
-            form["contratante"]["nome"] = c1.text_input(
-                "Nome completo",
-                value=form["contratante"]["nome"],
-                key="nome_input",
-            )
-            form["contratante"]["cpf"] = c2.text_input(
-                "CPF",
-                value=form["contratante"]["cpf"],
-                placeholder="000.000.000-00",
-                key="cpf_input",
-                on_change=_on_cpf_change,
-            )
-        else:
-            c1, c2 = st.columns([2, 1])
-            form["contratante"]["razao_social"] = c1.text_input(
-                "Razão Social",
-                value=form["contratante"]["razao_social"],
-                key="razao_social_input",
-            )
-            form["contratante"]["cnpj"] = c2.text_input(
-                "CNPJ",
-                value=form["contratante"]["cnpj"],
-                placeholder="00.000.000/0000-00",
-                key="cnpj_input",
-                on_change=_on_cnpj_change,
-            )
-
-    with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Endereço</div>', unsafe_allow_html=True)
-        end = form["contratante"]["endereco"]
-
-        c1, c2 = st.columns([3, 1])
-        end["logradouro"] = c1.text_input("Logradouro", value=end["logradouro"], key="logradouro_input")
-        end["numero"] = c2.text_input("Número/Complemento", value=end["numero"], key="numero_input")
-
-        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-        end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
-        end["cep"] = c2.text_input("CEP", value=end["cep"], placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
-        end["cidade"] = c3.text_input("Cidade", value=end["cidade"], key="cidade_input")
-        end["uf"] = c4.selectbox(
-            "UF",
-            options=UF_OPTIONS,
-            index=UF_OPTIONS.index(end["uf"]) if end["uf"] in UF_OPTIONS else 0,
-            key="uf_input",
-        )
-
-    with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Responsável e contatos</div>', unsafe_allow_html=True)
-        form["contratante"]["contato_nome"] = st.text_input(
-            "Nome do responsável",
-            value=form["contratante"]["contato_nome"],
-            key="contato_nome_input",
-        )
-
-        records_contatos = _render_rows(
-            "tbl_contatos",
-            {"telefone": "Telefone", "email": "E-mail"},
-            help_text="Telefone: (31) 99999-0000 — formatado ao sair do campo.",
-            col_widths=[2, 3],
-            field_formatters={"telefone": _on_tel_change},
-        )
-        form["contratante"]["contatos"] = records_contatos
-
-
-# ── ETAPA 2: ESCOPO ───────────────────────────────────────────────────────────
-
-elif current == 1:
-    st.subheader("Escopo da contratação")
-
-    with st.container(border=True):
-        modalidades = ("consultiva", "contenciosa", "mista")
-        form["escopo"]["modalidade"] = st.radio(
-            "Modalidade de atuação",
-            options=modalidades,
-            format_func=lambda x: {
-                "consultiva": "Consultiva",
-                "contenciosa": "Contenciosa",
-                "mista": "Mista (Consultiva + Contenciosa)",
-            }[x],
-            index=modalidades.index(form["escopo"]["modalidade"]),
-            horizontal=True,
-            key="modalidade_radio",
-        )
-
-        modal = form["escopo"]["modalidade"]
-
-        if modal in ("consultiva", "mista"):
-            st.markdown('<div class="pmra-sub-hdr">Atuação Consultiva</div>', unsafe_allow_html=True)
-            form["escopo"]["atuacao_consultiva"] = st.text_area(
-                "Áreas, matérias e entregáveis",
-                value=form["escopo"]["atuacao_consultiva"],
-                height=150,
-                key="atuacao_consultiva_ta",
-                placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
-            )
-            _info_note(
-                "Escreva da forma como deverá constar na proposta. Assim, se o "
-                "objeto contiver múltiplas etapas, fases, etc., a forma como "
-                "preencher será visualizada no documento final. Você poderá "
-                "fazer alterações e editar a formatação no Word manualmente "
-                "após gerada a proposta, caso necessário."
-            )
-
-            # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
-            # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
-            # o else abaixo zera os campos.
-            st.markdown('<div class="pmra-sub-hdr">SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
-            form["escopo"]["sla_ativo"] = st.checkbox(
-                "Definir prazos de resposta por complexidade?",
-                value=form["escopo"]["sla_ativo"],
-                key="sla_ativo_cb",
-            )
-            if form["escopo"]["sla_ativo"]:
-                form["escopo"]["sla_descricao"] = st.text_area(
-                    "Descrição do SLA",
-                    value=form["escopo"]["sla_descricao"],
-                    height=120,
-                    key="sla_descricao_ta",
-                    placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
-                )
-        else:
-            # Modal == contenciosa: SLA nao se aplica, zera por defesa em camadas
-            # (alem do validator do schema).
-            form["escopo"]["sla_ativo"] = False
-            form["escopo"]["sla_descricao"] = ""
-
-        if modal in ("contenciosa", "mista"):
-            st.markdown('<div class="pmra-sub-hdr">Atuação Contenciosa</div>', unsafe_allow_html=True)
-            form["escopo"]["atuacao_contenciosa"] = st.text_area(
-                "Matérias, foros, instâncias e atos processuais",
-                value=form["escopo"]["atuacao_contenciosa"],
-                height=150,
-                key="atuacao_contenciosa_ta",
-                placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
-            )
-            _info_note(
-                "Escreva da forma como deverá constar na proposta. Assim, se o "
-                "objeto contiver múltiplas etapas, fases, etc., a forma como "
-                "preencher será visualizada no documento final. Você poderá "
-                "fazer alterações e editar a formatação no Word manualmente "
-                "após gerada a proposta, caso necessário."
-            )
-
-
-# ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────
-
-elif current == 2:
+@st.fragment
+def _step_honorarios() -> None:
+    """Etapa 3 — Honorarios. Em st.fragment para isolar reruns dos toggles
+    de modalidade: cliques em checkboxes/inputs aqui dentro nao re-injetam
+    CSS/iframe/header do app inteiro, eliminando o lag percebido."""
+    form = st.session_state.form
     modal = form["escopo"]["modalidade"]
     show_consultiva = modal in ("consultiva", "mista")
     show_contenciosa = modal in ("contenciosa", "mista")
@@ -965,7 +808,185 @@ elif current == 2:
             form["despesas"]["taxa_manutencao_processual"] = ""
 
 
-# ── ETAPA 4: DESPESAS E DISPOSIÇÕES ───────────────────────────────────────────
+    # ── ETAPA 4: DESPESAS E DISPOSIÇÕES ───────────────────────────────────────────
+
+
+
+# ── ETAPA 1: CONTRATANTE ───────────────────────────────────────────────────────
+
+if current == 0:
+    st.subheader("Identificação do contratante")
+
+    _info_note(
+        "Todos os campos são opcionais. Caso algum campo não seja preenchido, "
+        "ele não será exibido no documento final e o ajuste deverá ser manual. "
+        "Sempre que possível, emita a proposta com todos os campos necessários "
+        "preenchidos, em especial os campos de identificação do "
+        "Contratante/Cliente, para facilitar as rotinas de Fluxo Comercial e "
+        "Cadastro pelo time Financeiro do PMRA."
+    )
+
+    with st.container(border=True):
+        st.markdown('<div class="pmra-sub-hdr">Identificação</div>', unsafe_allow_html=True)
+        form["contratante"]["tipo_pessoa"] = st.radio(
+            "Tipo de pessoa",
+            options=("fisica", "juridica"),
+            format_func=lambda x: "Pessoa Física" if x == "fisica" else "Pessoa Jurídica",
+            index=0 if form["contratante"]["tipo_pessoa"] == "fisica" else 1,
+            horizontal=True,
+            key="tipo_pessoa",
+        )
+
+        if form["contratante"]["tipo_pessoa"] == "fisica":
+            c1, c2 = st.columns([2, 1])
+            form["contratante"]["nome"] = c1.text_input(
+                "Nome completo",
+                value=form["contratante"]["nome"],
+                key="nome_input",
+            )
+            form["contratante"]["cpf"] = c2.text_input(
+                "CPF",
+                value=form["contratante"]["cpf"],
+                placeholder="000.000.000-00",
+                key="cpf_input",
+                on_change=_on_cpf_change,
+            )
+        else:
+            c1, c2 = st.columns([2, 1])
+            form["contratante"]["razao_social"] = c1.text_input(
+                "Razão Social",
+                value=form["contratante"]["razao_social"],
+                key="razao_social_input",
+            )
+            form["contratante"]["cnpj"] = c2.text_input(
+                "CNPJ",
+                value=form["contratante"]["cnpj"],
+                placeholder="00.000.000/0000-00",
+                key="cnpj_input",
+                on_change=_on_cnpj_change,
+            )
+
+    with st.container(border=True):
+        st.markdown('<div class="pmra-sub-hdr">Endereço</div>', unsafe_allow_html=True)
+        end = form["contratante"]["endereco"]
+
+        c1, c2 = st.columns([3, 1])
+        end["logradouro"] = c1.text_input("Logradouro", value=end["logradouro"], key="logradouro_input")
+        end["numero"] = c2.text_input("Número/Complemento", value=end["numero"], key="numero_input")
+
+        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
+        end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
+        end["cep"] = c2.text_input("CEP", value=end["cep"], placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
+        end["cidade"] = c3.text_input("Cidade", value=end["cidade"], key="cidade_input")
+        end["uf"] = c4.selectbox(
+            "UF",
+            options=UF_OPTIONS,
+            index=UF_OPTIONS.index(end["uf"]) if end["uf"] in UF_OPTIONS else 0,
+            key="uf_input",
+        )
+
+    with st.container(border=True):
+        st.markdown('<div class="pmra-sub-hdr">Responsável e contatos</div>', unsafe_allow_html=True)
+        form["contratante"]["contato_nome"] = st.text_input(
+            "Nome do responsável",
+            value=form["contratante"]["contato_nome"],
+            key="contato_nome_input",
+        )
+
+        records_contatos = _render_rows(
+            "tbl_contatos",
+            {"telefone": "Telefone", "email": "E-mail"},
+            help_text="Telefone: (31) 99999-0000 — formatado ao sair do campo.",
+            col_widths=[2, 3],
+            field_formatters={"telefone": _on_tel_change},
+        )
+        form["contratante"]["contatos"] = records_contatos
+
+
+# ── ETAPA 2: ESCOPO ───────────────────────────────────────────────────────────
+
+elif current == 1:
+    st.subheader("Escopo da contratação")
+
+    with st.container(border=True):
+        modalidades = ("consultiva", "contenciosa", "mista")
+        form["escopo"]["modalidade"] = st.radio(
+            "Modalidade de atuação",
+            options=modalidades,
+            format_func=lambda x: {
+                "consultiva": "Consultiva",
+                "contenciosa": "Contenciosa",
+                "mista": "Mista (Consultiva + Contenciosa)",
+            }[x],
+            index=modalidades.index(form["escopo"]["modalidade"]),
+            horizontal=True,
+            key="modalidade_radio",
+        )
+
+        modal = form["escopo"]["modalidade"]
+
+        if modal in ("consultiva", "mista"):
+            st.markdown('<div class="pmra-sub-hdr">Atuação Consultiva</div>', unsafe_allow_html=True)
+            form["escopo"]["atuacao_consultiva"] = st.text_area(
+                "Áreas, matérias e entregáveis",
+                value=form["escopo"]["atuacao_consultiva"],
+                height=150,
+                key="atuacao_consultiva_ta",
+                placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
+            )
+            _info_note(
+                "Escreva da forma como deverá constar na proposta. Assim, se o "
+                "objeto contiver múltiplas etapas, fases, etc., a forma como "
+                "preencher será visualizada no documento final. Você poderá "
+                "fazer alterações e editar a formatação no Word manualmente "
+                "após gerada a proposta, caso necessário."
+            )
+
+            # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
+            # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
+            # o else abaixo zera os campos.
+            st.markdown('<div class="pmra-sub-hdr">SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
+            form["escopo"]["sla_ativo"] = st.checkbox(
+                "Definir prazos de resposta por complexidade?",
+                value=form["escopo"]["sla_ativo"],
+                key="sla_ativo_cb",
+            )
+            if form["escopo"]["sla_ativo"]:
+                form["escopo"]["sla_descricao"] = st.text_area(
+                    "Descrição do SLA",
+                    value=form["escopo"]["sla_descricao"],
+                    height=120,
+                    key="sla_descricao_ta",
+                    placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
+                )
+        else:
+            # Modal == contenciosa: SLA nao se aplica, zera por defesa em camadas
+            # (alem do validator do schema).
+            form["escopo"]["sla_ativo"] = False
+            form["escopo"]["sla_descricao"] = ""
+
+        if modal in ("contenciosa", "mista"):
+            st.markdown('<div class="pmra-sub-hdr">Atuação Contenciosa</div>', unsafe_allow_html=True)
+            form["escopo"]["atuacao_contenciosa"] = st.text_area(
+                "Matérias, foros, instâncias e atos processuais",
+                value=form["escopo"]["atuacao_contenciosa"],
+                height=150,
+                key="atuacao_contenciosa_ta",
+                placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
+            )
+            _info_note(
+                "Escreva da forma como deverá constar na proposta. Assim, se o "
+                "objeto contiver múltiplas etapas, fases, etc., a forma como "
+                "preencher será visualizada no documento final. Você poderá "
+                "fazer alterações e editar a formatação no Word manualmente "
+                "após gerada a proposta, caso necessário."
+            )
+
+
+# ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────
+
+elif current == 2:
+    _step_honorarios()
 
 elif current == 3:
     st.subheader("Despesas e Disposições Específicas")

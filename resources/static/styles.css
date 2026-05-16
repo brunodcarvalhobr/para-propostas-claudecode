@@ -162,32 +162,67 @@ html, body, .stApp,
     opacity: 0.6;
 }
 
-/* Checkbox visual: fundo claro com borda, check ember quando marcado */
-.stApp [data-baseweb="checkbox"] [data-baseweb*="checkmark"],
+/* Checkbox visual: o quadradinho clicavel.
+   Streamlit usa Baseweb que renderiza um <span> contendo um <input> oculto
+   e um <span> visivel com fundo. Cobrimos varias variantes possiveis. */
+.stApp [data-testid="stCheckbox"] label > div:first-child,
+.stApp [data-testid="stCheckbox"] label > span:first-child,
+.stApp [data-testid="stCheckbox"] label > div:first-child > div,
+.stApp [data-testid="stCheckbox"] label > span:first-child > span,
+.stApp [data-testid="stCheckbox"] [data-baseweb] > div:first-child,
 .stApp [data-baseweb="checkbox"] > label > span:first-child,
-.stApp [data-baseweb="checkbox"] > div > div:first-child {
-    background-color: rgba(255,255,255,0.9) !important;
+.stApp [data-baseweb="checkbox"] > label > div:first-child {
+    background-color: rgba(255,255,255,0.92) !important;
     border: 1px solid rgba(0,0,0,0.30) !important;
+    border-radius: 4px !important;
 }
-.stApp [data-baseweb="checkbox"][aria-checked="true"] [data-baseweb*="checkmark"],
+/* Quando marcado: ember */
+.stApp [data-testid="stCheckbox"] input:checked + div,
+.stApp [data-testid="stCheckbox"] input:checked + span,
+.stApp [data-testid="stCheckbox"] input:checked ~ div:first-child,
 .stApp [data-baseweb="checkbox"][aria-checked="true"] > label > span:first-child,
-.stApp [data-baseweb="checkbox"] input:checked ~ * {
+.stApp [data-baseweb="checkbox"][aria-checked="true"] > label > div:first-child {
     background-color: var(--color-ember-500) !important;
     border-color: var(--color-ember-600) !important;
 }
+.stApp [data-testid="stCheckbox"] svg,
 .stApp [data-baseweb="checkbox"] svg {
     color: #ffffff !important;
     fill: #ffffff !important;
 }
 
 /* Radio visual: idem checkbox */
+.stApp [data-testid="stRadio"] label > div:first-child,
 .stApp [data-baseweb="radio"] > label > div:first-child,
 .stApp [data-baseweb="radio"] [role="radio"] {
-    background-color: rgba(255,255,255,0.9) !important;
+    background-color: rgba(255,255,255,0.92) !important;
     border: 1px solid rgba(0,0,0,0.30) !important;
 }
-.stApp [data-baseweb="radio"] input:checked ~ * {
-    background-color: var(--color-ember-500) !important;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DROPDOWN POPUP (UF selectbox, demais selects)
+   IMPORTANTE: o popup do Streamlit/Baseweb e renderizado em PORTAL no body,
+   FORA de .stApp. Por isso os seletores aqui NAO sao prefixados com .stApp.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[role="listbox"],
+[data-baseweb="select-dropdown"] {
+    background-color: rgba(255,255,255,0.98) !important;
+    color: var(--color-ink, #0a0a0a) !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    box-shadow: 0 8px 24px -4px rgba(15,15,20,0.15) !important;
+}
+[data-baseweb="menu"] li,
+[role="listbox"] li,
+[role="option"] {
+    color: var(--color-ink, #0a0a0a) !important;
+    background-color: transparent !important;
+}
+[role="option"]:hover,
+[role="option"][aria-selected="true"] {
+    background-color: rgba(249,115,22,0.12) !important;
+    color: var(--color-ink, #0a0a0a) !important;
 }
 
 /* Header */
