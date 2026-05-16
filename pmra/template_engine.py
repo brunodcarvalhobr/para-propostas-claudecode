@@ -25,6 +25,12 @@ TEMPLATE_PATH = (
 
 # <w:t [attrs]>texto</w:t> — texto nao contem '<' (ja escapado pelo docxtpl).
 _T_RE = re.compile(r"<w:t([^>]*)>([^<]*)</w:t>", flags=re.DOTALL)
+
+# Paragrafo completo: <w:p ...>...</w:p> ou self-closing <w:p .../>
+_P_RE = re.compile(r"<w:p\b[^>]*>.*?</w:p>|<w:p\b[^>]*/>", flags=re.DOTALL)
+# Texto dentro de runs de um paragrafo
+_T_TEXT_RE = re.compile(r"<w:t[^>]*>([^<]*)</w:t>")
+
 _DOCS_TO_PROCESS = (
     "word/document.xml",
     "word/header1.xml",
@@ -51,6 +57,49 @@ def _split_linebreaks(xml: str) -> str:
     return _T_RE.sub(repl, xml)
 
 
+def _is_empty_paragraph(p_xml: str) -> bool:
+    """True se o paragrafo nao tem texto visivel (so pPr/pictures/etc.)."""
+    texts = _T_TEXT_RE.findall(p_xml)
+    return all(not t.strip() for t in texts)
+
+
+def _collapse_empty_paragraphs(xml: str) -> str:
+    """Colapsa sequencias de paragrafos vazios consecutivos para apenas 1.
+
+    Os blocos {%p if %} do docxtpl removem o paragrafo que contem a tag, mas
+    paragrafos vazios deixados ao redor (como espacamento visual durante a
+    edicao do template) ficam no documento final, gerando duas/tres linhas em
+    branco em vez de uma. Esta funcao normaliza para sempre 1 paragrafo vazio
+    entre blocos de conteudo.
+    """
+    matches = list(_P_RE.finditer(xml))
+    if not matches:
+        return xml
+
+    # Marca quais paragrafos remover: empty consecutivo apos outro empty
+    skip = [False] * len(matches)
+    prev_empty = False
+    for i, m in enumerate(matches):
+        if _is_empty_paragraph(m.group(0)):
+            if prev_empty:
+                skip[i] = True
+            prev_empty = True
+        else:
+            prev_empty = False
+
+    if not any(skip):
+        return xml
+
+    out = []
+    last = 0
+    for i, m in enumerate(matches):
+        if skip[i]:
+            out.append(xml[last:m.start()])
+            last = m.end()
+    out.append(xml[last:])
+    return "".join(out)
+
+
 def _post_process(docx_bytes: bytes) -> bytes:
     src = BytesIO(docx_bytes)
     dst = BytesIO()
@@ -65,6 +114,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                         zout.writestr(item, data)
                         continue
                     xml = _split_linebreaks(xml)
+                    xml = _collapse_empty_paragraphs(xml)
                     data = xml.encode("utf-8")
                 zout.writestr(item, data)
     return dst.getvalue()
