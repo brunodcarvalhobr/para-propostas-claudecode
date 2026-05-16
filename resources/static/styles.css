@@ -131,25 +131,63 @@ html, body, .stApp,
     color: var(--color-ink) !important;
 }
 
-/* Botoes secundarios (Anterior, Adicionar linha, X de excluir): light em
-   light mode, mesmo se Streamlit tentar aplicar dark */
+/* Botoes secundarios (stepper passado, Anterior, Adicionar linha, X de excluir):
+   light bg + texto escuro mesmo se Streamlit tentar aplicar dark.
+   Usa :not([kind="primary"]) para nao quebrar o botao primario (ember). */
+.stApp button[kind="secondary"],
+.stApp button[kind="secondaryFormSubmit"],
+.stApp button[kind="tertiary"],
 .stApp [data-testid="stBaseButton-secondary"] > button,
 .stApp [data-testid="baseButton-secondary"] {
     background: rgba(255,255,255,0.85) !important;
     color: var(--color-ink) !important;
-    border-color: rgba(0,0,0,0.10) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
+    box-shadow: var(--shadow-input) !important;
 }
-.stApp [data-testid="stBaseButton-secondary"] > button:hover,
-.stApp [data-testid="baseButton-secondary"]:hover {
+.stApp button[kind="secondary"]:hover:not(:disabled),
+.stApp button[kind="secondaryFormSubmit"]:hover:not(:disabled),
+.stApp button[kind="tertiary"]:hover:not(:disabled),
+.stApp [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled),
+.stApp [data-testid="baseButton-secondary"]:hover:not(:disabled) {
     background: rgba(255,255,255,1) !important;
     color: var(--color-ink) !important;
+    border-color: rgba(0,0,0,0.20) !important;
 }
 
 /* Botoes desabilitados (etapas futuras se o disabled voltar a ser usado) */
 .stApp button:disabled,
 .stApp button[disabled] {
     color: var(--color-ink-400) !important;
+    background: rgba(255,255,255,0.5) !important;
     opacity: 0.6;
+}
+
+/* Checkbox visual: fundo claro com borda, check ember quando marcado */
+.stApp [data-baseweb="checkbox"] [data-baseweb*="checkmark"],
+.stApp [data-baseweb="checkbox"] > label > span:first-child,
+.stApp [data-baseweb="checkbox"] > div > div:first-child {
+    background-color: rgba(255,255,255,0.9) !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+.stApp [data-baseweb="checkbox"][aria-checked="true"] [data-baseweb*="checkmark"],
+.stApp [data-baseweb="checkbox"][aria-checked="true"] > label > span:first-child,
+.stApp [data-baseweb="checkbox"] input:checked ~ * {
+    background-color: var(--color-ember-500) !important;
+    border-color: var(--color-ember-600) !important;
+}
+.stApp [data-baseweb="checkbox"] svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* Radio visual: idem checkbox */
+.stApp [data-baseweb="radio"] > label > div:first-child,
+.stApp [data-baseweb="radio"] [role="radio"] {
+    background-color: rgba(255,255,255,0.9) !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+.stApp [data-baseweb="radio"] input:checked ~ * {
+    background-color: var(--color-ember-500) !important;
 }
 
 /* Header */
