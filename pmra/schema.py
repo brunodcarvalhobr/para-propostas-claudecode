@@ -166,7 +166,15 @@ class DespesaItem(BaseModel):
 class Despesas(BaseModel):
     model_config = ConfigDict(extra="ignore")
     tabela_despesas: list[DespesaItem] = Field(default_factory=list)
+    taxa_manutencao_ativa: bool = False
     taxa_manutencao_processual: str = ""
+
+    @model_validator(mode="after")
+    def _zera_taxa_se_inativa(self) -> "Despesas":
+        # Se a taxa nao esta ativa, garante que o valor nao vaze para o documento.
+        if not self.taxa_manutencao_ativa:
+            self.taxa_manutencao_processual = ""
+        return self
 
 
 class Disposicoes(BaseModel):

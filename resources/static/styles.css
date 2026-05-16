@@ -305,6 +305,17 @@ hr {
     letter-spacing: -0.005em;
     color: var(--color-ink);
 }
+.review-summary {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-ink-600);
+}
+.review-summary br + br {
+    display: block;
+    margin-top: 4px;
+    content: "";
+}
 
 /* Footer style */
 .pmra-footer {

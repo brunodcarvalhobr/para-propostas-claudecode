@@ -133,10 +133,15 @@ class TestFormToContext:
         # Em modalidade consultiva, exito nao deve aparecer mesmo ativo
         assert ctx["contenciosa"]["show_exito"] is False
 
-    def test_meta_nome_ou_razao_social_pf(self):
+    def test_meta_nome_ou_razao_social_pf_richtext_bold_upper(self):
+        # Renderizado como RichText (negrito + caixa alta). O cross-field validator
+        # do schema ja limpa razao_social quando PF, entao o RichText so contera o
+        # nome em uppercase.
         f = proposal_form_default()
         f.contratante.tipo_pessoa = "fisica"
-        f.contratante.nome = "Joao"
-        f.contratante.razao_social = "Nao Deveria Aparecer SA"
+        f.contratante.nome = "Joao da Silva"
         ctx = form_to_context(f)
-        assert ctx["meta"]["nome_ou_razao_social"] == "Joao"
+        rendered = str(ctx["meta"]["nome_ou_razao_social"])
+        assert "JOAO DA SILVA" in rendered
+        # docxtpl RichText embute negrito como <w:b/> no XML do run
+        assert "<w:b/>" in rendered

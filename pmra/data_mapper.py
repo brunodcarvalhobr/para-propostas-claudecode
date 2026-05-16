@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from docxtpl import RichText
+
 from .schema import Contato, Endereco, ProposalForm
 
 
@@ -158,13 +160,18 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
         "despesas": {
             "tabela_despesas": _fmt_rows([d.model_dump() for d in form.despesas.tabela_despesas]),
             "taxa_manutencao_processual": _fmt_money(form.despesas.taxa_manutencao_processual),
-            "show_taxa_manutencao": bool(form.despesas.taxa_manutencao_processual.strip()),
+            "show_taxa_manutencao": form.despesas.taxa_manutencao_ativa,
         },
         "disposicoes": {
             "show": form.disposicoes.ativo,
             "descricao": form.disposicoes.descricao,
         },
         "meta": {
-            "nome_ou_razao_social": form.contratante.nome if pf else form.contratante.razao_social,
+            # RichText: negrito + caixa alta aplicados em runtime, independente
+            # da formatacao do template. Renderizado via tag {{r ...}} no .docx.
+            "nome_ou_razao_social": RichText(
+                (form.contratante.nome if pf else form.contratante.razao_social).upper(),
+                bold=True,
+            ),
         },
     }

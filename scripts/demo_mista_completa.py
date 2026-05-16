@@ -147,6 +147,7 @@ def cenario_mista_completa():
             ),
         ),
     ]
+    f.despesas.taxa_manutencao_ativa = True
     f.despesas.taxa_manutencao_processual = "50,00 por processo/mes"
 
     # ── Disposicoes especificas
