@@ -57,20 +57,20 @@ def check_password() -> bool:
     _load_design_system()
     logo_svg = _read_logo()
 
-    st.markdown(
-        f"""
-<div class="pmra-login">
-  <div class="pmra-login-logo">{logo_svg}</div>
-  <h1 class="pmra-login-title">Gerador de Propostas PMRA</h1>
-  <p class="pmra-login-subtitle">Desenvolvido pelo Legal Tech PMRA</p>
-  <p class="pmra-login-message">
-    Acesso restrito. Informe a senha mestra para acesso ao app.
-    Não compartilhe a senha com pessoas não autorizadas ou fora da organização.
-  </p>
-</div>
-""",
-        unsafe_allow_html=True,
+    # HTML em uma linha por elemento (sem indentacao) para evitar que o parser
+    # markdown do Streamlit interprete whitespace antes do texto como margem.
+    login_html = (
+        '<div class="pmra-login">'
+        f'<div class="pmra-login-logo">{logo_svg}</div>'
+        '<h1 class="pmra-login-title">Gerador de Propostas PMRA</h1>'
+        '<p class="pmra-login-subtitle">Desenvolvido pelo Legal Tech PMRA</p>'
+        '<p class="pmra-login-message">'
+        'Acesso restrito. Informe a senha mestra para acesso ao app. '
+        'Não compartilhe a senha com pessoas não autorizadas ou fora da organização.'
+        '</p>'
+        '</div>'
     )
+    st.markdown(login_html, unsafe_allow_html=True)
 
     # Form centralizado abaixo do card de boas-vindas
     _, col, _ = st.columns([1, 2, 1])

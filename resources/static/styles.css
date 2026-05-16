@@ -701,6 +701,15 @@ hr {
     height: 72px;
     width: auto;
 }
+.pmra-login-title,
+.pmra-login-subtitle,
+.pmra-login-message {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
 .pmra-login-title {
     font-family: var(--font-display) !important;
     font-size: 28px !important;
@@ -709,7 +718,6 @@ hr {
     color: var(--color-ink) !important;
     letter-spacing: -0.01em;
     line-height: 1.1;
-    text-align: center !important;
 }
 .pmra-login-subtitle {
     font-family: var(--font-sans);
@@ -718,7 +726,6 @@ hr {
     margin: 0 0 22px !important;
     letter-spacing: 0.01em;
     font-style: italic;
-    text-align: center !important;
 }
 .pmra-login-message {
     font-family: var(--font-sans);
@@ -727,7 +734,6 @@ hr {
     line-height: 1.55;
     max-width: 380px;
     margin: 0 auto !important;
-    text-align: center !important;
 }
 
 /* Footer style */
