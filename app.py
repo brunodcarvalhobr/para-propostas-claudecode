@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import html
 import logging
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -19,12 +18,26 @@ from pmra.template_engine import render_proposal
 
 logger = logging.getLogger(__name__)
 
-# Lê o SVG do logo uma vez no carregamento do módulo
-_SVG_PATH = os.path.join(os.path.dirname(__file__), "pmra-icon.svg")
-_LOGO_SVG: str = ""
-if os.path.exists(_SVG_PATH):
-    with open(_SVG_PATH, "r", encoding="utf-8") as _f:
-        _LOGO_SVG = _f.read()
+_ROOT = Path(__file__).parent
+
+
+@st.cache_data
+def _load_text_asset(relative_path: str) -> str:
+    """Le um asset de texto (CSS/SVG) com cache. Reduz overhead em cada rerun."""
+    p = _ROOT / relative_path
+    return p.read_text(encoding="utf-8") if p.exists() else ""
+
+
+_LOGO_SVG = _load_text_asset("pmra-icon.svg")
+
+
+def _info_note(text: str) -> None:
+    """Renderiza nota explicativa com fundo azul claro, texto justificado.
+
+    Substitui st.caption() para mensagens importantes/longas. Mantemos
+    st.caption() apenas para hints curtos (ex.: "Ex: Sócio | R$ 1.050,00").
+    """
+    st.markdown(f'<div class="pmra-info-note">{text}</div>', unsafe_allow_html=True)
 
 
 st.set_page_config(
@@ -38,8 +51,7 @@ if not check_password():
 
 # ── Estilos PMRA ───────────────────────────────────────────────────────────────
 
-_STYLES_CSS = (Path(__file__).parent / "resources" / "static" / "styles.css").read_text(encoding="utf-8")
-st.markdown(f"<style>{_STYLES_CSS}</style>", unsafe_allow_html=True)
+st.markdown(f"<style>{_load_text_asset('resources/static/styles.css')}</style>", unsafe_allow_html=True)
 
 
 # ── Máscara em tempo real (JS via iframe) ──────────────────────────────────────
@@ -240,6 +252,29 @@ def _init_state() -> None:
     if "tbl_despesas" not in st.session_state:
         st.session_state.tbl_despesas = f["despesas"]["tabela_despesas"]
 
+    # Sync inicial dos checkboxes de modalidade (consultiva + contenciosa) para
+    # session_state. Padrao callback (em vez de value=X + key=K) elimina race
+    # condition em toggles rapidos: o callback escreve direto no form dict.
+    _CB_MODALIDADE_MAP = (
+        ("cons_hs", "honorarios_consultiva", "hora_senioridade"),
+        ("cons_hf", "honorarios_consultiva", "hora_fixa"),
+        ("cons_fm", "honorarios_consultiva", "fixo_mensal"),
+        ("cons_vp", "honorarios_consultiva", "valor_projeto"),
+        ("cont_va", "honorarios_contenciosa", "valor_acao"),
+        ("cont_vap", "honorarios_contenciosa", "valor_ato_processual"),
+        ("cont_pm", "honorarios_contenciosa", "preco_mensal_massa"),
+        ("cont_vp", "honorarios_contenciosa", "valor_projeto"),
+    )
+    for widget_key, secao, campo in _CB_MODALIDADE_MAP:
+        if widget_key not in st.session_state:
+            st.session_state[widget_key] = f[secao]["modalidades"][campo]
+
+
+def _on_modalidade_toggle(secao: str, campo: str, widget_key: str) -> None:
+    """Callback: sincroniza checkbox -> form imediatamente, sem depender de
+    rerun re-executar o trecho de codigo que faz cm[k] = checkbox(...)."""
+    st.session_state.form[secao]["modalidades"][campo] = st.session_state[widget_key]
+
 
 _init_state()
 form: dict = st.session_state.form
@@ -343,11 +378,13 @@ for i, (col, name) in enumerate(zip(indicator_cols, STEPS)):
             args=(i,),
         )
     else:
+        # Etapas futuras tambem clicaveis — usuario pode pular livre entre secoes.
         col.button(
             f"{i + 1}. {name}",
             key=f"step_btn_{i}",
             use_container_width=True,
-            disabled=True,
+            on_click=_go_to,
+            args=(i,),
         )
 
 st.divider()
@@ -585,6 +622,13 @@ elif current == 1:
                 key="atuacao_consultiva_ta",
                 placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
             )
+            _info_note(
+                "Escreva da forma como deverá constar na proposta. Assim, se o "
+                "objeto contiver múltiplas etapas, fases, etc., a forma como "
+                "preencher será visualizada no documento final. Você poderá "
+                "fazer alterações e editar a formatação no Word manualmente "
+                "após gerada a proposta, caso necessário."
+            )
 
             # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
             # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
@@ -618,6 +662,13 @@ elif current == 1:
                 key="atuacao_contenciosa_ta",
                 placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
             )
+            _info_note(
+                "Escreva da forma como deverá constar na proposta. Assim, se o "
+                "objeto contiver múltiplas etapas, fases, etc., a forma como "
+                "preencher será visualizada no documento final. Você poderá "
+                "fazer alterações e editar a formatação no Word manualmente "
+                "após gerada a proposta, caso necessário."
+            )
 
 
 # ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────
@@ -641,10 +692,14 @@ elif current == 2:
             cm = form["honorarios_consultiva"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", value=cm["hora_senioridade"], key="cons_hs")
-            cm["hora_fixa"] = c2.checkbox("Hora Média", value=cm["hora_fixa"], key="cons_hf")
-            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", value=cm["fixo_mensal"], key="cons_fm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
+            c1.checkbox("Hora por senioridade", key="cons_hs",
+                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "hora_senioridade", "cons_hs"))
+            c2.checkbox("Hora Média", key="cons_hf",
+                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "hora_fixa", "cons_hf"))
+            c3.checkbox("Fixo Mensal/Cap", key="cons_fm",
+                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "fixo_mensal", "cons_fm"))
+            c4.checkbox("Preço Global", key="cons_vp",
+                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "valor_projeto", "cons_vp"))
 
             if cm["hora_senioridade"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
@@ -716,10 +771,14 @@ elif current == 2:
             cm = form["honorarios_contenciosa"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
-            cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
-            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
+            c1.checkbox("Valor Mensal Por Processo", key="cont_va",
+                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_acao", "cont_va"))
+            c2.checkbox("Valor por ato processual", key="cont_vap",
+                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_ato_processual", "cont_vap"))
+            c3.checkbox("Preço mensal", key="cont_pm",
+                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "preco_mensal_massa", "cont_pm"))
+            c4.checkbox("Preço Global", key="cont_vp",
+                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_projeto", "cont_vp"))
 
             if cm["valor_acao"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
@@ -733,10 +792,15 @@ elif current == 2:
 
             if cm["valor_ato_processual"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela — Atos Processuais</div>', unsafe_allow_html=True)
+                _info_note(
+                    "Preencha o valor de cada ato (Ex: R$ 1.500,00). "
+                    "Linhas sem valor são ignoradas. Use o X para remover "
+                    "atos não aplicáveis ou acrescente novos ao seu critério."
+                )
                 form["honorarios_contenciosa"]["tabela_atos"] = _render_rows(
                     "tbl_atos",
                     {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
-                    help_text="Preencha o valor de cada ato (Ex: R$ 1.500,00). Linhas sem valor são ignoradas. Use o X para remover atos não aplicáveis ou acrescente novos ao seu critério.",
+                    help_text="",
                     col_widths=[3, 4, 2],
                     field_formatters={"valor": _on_money_change},
                 )
@@ -850,7 +914,7 @@ elif current == 2:
             if show_horas_extra_escopo:
                 with st.container(border=True):
                     st.markdown('<div class="pmra-sub-hdr">Horas para serviços extra escopo</div>', unsafe_allow_html=True)
-                    st.caption("Obrigatório inserir ao menos uma das modalidades para serviços excedentes.")
+                    _info_note("Obrigatório inserir ao menos uma das modalidades para serviços excedentes.")
                     modos = ("senioridade", "horaFixa")
                     form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
                         "Modo de cobrança",
@@ -896,13 +960,13 @@ elif current == 3:
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr">Despesas previstas</div>', unsafe_allow_html=True)
-        st.caption(
+        _info_note(
             "Adicione ou remova despesas conforme aplicável ao escopo. "
-            "Caso a natureza do projeto seja apenas consultiva, remova Despesas Gerais "
-            "(aplicáveis à atuação contenciosa). O texto preenchido já vem exibido na "
-            "proposta por padrão; você pode inserir, alterar ou remover qualquer "
-            "conteúdo. Para adicionar nova categoria de despesa, use o campo "
-            '"Adicionar".'
+            "Caso a natureza do projeto seja apenas consultiva, remova "
+            "Despesas Gerais (aplicáveis à atuação contenciosa). O texto "
+            "preenchido já vem exibido na proposta por padrão; você pode "
+            "inserir, alterar ou remover qualquer conteúdo. Para adicionar "
+            "nova categoria de despesa, use o campo <strong>Adicionar</strong>."
         )
         form["despesas"]["tabela_despesas"] = _render_rows(
             "tbl_despesas",
@@ -914,10 +978,10 @@ elif current == 3:
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr">Disposições específicas</div>', unsafe_allow_html=True)
-        st.caption(
-            "Inclua aqui quaisquer outras disposições específicas que serão aplicáveis "
-            "fora das condições gerais do Escritório. Elas prevalecerão sobre as "
-            "condições gerais."
+        _info_note(
+            "Inclua aqui quaisquer outras disposições específicas que serão "
+            "aplicáveis fora das condições gerais do Escritório. Elas "
+            "prevalecerão sobre as condições gerais."
         )
         form["disposicoes"]["ativo"] = st.checkbox(
             "Incluir seção de disposições específicas no contrato?",
@@ -1033,13 +1097,14 @@ elif current == 4:
     )
     st.markdown(f'<div class="review-grid">{cards_html}</div>', unsafe_allow_html=True)
 
-    st.info(
-        "A proposta será gerada com base no preenchimento de todos os campos do "
-        "formulário. Qualquer necessidade de alteração de conteúdo ou condição a "
-        "partir deste ponto deverá ser feita manualmente no Word. Esta proposta "
-        "deverá ser salva no seu dispositivo e **não será arquivada** neste gerador "
-        "de propostas. Após finalizada a proposta, lembre-se de iniciar o Fluxo "
-        "Comercial no Autojur."
+    _info_note(
+        "A proposta será gerada com base no preenchimento de todos os campos "
+        "do formulário. Qualquer necessidade de alteração de conteúdo ou "
+        "condição a partir deste ponto deverá ser feita manualmente no Word. "
+        "Esta proposta deverá ser salva no seu dispositivo e "
+        "<strong>não será arquivada</strong> neste gerador de propostas. "
+        "Após finalizada a proposta, lembre-se de iniciar o Fluxo Comercial "
+        "no Autojur."
     )
 
     gen_col, dl_col = st.columns([1, 2])

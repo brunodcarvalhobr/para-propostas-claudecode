@@ -17,14 +17,25 @@ _STYLES_PATH = _ROOT / "resources" / "static" / "styles.css"
 _LOGO_PATH = _ROOT / "pmra-icon.svg"
 
 
+@st.cache_data
+def _read_css() -> str:
+    return _STYLES_PATH.read_text(encoding="utf-8") if _STYLES_PATH.exists() else ""
+
+
+@st.cache_data
+def _read_logo() -> str:
+    return _LOGO_PATH.read_text(encoding="utf-8") if _LOGO_PATH.exists() else ""
+
+
 def _load_design_system() -> None:
     """Injeta o mesmo CSS do formulario na tela de login.
 
     auth.py executa antes de app.py injetar o style global, por isso o CSS
     precisa ser carregado aqui tambem para a tela ter a mesma identidade visual.
+    Cache evita re-leitura do disco em cada rerun.
     """
-    if _STYLES_PATH.exists():
-        css = _STYLES_PATH.read_text(encoding="utf-8")
+    css = _read_css()
+    if css:
         st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
@@ -44,7 +55,7 @@ def check_password() -> bool:
         return True
 
     _load_design_system()
-    logo_svg = _LOGO_PATH.read_text(encoding="utf-8") if _LOGO_PATH.exists() else ""
+    logo_svg = _read_logo()
 
     st.markdown(
         f"""
