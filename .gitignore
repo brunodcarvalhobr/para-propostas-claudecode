@@ -24,6 +24,12 @@ nosetests.xml
 coverage.xml
 *.cover
 
+# ── Linters / type checkers ───────────────────────────────────────────────────
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
 # ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
