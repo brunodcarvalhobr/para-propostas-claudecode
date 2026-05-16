@@ -25,13 +25,18 @@ no repositório irmão.
 │   ├── data_mapper.py              # form -> contexto do template
 │   ├── defaults.py                 # Valores pré-preenchidos (tabela senioridade etc.)
 │   ├── schema.py                   # Modelos Pydantic
-│   └── template_engine.py          # Renderização docxtpl + pós-processamento de \n
+│   ├── template_engine.py          # Renderização docxtpl + pós-processamento de \n
+│   └── validators.py               # CPF/CNPJ por dígito verificador
 ├── scripts/
-│   └── build_template.py           # Gera PMRA_Template_Jinja.docx do original
+│   ├── build_template.py           # Gera PMRA_Template_Jinja.docx do original
+│   └── smoke_test.py               # End-to-end: 3 cenários -> out/*.docx
+├── tests/                          # Suíte pytest (validators, data_mapper, schema)
 ├── resources/
+│   ├── static/styles.css           # CSS extraído do app.py
 │   └── templates/
 │       ├── PMRA_Escopo_Misto.docx       # Template canônico — NUNCA editar
 │       └── PMRA_Template_Jinja.docx     # Runtime, gerado pelo script
+├── .github/workflows/ci.yml        # CI: pytest + smoke test em PR
 ├── requirements.txt
 ├── runtime.txt                     # Python 3.11 (Streamlit Cloud)
 └── .streamlit/
@@ -58,6 +63,16 @@ streamlit run app.py
 ```
 
 Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
+
+## Testes
+
+```bash
+pip install pytest
+pytest tests/                 # unitários (validators, data_mapper, schema)
+python scripts/smoke_test.py  # end-to-end: gera 3 .docx em out/
+```
+
+CI roda os dois em todo PR (`.github/workflows/ci.yml`).
 
 ## Deploy no Streamlit Community Cloud
 
