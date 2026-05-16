@@ -96,10 +96,28 @@ footer,
 }
 
 /* Compensa o espaco que o header ocupava (puxa o conteudo para cima) */
-.stApp {
+/* Zera o padding-top em TODOS os wrappers que o Streamlit adiciona por padrao
+   acima do conteudo. Sem isso, sobra ~150-200px de espaco vazio acima do
+   .pmra-header. Cobertura ampla porque Streamlit varia os wrappers entre
+   versoes. */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stAppViewContainer"] > section,
+[data-testid="stAppViewContainer"] > .main,
+[data-testid="stMain"] > .block-container,
+div[data-testid="stMainBlockContainer"] {
     padding-top: 0 !important;
 }
-[data-testid="stAppViewContainer"] > .main {
+
+/* Primeiro filho do container principal nao deve ter margin-top */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+}
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child > [data-testid="stMarkdown"],
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stMarkdown"]:first-child {
+    margin-top: 0 !important;
     padding-top: 0 !important;
 }
 
@@ -559,7 +577,7 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmr
 div[data-testid="stMainBlockContainer"] {
     max-width: 896px !important;
     margin: 0 auto !important;
-    padding: 12px 28px 32px !important;
+    padding: 4px 28px 32px !important;
 }
 
 /* Table Headers */
