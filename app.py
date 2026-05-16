@@ -517,6 +517,15 @@ def _render_rows(
 if current == 0:
     st.subheader("Identificação do contratante")
 
+    _info_note(
+        "Todos os campos são opcionais. Caso algum campo não seja preenchido, "
+        "ele não será exibido no documento final e o ajuste deverá ser manual. "
+        "Sempre que possível, emita a proposta com todos os campos necessários "
+        "preenchidos, em especial os campos de identificação do "
+        "Contratante/Cliente, para facilitar as rotinas de Fluxo Comercial e "
+        "Cadastro pelo time Financeiro do PMRA."
+    )
+
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr">Identificação</div>', unsafe_allow_html=True)
         form["contratante"]["tipo_pessoa"] = st.radio(
