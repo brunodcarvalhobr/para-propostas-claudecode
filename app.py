@@ -545,7 +545,7 @@ def _render_rows(
                     labels[j],
                     value=row.get(field, ""),
                     key=wk,
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                     on_change=fmt_fn,
                     args=(wk,) if fmt_fn else None,
                 )
@@ -554,7 +554,7 @@ def _render_rows(
                     labels[j],
                     value=row.get(field, ""),
                     key=wk,
-                    label_visibility="collapsed",
+                    label_visibility="visible",
                     on_change=fmt_fn,
                     args=(wk,) if fmt_fn else None,
                 )
