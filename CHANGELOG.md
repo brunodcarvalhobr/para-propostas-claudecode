@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 - Injeção do MS Teams SDK no parent document (era código órfão — restaurar de forma controlada se for embedar em Teams).
+- **`resources/templates/PMRA_Escopo_Misto.docx`** e **`scripts/build_template.py`** (872 linhas). Template é mantido direto em `PMRA_Template_Jinja.docx` com tags Jinja inline.
 
 ### Security
 - Auto-XSS via campos do form no review card (`app.py:1232`) corrigido por escape.
