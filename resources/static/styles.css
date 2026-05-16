@@ -49,13 +49,14 @@ html, body, [class*="css"] {
     color: var(--color-ink);
 }
 
-/* Ambient Background Blobs (for Streamlit app container) */
+/* Ambient Background Blobs (for Streamlit app container) — opacity sutilmente
+   maior (0.18 vs 0.15) para reforcar a identidade visual sem dominar */
 .stApp {
     background-color: var(--color-paper) !important;
     background-image:
-        radial-gradient(circle at 80% 20%, rgba(249,115,22,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 20% 80%, rgba(251,191,36,0.15) 0%, transparent 40%),
-        radial-gradient(ellipse at 50% 50%, rgba(199,210,254,0.12) 0%, transparent 60%);
+        radial-gradient(circle at 80% 20%, rgba(249,115,22,0.18) 0%, transparent 42%),
+        radial-gradient(circle at 20% 80%, rgba(251,191,36,0.18) 0%, transparent 42%),
+        radial-gradient(ellipse at 50% 50%, rgba(199,210,254,0.14) 0%, transparent 60%);
     background-attachment: fixed;
 }
 
@@ -100,10 +101,6 @@ footer,
 }
 [data-testid="stAppViewContainer"] > .main {
     padding-top: 1rem !important;
-}
-
-[data-testid="stHeader"] {
-    background-color: var(--color-paper) !important;
 }
 
 /* Inputs e textareas: texto sempre escuro sobre fundo claro */
@@ -278,7 +275,7 @@ div[role="listbox"] {
     background-color: rgba(249,115,22,0.12) !important;
 }
 
-/* Header */
+/* Header — h1 maior + sem margin-top negativo (Streamlit header escondido) */
 .pmra-header {
     display: flex;
     align-items: center;
@@ -288,8 +285,8 @@ div[role="listbox"] {
     backdrop-filter: blur(48px);
     -webkit-backdrop-filter: blur(48px);
     border-bottom: 0.5px solid rgba(0,0,0,0.06);
-    margin-bottom: 32px;
-    margin-top: -60px; /* pull up into st margin */
+    margin-bottom: 24px;
+    margin-top: 0;
     position: sticky;
     top: 0;
     z-index: 30;
@@ -300,22 +297,22 @@ div[role="listbox"] {
     align-items: center;
     gap: 14px;
 }
-.pmra-header-left svg { height: 32px; width: auto; border-radius: 8px; }
+.pmra-header-left svg { height: 36px; width: auto; border-radius: 8px; }
 .pmra-header-divider {
     width: 1px;
     height: 24px;
     background: rgba(0,0,0,0.08);
 }
 .pmra-header-text h1 {
-    font-family: var(--font-display);
-    font-size: 14.5px;
-    font-weight: 400;
-    margin: 0;
-    letter-spacing: -0.005em;
-    color: var(--color-ink-600);
+    font-family: var(--font-display) !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--color-ink) !important;
 }
 
-/* Container override for glassmorphism */
+/* Container override for glassmorphism — margin-bottom para gap entre cards */
 div[data-testid="stVerticalBlock"] > div[style*="border"] {
     background: var(--color-glass-white) !important;
     backdrop-filter: blur(24px) saturate(180%);
@@ -324,10 +321,25 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     box-shadow: var(--shadow-glass) !important;
     border-radius: 18px !important;
     padding: 24px !important;
+    margin-bottom: 16px !important;
     transition: all 220ms var(--ease-out-soft);
 }
 
-/* Buttons */
+/* Mobile: containers e main com padding reduzido */
+@media (max-width: 720px) {
+    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+        padding: 16px !important;
+    }
+    div[data-testid="stMainBlockContainer"] {
+        padding: 16px 12px !important;
+    }
+    .pmra-header {
+        padding: 12px 16px;
+    }
+}
+
+/* Primary button — gradient ember + sombra ember + hover liso (brightness +
+   subtle lift). Transicao em transform/filter/box-shadow para suavidade. */
 button[kind="primary"],
 [data-testid="baseButton-primary"] {
     background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
@@ -336,39 +348,52 @@ button[kind="primary"],
     font-weight: 500 !important;
     border-radius: 12px !important;
     box-shadow: var(--shadow-button) !important;
-    transition: all 220ms var(--ease-out-soft) !important;
+    transition: transform 220ms var(--ease-out-soft),
+                filter 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft) !important;
 }
 button[kind="primary"]:hover,
 [data-testid="baseButton-primary"]:hover {
-    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
     filter: brightness(1.06);
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.5) inset, 0 8px 22px -6px rgba(249,115,22,0.6), 0 3px 8px -2px rgba(234,88,12,0.45) !important;
     transform: translateY(-1px) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.5) inset,
+        0 10px 26px -6px rgba(249,115,22,0.55),
+        0 3px 8px -2px rgba(234,88,12,0.40) !important;
 }
 
-[data-testid="baseButton-secondary"] {
-    background: rgba(255,255,255,0.7) !important;
-    backdrop-filter: blur(12px) saturate(160%) !important;
-    border: 0.5px solid rgba(0,0,0,0.08) !important;
-    border-radius: 12px !important;
-    color: var(--color-ink) !important;
-    box-shadow: var(--shadow-input) !important;
-    font-weight: 500 !important;
-}
-[data-testid="baseButton-secondary"]:hover {
-    background: rgba(255,255,255,0.9) !important;
-    border-color: rgba(0,0,0,0.14) !important;
-}
-
-/* Step Buttons uniform height */
+/* Step Buttons — pill mais slim (36px vs 40px) e fonte 12.5px para conjunto
+   mais leve. White-space nowrap + ellipsis impede quebra de linha em viewports
+   intermediarios. */
 [data-testid="stBaseButton-secondary"] > button,
 [data-testid="stBaseButton-primary"] > button {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    height: 40px !important;
-    min-height: 40px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     border-radius: 999px !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.01em;
+}
+
+/* Sticky stepper: o primeiro stHorizontalBlock dentro do container principal
+   e o indicador de etapas. Sticky com bg paper + blur para legibilidade ao
+   rolar. */
+[data-testid="stMainBlockContainer"]
+  > [data-testid="stVerticalBlock"]
+  > [data-testid="stHorizontalBlock"]:first-of-type {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    background-color: rgba(250, 249, 247, 0.92);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    padding: 12px 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    margin-top: -8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
 }
 
 /* Input fields */
@@ -532,7 +557,17 @@ hr {
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.review-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 22px 50px -16px rgba(15,15,20,0.22),
+        0 6px 18px -8px rgba(249,115,22,0.12);
 }
 .review-label {
     font-family: var(--font-sans);
@@ -552,22 +587,23 @@ hr {
 .review-summary {
     font-family: var(--font-sans);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.45;
     color: var(--color-ink-600);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
-.review-summary br + br {
-    display: block;
-    margin-top: 4px;
-    content: "";
+.review-row {
+    /* Cada item do resumo (1 por linha) — sem bullets, espacamento vertical */
 }
 
-/* Login screen */
+/* Login screen — spacing hierarquico (gap menor titulo/subtitulo, maior
+   subtitulo/mensagem). Logo levemente maior (72px). */
 .pmra-login {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 40px 32px 32px;
+    padding: 44px 36px 36px;
     margin: 32px auto 24px;
     max-width: 480px;
     background: var(--color-glass-strong);
@@ -578,15 +614,18 @@ hr {
     border-radius: 24px;
     text-align: center;
 }
+.pmra-login-logo {
+    margin-bottom: 20px;
+}
 .pmra-login-logo svg {
-    height: 64px;
+    height: 72px;
     width: auto;
 }
 .pmra-login-title {
     font-family: var(--font-display) !important;
     font-size: 28px !important;
     font-weight: 400 !important;
-    margin: 0 !important;
+    margin: 0 0 4px !important;
     color: var(--color-ink) !important;
     letter-spacing: -0.01em;
     line-height: 1.1;
@@ -595,7 +634,7 @@ hr {
     font-family: var(--font-sans);
     font-size: 12.5px;
     color: var(--color-ink-400);
-    margin: 0;
+    margin: 0 0 22px !important;
     letter-spacing: 0.01em;
     font-style: italic;
 }
@@ -605,7 +644,7 @@ hr {
     color: var(--color-ink-600);
     line-height: 1.55;
     max-width: 380px;
-    margin: 12px auto 0;
+    margin: 0 auto !important;
 }
 
 /* Footer style */

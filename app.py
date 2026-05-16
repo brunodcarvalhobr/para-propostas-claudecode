@@ -1175,10 +1175,14 @@ elif current == 4:
         ("Honorários", honorarios_linhas),
         ("Despesas", despesas_linhas),
     ]
+    # Cada linha vira uma <div class="review-row"> — visual mais estruturado que
+    # <br> entre strings (suporta hover/spacing/animacao por linha).
     cards_html = "\n".join(
         f"""<div class="review-card">
   <div class="review-label">{label}</div>
-  <div class="review-summary">{'<br>'.join(linhas)}</div>
+  <div class="review-summary">
+    {''.join(f'<div class="review-row">{linha}</div>' for linha in linhas)}
+  </div>
 </div>"""
         for label, linhas in cards
     )
@@ -1229,7 +1233,8 @@ elif current == 4:
 # ── Navegação: botões Anterior / Próximo ──────────────────────────────────────
 
 st.divider()
-_, nav_prev, nav_next, _ = st.columns([2, 1, 1, 2])
+# Mais espaco entre Anterior e Proximo (coluna central de gap)
+_, nav_prev, _gap, nav_next, _ = st.columns([2, 1, 0.4, 1, 2])
 
 if current > 0:
     nav_prev.button(
@@ -1251,6 +1256,6 @@ if current < len(STEPS) - 1:
 st.markdown("""
 <div class="pmra-footer">
     <div class="pmra-footer-left">O nosso negócio é fazer direito</div>
-    <div class="pmra-footer-right">PMRA Propostas · v0.1.0</div>
+    <div class="pmra-footer-right">PMRA Propostas</div>
 </div>
 """, unsafe_allow_html=True)
