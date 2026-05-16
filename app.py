@@ -628,9 +628,9 @@ elif current == 2:
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", value=cm["hora_senioridade"], key="cons_hs")
-            cm["hora_fixa"] = c2.checkbox("Hora fixa", value=cm["hora_fixa"], key="cons_hf")
-            cm["fixo_mensal"] = c3.checkbox("Fixo mensal", value=cm["fixo_mensal"], key="cons_fm")
-            cm["valor_projeto"] = c4.checkbox("Valor do projeto", value=cm["valor_projeto"], key="cons_vp")
+            cm["hora_fixa"] = c2.checkbox("Hora Média", value=cm["hora_fixa"], key="cons_hf")
+            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", value=cm["fixo_mensal"], key="cons_fm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
 
             if cm["hora_senioridade"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
@@ -679,7 +679,7 @@ elif current == 2:
 
             if cm["valor_projeto"]:
                 form["honorarios_consultiva"]["valor_projeto_total"] = st.text_input(
-                    "Valor total do projeto",
+                    "Preço global",
                     value=form["honorarios_consultiva"]["valor_projeto_total"],
                     placeholder="Ex: R$ 50.000,00",
                     key="cons_vp_total",
@@ -701,13 +701,13 @@ elif current == 2:
             cm = form["honorarios_contenciosa"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            cm["valor_acao"] = c1.checkbox("Valor por ação", value=cm["valor_acao"], key="cont_va")
+            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
             cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
             cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
-            cm["valor_projeto"] = c4.checkbox("Valor por projeto", value=cm["valor_projeto"], key="cont_vp")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
 
             if cm["valor_acao"]:
-                st.markdown('<div class="pmra-sub-hdr">Tabela — Valor por Ação</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr">Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
                 form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
                     "tbl_acoes",
                     {"natureza": "Natureza da ação", "fase": "Fase processual", "valor": "Valor"},
@@ -757,7 +757,7 @@ elif current == 2:
 
             if cm["valor_projeto"]:
                 form["honorarios_contenciosa"]["valor_projeto_total"] = st.text_input(
-                    "Valor total do projeto — contencioso",
+                    "Preço global — contencioso",
                     value=form["honorarios_contenciosa"]["valor_projeto_total"],
                     placeholder="Ex: R$ 30.000,00",
                     key="cont_vp_total",
@@ -803,7 +803,7 @@ elif current == 2:
             form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
                 "Modo de cobrança",
                 options=modos,
-                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora fixa (valor único)",
+                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
                 index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
                 horizontal=True,
                 key="horas_extra_modo_radio",
@@ -836,7 +836,7 @@ elif current == 3:
         st.markdown('<div class="pmra-sub-hdr">Despesas previstas</div>', unsafe_allow_html=True)
         form["despesas"]["tabela_despesas"] = _render_rows(
             "tbl_despesas",
-            {"categoria": "Categoria (Ex: Despesas Gerais)", "descricao": "Descrição"},
+            {"categoria": "Categoria (Ex: Despesas Logísticas)", "descricao": "Descrição"},
             help_text="Adicione ou remova despesas conforme aplicável ao escopo.",
             col_widths=[3, 6],
             text_areas=["categoria", "descricao"],
@@ -865,7 +865,6 @@ elif current == 3:
                 value=form["disposicoes"]["descricao"],
                 height=140,
                 key="disp_desc_ta",
-                placeholder="Ex: Foro eleito: comarca de Belo Horizonte/MG.",
             )
 
 
