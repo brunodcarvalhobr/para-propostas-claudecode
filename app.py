@@ -49,55 +49,6 @@ st.set_page_config(
 # Assets cacheados (chamados depois do set_page_config)
 _LOGO_SVG = _load_text_asset("pmra-icon.svg")
 
-# Force light mode: limpa preferencia de tema do usuario armazenada localmente
-# e seta data-theme=light no root. Combinado com [theme] base=light no
-# config.toml e [client] toolbarMode=minimal (esconde Settings), garante que o
-# app NUNCA renderiza em dark, independente da preferencia do browser/usuario.
-components.html("""
-<script>
-(function() {
-  try {
-    var parentWin = window.parent;
-    var parentDoc = parentWin.document;
-
-    // 1. Limpa toda preferencia de tema armazenada localmente
-    try {
-      var ls = parentWin.localStorage;
-      for (var i = ls.length - 1; i >= 0; i--) {
-        var k = ls.key(i);
-        if (k && (
-            k.toLowerCase().indexOf('theme') >= 0 ||
-            k.toLowerCase().indexOf('darkmode') >= 0 ||
-            k.toLowerCase().indexOf('color-scheme') >= 0
-        )) { ls.removeItem(k); }
-      }
-    } catch(e) {}
-
-    // 2. Forca color-scheme=light + data-theme=light no root
-    function applyLight() {
-      var html = parentDoc.documentElement;
-      if (html) {
-        html.style.colorScheme = 'light';
-        html.setAttribute('data-theme', 'light');
-      }
-      if (parentDoc.body) {
-        parentDoc.body.style.colorScheme = 'light';
-      }
-    }
-    applyLight();
-
-    // 3. Observa mudancas no root e reaplica light (caso Streamlit tente mudar)
-    if (parentDoc.documentElement) {
-      new parentWin.MutationObserver(applyLight).observe(
-        parentDoc.documentElement,
-        {attributes: true, attributeFilter: ['data-theme', 'class', 'style']}
-      );
-    }
-  } catch(e) { console.warn('force-light failed:', e); }
-})();
-</script>
-""", height=0)
-
 if not check_password():
     st.stop()
 
