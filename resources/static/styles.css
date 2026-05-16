@@ -168,45 +168,84 @@ html, body, .stApp,
     opacity: 0.6;
 }
 
-/* Checkbox/radio: usa accent-color nativo (CSS3) em vez de hackear DOM Baseweb.
-   Funciona em light e dark mode sem efeitos colaterais. O quadrado/circulo
-   adota tema light por causa do color-scheme: light declarado acima. */
+/* Checkbox/radio: usa accent-color nativo (CSS3) para inputs nativos. */
 .stApp input[type="checkbox"],
 .stApp input[type="radio"] {
     accent-color: var(--color-ember-500) !important;
     color-scheme: light !important;
 }
 
+/* Radio visual de Baseweb: o circulo aparente e um <div> filho do <label> dentro
+   do [role="radiogroup"]. So pegamos labels que sao FILHOS DIRETOS de radiogroup
+   — assim NAO pegamos o label do grupo (TIPO DE PESSOA, MODALIDADE, etc.) que
+   fica FORA do radiogroup. */
+.stApp [role="radiogroup"] > label > div:first-child,
+.stApp [role="radiogroup"] > label > span:first-child {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+.stApp [role="radiogroup"] > label[aria-checked="true"] > div:first-child,
+.stApp [role="radiogroup"] > label[aria-checked="true"] > span:first-child {
+    background-color: var(--color-ember-500) !important;
+    border-color: var(--color-ember-600) !important;
+}
+
+/* Checkbox visual de Baseweb: cirurgicamente, o <span> filho do <label>
+   dentro de [data-testid="stCheckbox"] (que NAO contem [data-testid="stWidgetLabel"]). */
+.stApp [data-testid="stCheckbox"] > label > span:first-child {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+.stApp [data-testid="stCheckbox"] > label[aria-checked="true"] > span:first-child,
+.stApp [data-testid="stCheckbox"] input:checked + span:first-child {
+    background-color: var(--color-ember-500) !important;
+    border-color: var(--color-ember-600) !important;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
-   DROPDOWN POPUP (UF selectbox, demais selects)
+   DROPDOWN POPUP (UF selectbox e demais popups)
    IMPORTANTE: o popup do Streamlit/Baseweb e renderizado em PORTAL no body,
-   FORA de .stApp. Por isso os seletores aqui NAO sao prefixados com .stApp.
-   As cores sao hardcoded (nao usam var(--...)) porque o portal pode estar
-   fora do escopo onde as variaveis CSS sao definidas.
+   FORA de .stApp. Os seletores aqui NAO sao prefixados com .stApp e usam
+   cores hardcoded (nao var(--...)) porque o portal pode estar fora do escopo
+   onde as variaveis CSS sao definidas.
+
+   Rede ampla: cobre todas as variantes conhecidas de popover/menu/list.
    ────────────────────────────────────────────────────────────────────────────*/
 [data-baseweb="popover"],
+[data-baseweb="popover-content"],
 [data-baseweb="menu"],
+[data-baseweb="list"],
+[data-baseweb="select-listbox"],
+[data-baseweb="select-dropdown"],
 [role="listbox"],
-[data-baseweb="select-dropdown"] {
+[role="menu"],
+ul[role="listbox"],
+div[role="listbox"] {
     background-color: #ffffff !important;
     color: #0a0a0a !important;
     border: 1px solid rgba(0,0,0,0.10) !important;
     box-shadow: 0 8px 24px -4px rgba(15,15,20,0.15) !important;
 }
+/* Forca cor escura em TODO descendente — pega li, span, div, etc. */
 [data-baseweb="popover"] *,
+[data-baseweb="popover-content"] *,
 [data-baseweb="menu"] *,
+[data-baseweb="list"] *,
+[data-baseweb="select-listbox"] *,
+[data-baseweb="select-dropdown"] *,
 [role="listbox"] *,
+[role="menu"] *,
 [role="option"],
-[role="option"] * {
+[role="option"] *,
+[role="menuitem"],
+[role="menuitem"] * {
     color: #0a0a0a !important;
-}
-[data-baseweb="menu"] li,
-[role="listbox"] li,
-[role="option"] {
     background-color: transparent !important;
 }
+/* Estado hover/selecionado: ember claro */
 [role="option"]:hover,
-[role="option"][aria-selected="true"] {
+[role="option"][aria-selected="true"],
+[role="menuitem"]:hover {
     background-color: rgba(249,115,22,0.12) !important;
 }
 
