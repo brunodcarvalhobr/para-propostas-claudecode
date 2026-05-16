@@ -28,9 +28,6 @@ def _load_text_asset(relative_path: str) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
-_LOGO_SVG = _load_text_asset("pmra-icon.svg")
-
-
 def _info_note(text: str) -> None:
     """Renderiza nota explicativa com fundo azul claro, texto justificado.
 
@@ -40,11 +37,17 @@ def _info_note(text: str) -> None:
     st.markdown(f'<div class="pmra-info-note">{text}</div>', unsafe_allow_html=True)
 
 
+# st.set_page_config DEVE ser o primeiro comando Streamlit — qualquer chamada
+# a @st.cache_data ou outras APIs antes dele dispara
+# StreamlitSetPageConfigMustBeFirstCommandError.
 st.set_page_config(
     page_title="Gerador de Propostas PMRA",
     page_icon="⚖️",
     layout="wide",
 )
+
+# Assets cacheados (chamados depois do set_page_config)
+_LOGO_SVG = _load_text_asset("pmra-icon.svg")
 
 if not check_password():
     st.stop()
