@@ -1007,12 +1007,16 @@ elif current == 1:
                 key="sla_ativo_cb",
             )
             if form["escopo"]["sla_ativo"]:
+                _info_note(
+                    "Abaixo a sugestão de SLA/Prazos de Atendimento pré-preenchido. "
+                    "Ajuste conforme a necessidade da área ou conforme acordado com "
+                    "o Cliente."
+                )
                 form["escopo"]["sla_descricao"] = st.text_area(
                     "Descrição do SLA",
                     value=form["escopo"]["sla_descricao"],
-                    height=120,
+                    height=160,
                     key="sla_descricao_ta",
-                    placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
                 )
         else:
             # Modal == contenciosa: SLA nao se aplica, zera por defesa em camadas
