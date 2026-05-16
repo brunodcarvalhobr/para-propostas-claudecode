@@ -1,4 +1,4 @@
-"""DocGen by PMRA Legal Tech (Streamlit) — formulário em etapas."""
+"""Gerador de Propostas PMRA (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
 import html
@@ -28,7 +28,7 @@ if os.path.exists(_SVG_PATH):
 
 
 st.set_page_config(
-    page_title="DocGen by PMRA Legal Tech",
+    page_title="Gerador de Propostas PMRA",
     page_icon="⚖️",
     layout="wide",
 )
