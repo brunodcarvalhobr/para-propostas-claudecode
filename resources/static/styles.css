@@ -73,6 +73,35 @@ html, body, .stApp,
     color-scheme: light !important;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   HIDE STREAMLIT HEADER/TOOLBAR
+   Esconde toda a barra superior nativa do Streamlit (toolbar com Deploy/Star,
+   header, badge "Fork + GitHub" do Streamlit Cloud, marca d'agua "Made with
+   Streamlit" no footer). Usuario final ve so o conteudo do app.
+   Para esconder tambem o badge "Fork" do Cloud especificamente, desativar
+   "Show app in the Streamlit Community Cloud toolbar" em share.streamlit.io
+   > seu app > Settings.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+header[data-testid="stHeader"],
+footer,
+#MainMenu {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
+
+/* Compensa o espaco que o header ocupava (puxa o conteudo para cima) */
+.stApp {
+    padding-top: 0 !important;
+}
+[data-testid="stAppViewContainer"] > .main {
+    padding-top: 1rem !important;
+}
+
 [data-testid="stHeader"] {
     background-color: var(--color-paper) !important;
 }
