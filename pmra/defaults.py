@@ -78,11 +78,11 @@ ACAO_LINHA_VAZIA = AcaoRow(natureza="", fase="", valor="")
 
 DESPESAS_DEFAULT: list[DespesaItem] = [
     DespesaItem(
-        categoria="Despesas Gerais",
+        categoria="Despesas Logísticas",
         descricao="Deslocamento em veículo próprio: R$ 2,50 por km e estacionamento, táxi, transporte por aplicativo, hospedagem e alimentação;"
     ),
     DespesaItem(
-        categoria="Despesas Específicas",
+        categoria="Despesas Gerais",
         descricao="Custas e emolumentos judiciais e administrativos, depósitos recursais, diligências externas simples (R$ 150,00 por diligência), serviços de correspondentes e demais despesas correlatas, apurados conforme necessidade."
     )
 ]

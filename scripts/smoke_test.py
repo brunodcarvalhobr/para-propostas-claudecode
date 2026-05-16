@@ -19,16 +19,26 @@ from pmra.schema import Contato, Endereco
 from pmra.template_engine import render_proposal
 
 
-def assert_valid_docx(data: bytes, label: str) -> None:
+def assert_valid_docx(
+    data: bytes,
+    label: str,
+    must_contain: tuple[str, ...] = (),
+    must_not_contain: tuple[str, ...] = (),
+) -> None:
     assert data[:4] == b"PK\x03\x04", f"{label}: nao parece um zip/docx valido"
     with zipfile.ZipFile(__import__("io").BytesIO(data)) as zf:
         names = set(zf.namelist())
         assert "word/document.xml" in names, f"{label}: faltando word/document.xml"
-        # Garante que nao sobraram tags Jinja2 nao processadas
         body = zf.read("word/document.xml").decode("utf-8")
         for marker in ("{%p ", "{%tr ", "{% if ", "{% for "):
             if marker in body:
                 raise AssertionError(f"{label}: marcador Jinja nao processado: {marker!r}")
+        for needle in must_contain:
+            if needle not in body:
+                raise AssertionError(f"{label}: esperado encontrar {needle!r} em document.xml")
+        for needle in must_not_contain:
+            if needle in body:
+                raise AssertionError(f"{label}: nao deveria conter {needle!r} em document.xml")
     print(f"  ok: {label} ({len(data):,} bytes)")
 
 
@@ -36,7 +46,7 @@ def cenario_pf_consultiva():
     form = proposal_form_default()
     form.contratante.tipo_pessoa = "fisica"
     form.contratante.nome = "Joao da Silva"
-    form.contratante.cpf = "123.456.789-00"
+    form.contratante.cpf = "111.444.777-35"
     form.contratante.endereco = Endereco(
         logradouro="Rua das Flores", numero="100", bairro="Centro",
         cep="30000-000", cidade="Belo Horizonte", uf="MG",
@@ -55,7 +65,7 @@ def cenario_pj_mista_completa():
     form = proposal_form_default()
     form.contratante.tipo_pessoa = "juridica"
     form.contratante.razao_social = "Acme Industria S.A."
-    form.contratante.cnpj = "12.345.678/0001-99"
+    form.contratante.cnpj = "11.222.333/0001-81"
     form.contratante.endereco = Endereco(
         logradouro="Av. Paulista", numero="1000", bairro="Bela Vista",
         cep="01310-100", cidade="Sao Paulo", uf="SP",
@@ -94,7 +104,7 @@ def cenario_pj_contenciosa_minimal():
     form = proposal_form_default()
     form.contratante.tipo_pessoa = "juridica"
     form.contratante.razao_social = "Beta Ltda"
-    form.contratante.cnpj = "98.765.432/0001-11"
+    form.contratante.cnpj = "11.444.777/0001-61"
     form.escopo.modalidade = "contenciosa"
     form.escopo.atuacao_contenciosa = "Trabalhista — defesa."
     form.honorarios_contenciosa.modalidades.preco_mensal_massa = True
@@ -111,17 +121,32 @@ def main() -> None:
     out_dir.mkdir(exist_ok=True)
 
     cenarios = [
-        ("pf_consultiva.docx", cenario_pf_consultiva()),
-        ("pj_mista_completa.docx", cenario_pj_mista_completa()),
-        ("pj_contenciosa_minimal.docx", cenario_pj_contenciosa_minimal()),
+        (
+            "pf_consultiva.docx",
+            cenario_pf_consultiva(),
+            ("Joao da Silva", "111.444.777-35", "Belo Horizonte", "joao@example.com"),
+            (),
+        ),
+        (
+            "pj_mista_completa.docx",
+            cenario_pj_mista_completa(),
+            ("Acme Industria S.A.", "11.222.333/0001-81", "Trabalhista", "R$ 15.000,00"),
+            (),
+        ),
+        (
+            "pj_contenciosa_minimal.docx",
+            cenario_pj_contenciosa_minimal(),
+            ("Beta Ltda", "11.444.777/0001-61", "R$ 8.000,00", "R$ 500,00"),
+            (),
+        ),
     ]
 
-    for nome, form in cenarios:
+    for nome, form, contains, not_contains in cenarios:
         ctx = form_to_context(form)
         data = render_proposal(ctx)
         path = out_dir / nome
         path.write_bytes(data)
-        assert_valid_docx(data, nome)
+        assert_valid_docx(data, nome, must_contain=contains, must_not_contain=not_contains)
         print(f"  -> {path}")
 
     print("\nSmoke test passou.")

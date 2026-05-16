@@ -1,10 +1,12 @@
 """DocGen by PMRA Legal Tech (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
+import html
+import logging
 import os
 import re
-import traceback
 from datetime import datetime
+from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -14,6 +16,8 @@ from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
 from pmra.defaults import proposal_form_default
 from pmra.schema import ProposalForm, UF_OPTIONS
 from pmra.template_engine import render_proposal
+
+logger = logging.getLogger(__name__)
 
 # Lê o SVG do logo uma vez no carregamento do módulo
 _SVG_PATH = os.path.join(os.path.dirname(__file__), "pmra-icon.svg")
@@ -34,341 +38,9 @@ if not check_password():
 
 # ── Estilos PMRA ───────────────────────────────────────────────────────────────
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap');
+_STYLES_CSS = (Path(__file__).parent / "resources" / "static" / "styles.css").read_text(encoding="utf-8")
+st.markdown(f"<style>{_STYLES_CSS}</style>", unsafe_allow_html=True)
 
-:root {
-  --color-ink: #0a0a0a;
-  --color-ink-600: #404040;
-  --color-ink-400: #737373;
-  --color-ink-200: #d4d4d4;
-  --color-ink-100: #e5e5e5;
-  --color-paper: #faf9f7;
-  --color-paper-50: #fdfcfa;
-  --color-paper-100: #f5f3ee;
-  --color-paper-200: #ebe7df;
-  --color-ember-200: #fde68a;
-  --color-ember-300: #fbbf24;
-  --color-ember-400: #fb923c;
-  --color-ember-500: #f97316;
-  --color-ember-600: #ea580c;
-  --color-ember-700: #c2410c;
-  --color-glass-white: rgba(255,255,255,0.55);
-  --color-glass-strong: rgba(255,255,255,0.78);
-  --color-glass-border: rgba(255,255,255,0.7);
-  
-  --shadow-glass:
-    0 1px 0 0 rgba(255,255,255,0.9) inset,
-    0 0 0 0.5px rgba(0,0,0,0.04),
-    0 14px 40px -16px rgba(15,15,20,0.18),
-    0 4px 14px -8px rgba(249,115,22,0.08);
-
-  --shadow-input:
-    0 1px 0 0 rgba(255,255,255,0.9) inset,
-    0 0 0 0.5px rgba(0,0,0,0.06);
-
-  --shadow-button:
-    0 1px 0 0 rgba(255,255,255,0.4) inset,
-    0 6px 18px -6px rgba(249,115,22,0.5),
-    0 2px 6px -2px rgba(234,88,12,0.4);
-
-  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Base text */
-html, body, [class*="css"] {
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    font-feature-settings: 'cv11', 'ss01', 'ss03';
-    color: var(--color-ink);
-}
-
-/* Ambient Background Blobs (for Streamlit app container) */
-.stApp {
-    background-color: var(--color-paper) !important;
-    background-image: 
-        radial-gradient(circle at 80% 20%, rgba(249,115,22,0.15) 0%, transparent 40%),
-        radial-gradient(circle at 20% 80%, rgba(251,191,36,0.15) 0%, transparent 40%),
-        radial-gradient(ellipse at 50% 50%, rgba(199,210,254,0.12) 0%, transparent 60%);
-    background-attachment: fixed;
-}
-
-/* Header */
-.pmra-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 28px;
-    background: rgba(253, 252, 250, 0.80);
-    backdrop-filter: blur(48px);
-    -webkit-backdrop-filter: blur(48px);
-    border-bottom: 0.5px solid rgba(0,0,0,0.06);
-    margin-bottom: 32px;
-    margin-top: -60px; /* pull up into st margin */
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    border-radius: 0 0 16px 16px;
-}
-.pmra-header-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-.pmra-header-left svg { height: 32px; width: auto; border-radius: 8px; }
-.pmra-header-divider {
-    width: 1px;
-    height: 24px;
-    background: rgba(0,0,0,0.08);
-}
-.pmra-header-text h1 {
-    font-family: var(--font-display);
-    font-size: 14.5px;
-    font-weight: 400;
-    margin: 0;
-    letter-spacing: -0.005em;
-    color: var(--color-ink-600);
-}
-
-/* Container override for glassmorphism */
-div[data-testid="stVerticalBlock"] > div[style*="border"] {
-    background: var(--color-glass-white) !important;
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 0.5px solid var(--color-glass-border) !important;
-    box-shadow: var(--shadow-glass) !important;
-    border-radius: 18px !important;
-    padding: 32px !important;
-    transition: all 220ms var(--ease-out-soft);
-}
-
-/* Buttons */
-button[kind="primary"],
-[data-testid="baseButton-primary"] {
-    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
-    border: none !important;
-    color: #FFFFFF !important;
-    font-weight: 500 !important;
-    border-radius: 12px !important;
-    box-shadow: var(--shadow-button) !important;
-    transition: all 220ms var(--ease-out-soft) !important;
-}
-button[kind="primary"]:hover,
-[data-testid="baseButton-primary"]:hover {
-    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
-    filter: brightness(1.06);
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.5) inset, 0 8px 22px -6px rgba(249,115,22,0.6), 0 3px 8px -2px rgba(234,88,12,0.45) !important;
-    transform: translateY(-1px) !important;
-}
-
-[data-testid="baseButton-secondary"] {
-    background: rgba(255,255,255,0.7) !important;
-    backdrop-filter: blur(12px) saturate(160%) !important;
-    border: 0.5px solid rgba(0,0,0,0.08) !important;
-    border-radius: 12px !important;
-    color: var(--color-ink) !important;
-    box-shadow: var(--shadow-input) !important;
-    font-weight: 500 !important;
-}
-[data-testid="baseButton-secondary"]:hover {
-    background: rgba(255,255,255,0.9) !important;
-    border-color: rgba(0,0,0,0.14) !important;
-}
-
-/* Step Buttons uniform height */
-[data-testid="stBaseButton-secondary"] > button,
-[data-testid="stBaseButton-primary"] > button {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    border-radius: 999px !important;
-}
-
-/* Input fields */
-[data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"], [data-baseweb="base-input"] {
-    background: rgba(255,255,255,0.7) !important;
-    backdrop-filter: blur(12px) saturate(160%) !important;
-    border: 0.5px solid rgba(0,0,0,0.08) !important;
-    border-radius: 12px !important;
-    box-shadow: var(--shadow-input) !important;
-    transition: all 220ms var(--ease-out-soft) !important;
-}
-[data-baseweb="input"]:focus-within, [data-baseweb="textarea"]:focus-within, [data-baseweb="select"]:focus-within {
-    border-color: rgba(249,115,22,0.55) !important;
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 3px rgba(249,115,22,0.16) !important;
-}
-
-/* Headings */
-h1, h2, h3, .pmra-sub-hdr {
-    font-family: var(--font-display) !important;
-    color: var(--color-ink) !important;
-}
-h2 {
-    font-size: 26px !important;
-    line-height: 1.1 !important;
-    letter-spacing: -0.01em !important;
-    margin-bottom: 24px !important;
-}
-h3 {
-    font-size: 18px !important;
-    line-height: 1.2 !important;
-    letter-spacing: -0.005em !important;
-    margin-top: 16px !important;
-    margin-bottom: 16px !important;
-}
-
-/* Labels */
-label {
-    font-family: var(--font-sans) !important;
-    font-size: 11.5px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.12em !important;
-    color: var(--color-ink-600) !important;
-    font-weight: 500 !important;
-}
-
-/* Selection */
-::selection {
-    background: rgba(249,115,22,0.18);
-    color: var(--color-ink);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-    background: rgba(64,64,64,0.18);
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover { background: rgba(64,64,64,0.32); background-clip: content-box; }
-
-/* Subheaders within cards */
-.pmra-sub-hdr {
-    font-family: var(--font-sans) !important;
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ember-600);
-    margin-top: 24px;
-    margin-bottom: 16px;
-}
-
-/* Progress Bar container override */
-[data-testid="stProgressBar"] > div > div {
-    background-color: var(--color-ember-500) !important;
-}
-
-/* Width constraint */
-div[data-testid="stMainBlockContainer"] {
-    max-width: 896px !important;
-    margin: 0 auto !important;
-    padding: 32px 28px !important;
-}
-
-/* Table Headers */
-.pmra-tbl-hdr {
-    font-family: var(--font-sans) !important;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--color-ink-400);
-    margin-bottom: 8px;
-}
-
-/* Divider */
-hr {
-    border: none !important;
-    height: 1px !important;
-    background: linear-gradient(to right, transparent, rgba(0,0,0,0.10), transparent) !important;
-    margin: 32px 0 !important;
-}
-
-/* Compact clear row buttons */
-[data-testid$="__del"] > div > button {
-    padding-top: 0.3rem !important;
-    padding-bottom: 0.3rem !important;
-    font-size: 0.8rem !important;
-    color: var(--color-ink-400) !important;
-    border-color: rgba(0,0,0,0.10) !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-[data-testid$="__del"] > div > button:hover {
-    color: var(--color-danger-600) !important;
-    border-color: var(--color-danger-600) !important;
-    background: rgba(239, 68, 68, 0.1) !important;
-}
-
-/* Review Cards */
-.review-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-.review-card {
-    background: var(--color-glass-white);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 0.5px solid var(--color-glass-border);
-    box-shadow: var(--shadow-glass);
-    border-radius: 18px;
-    padding: 20px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.review-label {
-    font-family: var(--font-sans);
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ember-600);
-}
-.review-value {
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.2;
-    letter-spacing: -0.005em;
-    color: var(--color-ink);
-}
-
-/* Footer style */
-.pmra-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 28px;
-    background: rgba(253, 252, 250, 0.60);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 0.5px solid rgba(0,0,0,0.05);
-    font-size: 11px;
-    color: var(--color-ink-400);
-    margin-top: 64px;
-    border-radius: 16px 16px 0 0;
-}
-.pmra-footer-left {
-    font-family: var(--font-display);
-    font-style: italic;
-    letter-spacing: 0.005em;
-}
-.pmra-footer-right {
-    font-variant-numeric: tabular-nums;
-}
-</style>
-""", unsafe_allow_html=True)
 
 # ── Máscara em tempo real (JS via iframe) ──────────────────────────────────────
 
@@ -455,25 +127,6 @@ components.html("""
   function start() {
     setupMasks();
     obs.observe(window.parent.document.body, { childList: true, subtree: true });
-    
-    // Inject and initialize MS Teams SDK in the parent document
-    const parentDoc = window.parent.document;
-    if (!parentDoc.getElementById('teams-sdk-script')) {
-      const tsScript = parentDoc.createElement('script');
-      tsScript.id = 'teams-sdk-script';
-      tsScript.src = 'https://res.cdn.office.net/teams-js/2.11.0/js/MicrosoftTeams.min.js';
-      tsScript.onload = function() {
-        if (window.parent.microsoftTeams && window.parent.microsoftTeams.app) {
-          window.parent.microsoftTeams.app.initialize().then(function() {
-            window.parent.microsoftTeams.app.notifySuccess();
-            console.log("MS Teams SDK initialized successfully.");
-          }).catch(function(e) {
-            console.log("Teams initialization failed (or not running in Teams):", e);
-          });
-        }
-      };
-      parentDoc.head.appendChild(tsScript);
-    }
   }
 
   if (window.parent.document.readyState === 'loading') {
@@ -975,9 +628,9 @@ elif current == 2:
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", value=cm["hora_senioridade"], key="cons_hs")
-            cm["hora_fixa"] = c2.checkbox("Hora fixa", value=cm["hora_fixa"], key="cons_hf")
-            cm["fixo_mensal"] = c3.checkbox("Fixo mensal", value=cm["fixo_mensal"], key="cons_fm")
-            cm["valor_projeto"] = c4.checkbox("Valor do projeto", value=cm["valor_projeto"], key="cons_vp")
+            cm["hora_fixa"] = c2.checkbox("Hora Média", value=cm["hora_fixa"], key="cons_hf")
+            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", value=cm["fixo_mensal"], key="cons_fm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
 
             if cm["hora_senioridade"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
@@ -1026,7 +679,7 @@ elif current == 2:
 
             if cm["valor_projeto"]:
                 form["honorarios_consultiva"]["valor_projeto_total"] = st.text_input(
-                    "Valor total do projeto",
+                    "Preço global",
                     value=form["honorarios_consultiva"]["valor_projeto_total"],
                     placeholder="Ex: R$ 50.000,00",
                     key="cons_vp_total",
@@ -1048,13 +701,13 @@ elif current == 2:
             cm = form["honorarios_contenciosa"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            cm["valor_acao"] = c1.checkbox("Valor por ação", value=cm["valor_acao"], key="cont_va")
+            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
             cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
             cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
-            cm["valor_projeto"] = c4.checkbox("Valor por projeto", value=cm["valor_projeto"], key="cont_vp")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
 
             if cm["valor_acao"]:
-                st.markdown('<div class="pmra-sub-hdr">Tabela — Valor por Ação</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr">Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
                 form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
                     "tbl_acoes",
                     {"natureza": "Natureza da ação", "fase": "Fase processual", "valor": "Valor"},
@@ -1104,7 +757,7 @@ elif current == 2:
 
             if cm["valor_projeto"]:
                 form["honorarios_contenciosa"]["valor_projeto_total"] = st.text_input(
-                    "Valor total do projeto — contencioso",
+                    "Preço global — contencioso",
                     value=form["honorarios_contenciosa"]["valor_projeto_total"],
                     placeholder="Ex: R$ 30.000,00",
                     key="cont_vp_total",
@@ -1150,7 +803,7 @@ elif current == 2:
             form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
                 "Modo de cobrança",
                 options=modos,
-                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora fixa (valor único)",
+                format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
                 index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
                 horizontal=True,
                 key="horas_extra_modo_radio",
@@ -1183,7 +836,7 @@ elif current == 3:
         st.markdown('<div class="pmra-sub-hdr">Despesas previstas</div>', unsafe_allow_html=True)
         form["despesas"]["tabela_despesas"] = _render_rows(
             "tbl_despesas",
-            {"categoria": "Categoria (Ex: Despesas Gerais)", "descricao": "Descrição"},
+            {"categoria": "Categoria (Ex: Despesas Logísticas)", "descricao": "Descrição"},
             help_text="Adicione ou remova despesas conforme aplicável ao escopo.",
             col_widths=[3, 6],
             text_areas=["categoria", "descricao"],
@@ -1212,7 +865,6 @@ elif current == 3:
                 value=form["disposicoes"]["descricao"],
                 height=140,
                 key="disp_desc_ta",
-                placeholder="Ex: Foro eleito: comarca de Belo Horizonte/MG.",
             )
 
 
@@ -1229,23 +881,27 @@ elif current == 4:
     uf = form["contratante"]["endereco"]["uf"]
 
     localidade = f"{cidade}/{uf}" if cidade else "—"
+    review_nome = html.escape(nome_cliente or "—")
+    review_doc = html.escape(doc_cliente or "—")
+    review_localidade = html.escape(localidade)
+    review_modal = html.escape(modal.capitalize())
     st.markdown(f"""
 <div class="review-grid">
   <div class="review-card">
     <div class="review-label">Contratante</div>
-    <div class="review-value">{nome_cliente or "—"}</div>
+    <div class="review-value">{review_nome}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Documento</div>
-    <div class="review-value">{doc_cliente or "—"}</div>
+    <div class="review-value">{review_doc}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Localidade</div>
-    <div class="review-value">{localidade}</div>
+    <div class="review-value">{review_localidade}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Modalidade</div>
-    <div class="review-value">{modal.capitalize()}</div>
+    <div class="review-value">{review_modal}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1261,9 +917,12 @@ elif current == 4:
             with st.spinner("Gerando proposta…"):
                 st.session_state.generated_doc = render_proposal(context)
             st.success("Proposta gerada com sucesso. Clique em **Baixar .docx** para salvar.")
-        except Exception as e:
-            st.error(f"Erro ao gerar proposta: {e}")
-            st.code(traceback.format_exc())
+        except Exception:
+            logger.exception("Falha ao gerar proposta")
+            st.error(
+                "Não foi possível gerar a proposta. Verifique os campos preenchidos "
+                "e tente novamente. Se o problema persistir, contate o suporte."
+            )
 
     if st.session_state.generated_doc:
         safe_name = (

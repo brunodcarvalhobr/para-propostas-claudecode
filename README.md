@@ -25,13 +25,16 @@ no repositório irmão.
 │   ├── data_mapper.py              # form -> contexto do template
 │   ├── defaults.py                 # Valores pré-preenchidos (tabela senioridade etc.)
 │   ├── schema.py                   # Modelos Pydantic
-│   └── template_engine.py          # Renderização docxtpl + pós-processamento de \n
+│   ├── template_engine.py          # Renderização docxtpl + pós-processamento de \n
+│   └── validators.py               # CPF/CNPJ por dígito verificador
 ├── scripts/
-│   └── build_template.py           # Gera PMRA_Template_Jinja.docx do original
+│   └── smoke_test.py               # End-to-end: 3 cenários -> out/*.docx
+├── tests/                          # Suíte pytest (validators, data_mapper, schema)
 ├── resources/
+│   ├── static/styles.css           # CSS extraído do app.py
 │   └── templates/
-│       ├── PMRA_Escopo_Misto.docx       # Template canônico — NUNCA editar
-│       └── PMRA_Template_Jinja.docx     # Runtime, gerado pelo script
+│       └── PMRA_Template_Jinja.docx     # Template Word com tags Jinja — editar direto
+├── .github/workflows/ci.yml        # CI: pytest + smoke test em PR
 ├── requirements.txt
 ├── runtime.txt                     # Python 3.11 (Streamlit Cloud)
 └── .streamlit/
@@ -46,18 +49,25 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 1. Gerar o template Jinja2 (uma vez, ou sempre que o original mudar)
-python scripts/build_template.py
-
-# 2. (Opcional) Configurar senha
+# 1. (Opcional) Configurar senha
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 # edite .streamlit/secrets.toml e defina APP_PASSWORD
 
-# 3. Rodar o app
+# 2. Rodar o app
 streamlit run app.py
 ```
 
 Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
+
+## Testes
+
+```bash
+pip install pytest
+pytest tests/                 # unitários (validators, data_mapper, schema)
+python scripts/smoke_test.py  # end-to-end: gera 3 .docx em out/
+```
+
+CI roda os dois em todo PR (`.github/workflows/ci.yml`).
 
 ## Deploy no Streamlit Community Cloud
 
@@ -70,10 +80,9 @@ Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
    ```
 5. Deploy. O Streamlit instala `requirements.txt` e roda `app.py`.
 
-O template `PMRA_Template_Jinja.docx` precisa estar **commitado** no repositório,
-porque o build no Cloud não roda `scripts/build_template.py` automaticamente.
-Sempre que alterar `PMRA_Escopo_Misto.docx` (com aprovação dos sócios), regere
-localmente e faça commit do `PMRA_Template_Jinja.docx` atualizado.
+O template `PMRA_Template_Jinja.docx` precisa estar **commitado** no repositório.
+Sempre que alterar o template (com aprovação dos sócios), rode o smoke test
+localmente antes de commitar.
 
 ## Mapa de regras do template
 
@@ -93,13 +102,42 @@ localmente e faça commit do `PMRA_Template_Jinja.docx` atualizado.
 | Múltiplos contatos | Concatenados em "Telefone: X; E-mail: Y" |
 | Endereço | Concatenado em "Logradouro N°, Bairro, CEP, Cidade/UF" |
 
-## O que NÃO mudar
+## Como editar o template (PMRA_Template_Jinja.docx)
 
-- `resources/templates/PMRA_Escopo_Misto.docx` é a referência canônica do
-  escritório. **Nunca editar** este arquivo. Para ajustar o conteúdo do .docx
-  final, modifique `scripts/build_template.py` ou `pmra/data_mapper.py`.
-- Cláusulas dos Termos e Condições são texto jurídico revisado pelos sócios.
-  **Nunca alterar** sem solicitação explícita.
+O `.docx` é mantido **direto** com as tags Jinja2 dentro do arquivo Word.
+Não há mais build step.
+
+**O que NÃO mexer dentro do .docx:**
+
+- `{{ var.path }}` — interpolação simples
+- `{%p if cond %}…{%p endif %}` — bloco condicional ao nível de parágrafo (remove o parágrafo inteiro)
+- `{%tr for it in items %}…{%tr endfor %}` — loop ao nível de linha de tabela (remove a linha inteira)
+
+**Armadilhas do Word a evitar:**
+
+- Não clique no meio de `{{…}}` ou `{%…%}` para editar — Word pode fragmentar
+  a tag em múltiplos runs e quebrar a renderização silenciosamente.
+- Não use Localizar/Substituir cruzando fronteira de tag.
+- Não cole texto formatado de fora do Word; use colar-sem-formatação
+  (`Ctrl+Shift+V`).
+- Não selecione texto que cruze a tag para reformatar (cor, fonte, etc.).
+
+**Workflow:**
+
+```bash
+# 1. edite resources/templates/PMRA_Template_Jinja.docx no Word
+# 2. valide:
+python scripts/smoke_test.py
+# 3. abra os 3 .docx em out/ e confira visualmente
+# 4. commit + push
+```
+
+O smoke test detecta tags Jinja não processadas (fragmentação por Word),
+mas **não** detecta layout quebrado — sempre faça a conferência visual.
+
+## O que NÃO mudar (sem aprovação dos sócios)
+
+- Cláusulas dos Termos e Condições são texto jurídico revisado.
 - Valores pré-preenchidos da tabela de senioridade refletem a política
   comercial vigente. Estão em `pmra/defaults.py`.
 
@@ -109,7 +147,5 @@ localmente e faça commit do `PMRA_Template_Jinja.docx` atualizado.
 2. Adicionar default em `pmra/defaults.py` se aplicável.
 3. Renderizar o campo na seção apropriada de `app.py`.
 4. Mapear o valor → contexto em `pmra/data_mapper.py`.
-5. Adicionar a tag `{{...}}` no `PMRA_Template_Jinja.docx` (via edição
-   manual do .docx OU acrescentando lógica em `scripts/build_template.py` e
-   regerando).
-6. Testar geração com cenário cobrindo o novo campo preenchido e vazio.
+5. Adicionar a tag `{{...}}` em `PMRA_Template_Jinja.docx` (edição manual no Word).
+6. Adicionar caso ao smoke test (`scripts/smoke_test.py`) com o campo preenchido e vazio.
