@@ -59,6 +59,99 @@ html, body, [class*="css"] {
     background-attachment: fixed;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT-MODE LOCK
+   Forca o app a renderizar sempre em light mode, mesmo que o usuario tenha
+   o navegador em dark mode OU tenha escolhido "Dark" no theme picker do
+   Streamlit (Settings > Theme). Sem isso, o texto digitado nos inputs fica
+   light-on-light (invisivel) e labels somem.
+   ────────────────────────────────────────────────────────────────────────────*/
+
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    color-scheme: light !important;
+}
+
+[data-testid="stHeader"] {
+    background-color: var(--color-paper) !important;
+}
+
+/* Inputs e textareas: texto sempre escuro sobre fundo claro */
+.stApp input,
+.stApp textarea,
+.stApp [data-baseweb="input"] input,
+.stApp [data-baseweb="textarea"] textarea,
+.stApp [data-baseweb="base-input"] input {
+    color: var(--color-ink) !important;
+    background-color: rgba(255,255,255,0.92) !important;
+    -webkit-text-fill-color: var(--color-ink) !important;
+    caret-color: var(--color-ember-500) !important;
+}
+.stApp input::placeholder,
+.stApp textarea::placeholder {
+    color: var(--color-ink-400) !important;
+    -webkit-text-fill-color: var(--color-ink-400) !important;
+    opacity: 0.7;
+}
+
+/* Selects */
+.stApp [data-baseweb="select"] *,
+.stApp [data-baseweb="select"] [role="combobox"] {
+    color: var(--color-ink) !important;
+}
+
+/* Labels: titulos acima de cada campo (TIPO DE PESSOA, RAZAO SOCIAL, etc.) */
+.stApp [data-testid="stWidgetLabel"],
+.stApp [data-testid="stWidgetLabel"] *,
+.stApp [data-baseweb="form-control"] label,
+.stApp [data-baseweb="form-control"] label * {
+    color: var(--color-ink-600) !important;
+}
+
+/* Labels das opcoes de checkbox e radio (HORA POR SENIORIDADE, etc.) */
+.stApp [data-baseweb="checkbox"] label,
+.stApp [data-baseweb="checkbox"] label *,
+.stApp [data-baseweb="radio"] label,
+.stApp [data-baseweb="radio"] label * {
+    color: var(--color-ink) !important;
+}
+
+/* Texto geral em markdown nativo (st.write, st.text, st.caption) */
+.stApp [data-testid="stMarkdownContainer"] > p,
+.stApp [data-testid="stMarkdownContainer"] > ul li,
+.stApp [data-testid="stMarkdownContainer"] > ol li,
+.stApp [data-testid="stCaption"] {
+    color: var(--color-ink) !important;
+}
+
+/* Subheader/title texts dentro de containers nao dependem do tema */
+.stApp [data-testid="stSubheader"],
+.stApp [data-testid="stSubheader"] * {
+    color: var(--color-ink) !important;
+}
+
+/* Botoes secundarios (Anterior, Adicionar linha, X de excluir): light em
+   light mode, mesmo se Streamlit tentar aplicar dark */
+.stApp [data-testid="stBaseButton-secondary"] > button,
+.stApp [data-testid="baseButton-secondary"] {
+    background: rgba(255,255,255,0.85) !important;
+    color: var(--color-ink) !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:hover,
+.stApp [data-testid="baseButton-secondary"]:hover {
+    background: rgba(255,255,255,1) !important;
+    color: var(--color-ink) !important;
+}
+
+/* Botoes desabilitados (etapas futuras se o disabled voltar a ser usado) */
+.stApp button:disabled,
+.stApp button[disabled] {
+    color: var(--color-ink-400) !important;
+    opacity: 0.6;
+}
+
 /* Header */
 .pmra-header {
     display: flex;
