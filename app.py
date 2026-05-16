@@ -455,7 +455,8 @@ for i, (col, name) in enumerate(zip(indicator_cols, STEPS)):
             args=(i,),
         )
 
-st.divider()
+# (divider removido: sticky stepper ja tem border-bottom; evita gap vertical
+# excessivo entre menu de etapas e conteudo)
 
 
 # ── Helper: tabela editável row-by-row ────────────────────────────────────────

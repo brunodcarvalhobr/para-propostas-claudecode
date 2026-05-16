@@ -201,29 +201,34 @@ footer,
     color-scheme: light !important;
 }
 
-/* Radio visual de Baseweb: o circulo aparente e um <div> filho do <label> dentro
-   do [role="radiogroup"]. So pegamos labels que sao FILHOS DIRETOS de radiogroup
-   — assim NAO pegamos o label do grupo (TIPO DE PESSOA, MODALIDADE, etc.) que
-   fica FORA do radiogroup. */
+/* Radio visual de Baseweb: o circulo aparente e um <div>/<span> filho do
+   <label> dentro do [role="radiogroup"]. So pegamos labels que sao FILHOS
+   DIRETOS de radiogroup — assim NAO pegamos o label do grupo (TIPO DE PESSOA,
+   MODALIDADE, etc.) que fica FORA do radiogroup. */
 .stApp [role="radiogroup"] > label > div:first-child,
 .stApp [role="radiogroup"] > label > span:first-child {
     background-color: #ffffff !important;
     border: 1px solid rgba(0,0,0,0.30) !important;
 }
+/* Estado SELECIONADO: ember. Usa :has(input:checked) (moderno, Chrome 105+,
+   Safari 15.4+, Firefox 121+) que cobre todas as variantes de DOM Baseweb
+   independente de onde o aria-checked esta. Fallback antigo via aria-checked
+   no label para browsers sem :has. */
+.stApp [role="radiogroup"] > label:has(input:checked) > div:first-child,
+.stApp [role="radiogroup"] > label:has(input:checked) > span:first-child,
 .stApp [role="radiogroup"] > label[aria-checked="true"] > div:first-child,
 .stApp [role="radiogroup"] > label[aria-checked="true"] > span:first-child {
     background-color: var(--color-ember-500) !important;
     border-color: var(--color-ember-600) !important;
 }
 
-/* Checkbox visual de Baseweb: cirurgicamente, o <span> filho do <label>
-   dentro de [data-testid="stCheckbox"] (que NAO contem [data-testid="stWidgetLabel"]). */
+/* Checkbox visual de Baseweb */
 .stApp [data-testid="stCheckbox"] > label > span:first-child {
     background-color: #ffffff !important;
     border: 1px solid rgba(0,0,0,0.30) !important;
 }
-.stApp [data-testid="stCheckbox"] > label[aria-checked="true"] > span:first-child,
-.stApp [data-testid="stCheckbox"] input:checked + span:first-child {
+.stApp [data-testid="stCheckbox"] > label:has(input:checked) > span:first-child,
+.stApp [data-testid="stCheckbox"] > label[aria-checked="true"] > span:first-child {
     background-color: var(--color-ember-500) !important;
     border-color: var(--color-ember-600) !important;
 }
@@ -275,7 +280,7 @@ div[role="listbox"] {
     background-color: rgba(249,115,22,0.12) !important;
 }
 
-/* Header — h1 maior + sem margin-top negativo (Streamlit header escondido) */
+/* Header — todas as bordas arredondadas (16px) para consistencia */
 .pmra-header {
     display: flex;
     align-items: center;
@@ -284,13 +289,10 @@ div[role="listbox"] {
     background: rgba(253, 252, 250, 0.80);
     backdrop-filter: blur(48px);
     -webkit-backdrop-filter: blur(48px);
-    border-bottom: 0.5px solid rgba(0,0,0,0.06);
-    margin-bottom: 24px;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    margin-bottom: 16px;
     margin-top: 0;
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    border-radius: 0 0 16px 16px;
+    border-radius: 16px;
 }
 .pmra-header-left {
     display: flex;
@@ -338,10 +340,16 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     }
 }
 
-/* Primary button — gradient ember + sombra ember + hover liso (brightness +
-   subtle lift). Transicao em transform/filter/box-shadow para suavidade. */
-button[kind="primary"],
-[data-testid="baseButton-primary"] {
+/* Primary button — gradient ember + texto BRANCO consistente em TODAS as
+   variantes que o Streamlit pode usar (kind="primary", "primaryFormSubmit",
+   stBaseButton-primary, baseButton-primary). O seletor * descendente forca
+   branco em qualquer span/div interno que o Streamlit envolva no texto. */
+.stApp button[kind="primary"],
+.stApp button[kind="primaryFormSubmit"],
+.stApp [data-testid="stBaseButton-primary"] > button,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button,
+.stApp [data-testid="baseButton-primary"],
+.stApp [data-testid="baseButton-primaryFormSubmit"] {
     background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
     border: none !important;
     color: #FFFFFF !important;
@@ -352,8 +360,24 @@ button[kind="primary"],
                 filter 220ms var(--ease-out-soft),
                 box-shadow 220ms var(--ease-out-soft) !important;
 }
-button[kind="primary"]:hover,
-[data-testid="baseButton-primary"]:hover {
+/* Forca branco em qualquer descendente (span/div) que o Streamlit insira
+   dentro do botao primario — caso contrario o texto vira preto se Streamlit
+   tiver regra inline que sobrescreve o color do <button>. */
+.stApp button[kind="primary"] *,
+.stApp button[kind="primaryFormSubmit"] *,
+.stApp [data-testid="stBaseButton-primary"] > button *,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button *,
+.stApp [data-testid="baseButton-primary"] *,
+.stApp [data-testid="baseButton-primaryFormSubmit"] * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+.stApp button[kind="primary"]:hover,
+.stApp button[kind="primaryFormSubmit"]:hover,
+.stApp [data-testid="stBaseButton-primary"] > button:hover,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button:hover,
+.stApp [data-testid="baseButton-primary"]:hover,
+.stApp [data-testid="baseButton-primaryFormSubmit"]:hover {
     filter: brightness(1.06);
     transform: translateY(-1px) !important;
     box-shadow:
@@ -377,9 +401,8 @@ button[kind="primary"]:hover,
     letter-spacing: 0.01em;
 }
 
-/* Sticky stepper: o primeiro stHorizontalBlock dentro do container principal
-   e o indicador de etapas. Sticky com bg paper + blur para legibilidade ao
-   rolar. */
+/* Sticky stepper compacto: bg paper translucido + padding reduzido para
+   ocupar pouca altura quando fixo no topo. */
 [data-testid="stMainBlockContainer"]
   > [data-testid="stVerticalBlock"]
   > [data-testid="stHorizontalBlock"]:first-of-type {
@@ -389,10 +412,10 @@ button[kind="primary"]:hover,
     background-color: rgba(250, 249, 247, 0.92);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
-    padding: 12px 16px;
-    margin-left: -16px;
-    margin-right: -16px;
-    margin-top: -8px;
+    padding: 8px 12px;
+    margin-left: -12px;
+    margin-right: -12px;
+    margin-top: -4px;
     border-bottom: 0.5px solid rgba(0,0,0,0.05);
 }
 
@@ -416,17 +439,18 @@ h1, h2, h3, .pmra-sub-hdr {
     color: var(--color-ink) !important;
 }
 h2 {
-    font-size: 26px !important;
+    font-size: 24px !important;
     line-height: 1.1 !important;
     letter-spacing: -0.01em !important;
-    margin-bottom: 24px !important;
+    margin-bottom: 14px !important;
+    margin-top: 4px !important;
 }
 h3 {
-    font-size: 18px !important;
+    font-size: 17px !important;
     line-height: 1.2 !important;
     letter-spacing: -0.005em !important;
-    margin-top: 16px !important;
-    margin-bottom: 16px !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
 }
 
 /* Labels */
@@ -511,12 +535,12 @@ div[data-testid="stMainBlockContainer"] {
     margin-bottom: 8px;
 }
 
-/* Divider */
+/* Divider — margem reduzida para evitar buracos verticais entre stepper/conteudo */
 hr {
     border: none !important;
     height: 1px !important;
     background: linear-gradient(to right, transparent, rgba(0,0,0,0.10), transparent) !important;
-    margin: 32px 0 !important;
+    margin: 12px 0 !important;
 }
 
 /* Compact clear row buttons */
