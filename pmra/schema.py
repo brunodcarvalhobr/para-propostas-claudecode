@@ -80,6 +80,15 @@ class Escopo(BaseModel):
     sla_ativo: bool = False
     sla_descricao: str = ""
 
+    @model_validator(mode="after")
+    def _sla_so_para_consultiva_ou_mista(self) -> "Escopo":
+        # SLA nao se aplica a escopo puramente contencioso — zera para garantir
+        # que nem o template nem o resumo renderizem essa secao.
+        if self.modalidade == "contenciosa":
+            self.sla_ativo = False
+            self.sla_descricao = ""
+        return self
+
 
 class SenioridadeRow(BaseModel):
     model_config = ConfigDict(extra="ignore")

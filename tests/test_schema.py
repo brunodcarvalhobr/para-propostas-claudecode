@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from pmra.schema import Contratante
+from pmra.schema import Contratante, Escopo
 
 
 class TestContratanteCrossfield:
@@ -51,3 +51,20 @@ class TestContratanteDocumentValidation:
 
     def test_cnpj_vazio_permitido(self):
         Contratante(tipo_pessoa="juridica")
+
+
+class TestEscopoSlaContenciosa:
+    def test_contenciosa_zera_sla(self):
+        e = Escopo(modalidade="contenciosa", sla_ativo=True, sla_descricao="qualquer")
+        assert e.sla_ativo is False
+        assert e.sla_descricao == ""
+
+    def test_consultiva_preserva_sla(self):
+        e = Escopo(modalidade="consultiva", sla_ativo=True, sla_descricao="X")
+        assert e.sla_ativo is True
+        assert e.sla_descricao == "X"
+
+    def test_mista_preserva_sla(self):
+        e = Escopo(modalidade="mista", sla_ativo=True, sla_descricao="X")
+        assert e.sla_ativo is True
+        assert e.sla_descricao == "X"

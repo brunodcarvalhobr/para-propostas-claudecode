@@ -556,7 +556,8 @@ if current == 0:
 # ── ETAPA 2: ESCOPO E SLA ──────────────────────────────────────────────────────
 
 elif current == 1:
-    st.subheader("Escopo da contratação e SLA")
+    _titulo = "Escopo da contratação" if form["escopo"]["modalidade"] == "contenciosa" else "Escopo da contratação e SLA"
+    st.subheader(_titulo)
 
     with st.container(border=True):
         modalidades = ("consultiva", "contenciosa", "mista")
@@ -595,21 +596,28 @@ elif current == 1:
                 placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
             )
 
-    with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">SLA por complexidade</div>', unsafe_allow_html=True)
-        form["escopo"]["sla_ativo"] = st.checkbox(
-            "Definir prazos de resposta por complexidade?",
-            value=form["escopo"]["sla_ativo"],
-            key="sla_ativo_cb",
-        )
-        if form["escopo"]["sla_ativo"]:
-            form["escopo"]["sla_descricao"] = st.text_area(
-                "Descrição do SLA",
-                value=form["escopo"]["sla_descricao"],
-                height=120,
-                key="sla_descricao_ta",
-                placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
+    # SLA so faz sentido para escopo consultivo ou misto. Em escopo puramente
+    # contencioso a secao some e qualquer valor previamente salvo e zerado
+    # (defesa em camadas: aqui na UI e tambem no validator do schema).
+    if modal == "contenciosa":
+        form["escopo"]["sla_ativo"] = False
+        form["escopo"]["sla_descricao"] = ""
+    else:
+        with st.container(border=True):
+            st.markdown('<div class="pmra-sub-hdr">SLA por complexidade</div>', unsafe_allow_html=True)
+            form["escopo"]["sla_ativo"] = st.checkbox(
+                "Definir prazos de resposta por complexidade?",
+                value=form["escopo"]["sla_ativo"],
+                key="sla_ativo_cb",
             )
+            if form["escopo"]["sla_ativo"]:
+                form["escopo"]["sla_descricao"] = st.text_area(
+                    "Descrição do SLA",
+                    value=form["escopo"]["sla_descricao"],
+                    height=120,
+                    key="sla_descricao_ta",
+                    placeholder="Baixa: 5 dias úteis\nMédia: 2 dias úteis\nAlta: 24 horas",
+                )
 
 
 # ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────
