@@ -346,14 +346,31 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LAYOUT DESKTOP — tabelas em _render_rows tem header compartilhado e inputs
-   sem label individual (label_visibility="visible" no Python, escondido aqui).
-   Streamlit 1.36+ expoe data-testid="st-key-<key>" no wrapper de cada widget;
-   tabelas usam keys com prefixo "tbl_*" (tbl_contatos, tbl_atos, etc).
+   LAYOUT DESKTOP — tabelas em _render_rows tem header compartilhado
+   (.pmra-tbl-hdr). Os labels individuais ficam visiveis no Python
+   (label_visibility="visible") para que apareçam no MOBILE, mas no desktop
+   os escondemos aqui via CSS para nao duplicar com os headers compartilhados.
+
+   Streamlit 1.36+ pode expor a key do widget como:
+   - class "st-key-<key>" no wrapper (mais comum)
+   - data-testid="st-key-<key>" no wrapper (em algumas versoes)
+   Cobertura ampla com ambos os seletores + label como tag.
    ────────────────────────────────────────────────────────────────────────────*/
 @media (min-width: 721px) {
-    [data-testid^="st-key-tbl_"] [data-testid="stWidgetLabel"] {
+    [class*="st-key-tbl_"] [data-testid="stWidgetLabel"],
+    [data-testid^="st-key-tbl_"] [data-testid="stWidgetLabel"],
+    [class*="st-key-tbl_"] label[data-testid="stWidgetLabel"],
+    div[class*="st-key-tbl_"] > label,
+    /* Streamlit pode envolver o label num <div> wrapper — cobre tambem */
+    [class*="st-key-tbl_"] > div:first-child:has([data-testid="stWidgetLabel"]) {
         display: none !important;
+    }
+
+    /* X delete button: alinha verticalmente com o input (nao com o label, que
+       fica escondido aqui no desktop) — usa margin-top zero ja que nao tem
+       label visivel ocupando espaco na linha do botao */
+    [class*="st-key-"][class*="__del__"] > button {
+        margin-top: 0;
     }
 }
 
