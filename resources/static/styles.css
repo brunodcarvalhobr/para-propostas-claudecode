@@ -360,17 +360,6 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     transition: all 220ms var(--ease-out-soft);
 }
 
-/* X delete button (ultima coluna do row em _render_rows): como o X nao tem
-   label individual e os outros inputs tem (Categoria, Valor por hora, etc.),
-   o botao ficava colado no topo da linha, desalinhado com o input ao lado.
-   Solucao: margin-top = altura aproximada do label + gap (~1.7rem) na ultima
-   coluna do row APENAS em desktop (mobile colapsa vertical, nao precisa).
-   Nao afeta nav buttons (estao em coluna do meio, nao last-child). */
-@media (min-width: 721px) {
-    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child > div > [data-testid="stElementContainer"]:first-child > [data-testid="stButton"] {
-        margin-top: 1.7rem;
-    }
-}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    LAYOUT MOBILE — padding reduzido em containers/header. As tabelas (_render_rows)
@@ -583,8 +572,16 @@ div[data-testid="stMainBlockContainer"] {
     padding: 4px 28px 32px !important;
 }
 
-/* (Classe .pmra-tbl-hdr removida — headers compartilhados aposentados; cada
-   input de tabela mostra seu proprio label via label_visibility="visible".) */
+/* Table Headers compartilhados (renderizados em _render_rows) */
+.pmra-tbl-hdr {
+    font-family: var(--font-sans) !important;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-ink-400);
+    margin-bottom: 8px;
+}
 
 /* Divider — margem reduzida para evitar buracos verticais entre stepper/conteudo */
 hr {

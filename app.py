@@ -531,9 +531,12 @@ def _render_rows(
     if help_text:
         st.caption(help_text)
 
-    # Sem header compartilhado: cada input tem seu proprio label individual
-    # via label_visibility="visible". Isto evita duplicacao desktop/mobile e
-    # garante alinhamento do X delete button (todas colunas tem a mesma altura).
+    # Header compartilhado: um label .pmra-tbl-hdr por coluna no topo da tabela.
+    # Cada input usa label_visibility="collapsed" — sem duplicacao no desktop e
+    # alinhamento natural do X (todas colunas tem mesma altura).
+    header = st.columns(widths)
+    for j, label in enumerate(labels):
+        header[j].markdown(f'<div class="pmra-tbl-hdr">{label}</div>', unsafe_allow_html=True)
 
     text_areas_list = text_areas or []
     # Linhas de dados
@@ -548,7 +551,7 @@ def _render_rows(
                     labels[j],
                     value=row.get(field, ""),
                     key=wk,
-                    label_visibility="visible",
+                    label_visibility="collapsed",
                     on_change=fmt_fn,
                     args=(wk,) if fmt_fn else None,
                     placeholder=ph,
@@ -558,7 +561,7 @@ def _render_rows(
                     labels[j],
                     value=row.get(field, ""),
                     key=wk,
-                    label_visibility="visible",
+                    label_visibility="collapsed",
                     on_change=fmt_fn,
                     args=(wk,) if fmt_fn else None,
                     placeholder=ph,
