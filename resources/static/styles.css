@@ -360,43 +360,19 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     transition: all 220ms var(--ease-out-soft);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   LAYOUT DESKTOP — tabelas em _render_rows tem header compartilhado
-   (.pmra-tbl-hdr). Os labels individuais ficam visiveis no Python
-   (label_visibility="visible") para que apareçam no MOBILE, mas no desktop
-   os escondemos aqui via CSS para nao duplicar com os headers compartilhados.
-
-   Streamlit 1.36+ pode expor a key do widget como:
-   - class "st-key-<key>" no wrapper (mais comum)
-   - data-testid="st-key-<key>" no wrapper (em algumas versoes)
-   Cobertura ampla com ambos os seletores + label como tag.
-   ────────────────────────────────────────────────────────────────────────────*/
-@media (min-width: 721px) {
-    [class*="st-key-tbl_"] [data-testid="stWidgetLabel"],
-    [data-testid^="st-key-tbl_"] [data-testid="stWidgetLabel"],
-    [class*="st-key-tbl_"] label[data-testid="stWidgetLabel"],
-    div[class*="st-key-tbl_"] > label,
-    /* Streamlit pode envolver o label num <div> wrapper — cobre tambem */
-    [class*="st-key-tbl_"] > div:first-child:has([data-testid="stWidgetLabel"]) {
-        display: none !important;
-    }
-
-    /* X delete button: alinha verticalmente com o input (nao com o label, que
-       fica escondido aqui no desktop) — usa margin-top zero ja que nao tem
-       label visivel ocupando espaco na linha do botao */
-    [class*="st-key-"][class*="__del__"] > button {
-        margin-top: 0;
-    }
+/* X delete button (ultimo coluna do row em _render_rows): como o X nao tem
+   label e os outros inputs tem (Categoria, Valor por hora, etc.), as colunas
+   ficavam com alturas diferentes e o X ficava colado no topo. Flex-end alinha
+   o conteudo da coluna do X com o bottom, casando com o input ao lado.
+   Usa :has() para identificar coluna que contem apenas um button (sem input). */
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child:has([data-testid="stButton"]):not(:has([data-baseweb])) {
+    justify-content: flex-end;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LAYOUT MOBILE — as colunas do Streamlit colapsam em pilha vertical, entao:
-   1. Esconde os headers compartilhados (.pmra-tbl-hdr) — ficavam orfaos
-      no topo, desconectados dos inputs embaixo
-   2. Cada input mostra seu proprio label individual (Telefone, E-mail, etc.)
-   3. Botao X (delete row) compactado e alinhado a direita — antes ocupava
-      largura inteira como um botao grande
-   4. Padding reduzido em containers e header
+   LAYOUT MOBILE — padding reduzido em containers/header. As tabelas (_render_rows)
+   nao tem headers compartilhados, cada input tem label visivel — sem necessidade
+   de logica especial mobile/desktop para labels.
    ────────────────────────────────────────────────────────────────────────────*/
 @media (max-width: 720px) {
     div[data-testid="stVerticalBlock"] > div[style*="border"] {
@@ -409,22 +385,14 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
         padding: 12px 16px;
     }
 
-    /* Esconde headers compartilhados — em mobile os labels individuais
-       de cada input servem de orientacao */
-    .pmra-tbl-hdr {
-        display: none !important;
+    /* Botao X (delete row): compacto + alinhado a direita em mobile */
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child:has([data-testid="stButton"]):not(:has([data-baseweb])) {
+        align-items: flex-end;
     }
-
-    /* Botao X (delete row) — slim e alinhado a direita */
-    [data-testid^="st-key-"][data-testid*="__del__"] {
-        max-width: 80px;
-        margin-left: auto;
-    }
-    [data-testid^="st-key-"][data-testid*="__del__"] button {
-        height: 32px !important;
-        min-height: 32px !important;
-        padding: 0 !important;
-        font-size: 14px !important;
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child:has([data-testid="stButton"]):not(:has([data-baseweb])) button {
+        max-width: 80px !important;
+        margin-left: auto !important;
+        height: 36px !important;
     }
 }
 
@@ -612,16 +580,8 @@ div[data-testid="stMainBlockContainer"] {
     padding: 4px 28px 32px !important;
 }
 
-/* Table Headers */
-.pmra-tbl-hdr {
-    font-family: var(--font-sans) !important;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--color-ink-400);
-    margin-bottom: 8px;
-}
+/* (Classe .pmra-tbl-hdr removida — headers compartilhados aposentados; cada
+   input de tabela mostra seu proprio label via label_visibility="visible".) */
 
 /* Divider — margem reduzida para evitar buracos verticais entre stepper/conteudo */
 hr {

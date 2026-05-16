@@ -531,10 +531,9 @@ def _render_rows(
     if help_text:
         st.caption(help_text)
 
-    # Cabeçalho
-    header = st.columns(widths)
-    for j, label in enumerate(labels):
-        header[j].markdown(f'<div class="pmra-tbl-hdr">{label}</div>', unsafe_allow_html=True)
+    # Sem header compartilhado: cada input tem seu proprio label individual
+    # via label_visibility="visible". Isto evita duplicacao desktop/mobile e
+    # garante alinhamento do X delete button (todas colunas tem a mesma altura).
 
     text_areas_list = text_areas or []
     # Linhas de dados
