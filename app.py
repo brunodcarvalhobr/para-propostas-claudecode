@@ -49,6 +49,60 @@ st.set_page_config(
 # Assets cacheados (chamados depois do set_page_config)
 _LOGO_SVG = _load_text_asset("pmra-icon.svg")
 
+# Force light mode: limpa preferencia de tema do usuario armazenada localmente
+# e seta data-theme=light/light no root. Combinado com [theme] base=light no
+# config.toml e [client] toolbarMode=minimal (esconde Settings), garante que
+# o app NUNCA renderiza em dark, mesmo se OS/navegador estiver em dark.
+# A chave aqui e SET 'light' explicitamente em vez de so limpar — sem
+# preferencia salva, Streamlit cai no OS, que pode ser dark.
+components.html("""
+<script>
+(function() {
+  try {
+    var parentWin = window.parent;
+    var parentDoc = parentWin.document;
+
+    // Tenta SET 'light' em chaves conhecidas de tema do Streamlit + limpa
+    // qualquer outra que possa indicar dark mode armazenado
+    try {
+      var ls = parentWin.localStorage;
+      // Set explicito light em chaves comuns que o Streamlit usa
+      ls.setItem('stTheme', 'light');
+      // Limpa qualquer outra chave de tema que possa estar conflitando
+      for (var i = ls.length - 1; i >= 0; i--) {
+        var k = ls.key(i);
+        if (k && k !== 'stTheme' && (
+            k.toLowerCase().indexOf('darkmode') >= 0 ||
+            k.toLowerCase().indexOf('color-scheme') >= 0
+        )) { ls.removeItem(k); }
+      }
+    } catch(e) {}
+
+    // Forca color-scheme=light + data-theme=light no root
+    function applyLight() {
+      var html = parentDoc.documentElement;
+      if (html) {
+        html.style.colorScheme = 'light';
+        html.setAttribute('data-theme', 'light');
+      }
+      if (parentDoc.body) {
+        parentDoc.body.style.colorScheme = 'light';
+      }
+    }
+    applyLight();
+
+    // Reaplica se algo mudar (caso Streamlit tente re-setar dark)
+    if (parentDoc.documentElement) {
+      new parentWin.MutationObserver(applyLight).observe(
+        parentDoc.documentElement,
+        {attributes: true, attributeFilter: ['data-theme', 'class', 'style']}
+      );
+    }
+  } catch(e) { console.warn('force-light failed:', e); }
+})();
+</script>
+""", height=0)
+
 if not check_password():
     st.stop()
 

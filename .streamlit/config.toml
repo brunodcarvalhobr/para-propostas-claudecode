@@ -12,3 +12,9 @@ gatherUsageStats = false
 [server]
 maxUploadSize = 50
 enableXsrfProtection = true
+
+# Esconde menu hamburger (Settings) impedindo qualquer usuario de toggleear
+# para dark. Combinado com JS de force-light em app.py, garante que o app
+# NUNCA renderiza em dark.
+[client]
+toolbarMode = "minimal"
