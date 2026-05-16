@@ -100,7 +100,7 @@ footer,
     padding-top: 0 !important;
 }
 [data-testid="stAppViewContainer"] > .main {
-    padding-top: 1rem !important;
+    padding-top: 0 !important;
 }
 
 /* Inputs e textareas: texto sempre escuro sobre fundo claro */
@@ -521,7 +521,7 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmr
 div[data-testid="stMainBlockContainer"] {
     max-width: 896px !important;
     margin: 0 auto !important;
-    padding: 32px 28px !important;
+    padding: 12px 28px 32px !important;
 }
 
 /* Table Headers */
