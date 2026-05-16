@@ -11,5 +11,4 @@ gatherUsageStats = false
 
 [server]
 maxUploadSize = 50
-enableCORS = false
-enableXsrfProtection = false
+enableXsrfProtection = true

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 UFS = (
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -46,6 +46,18 @@ class Contratante(BaseModel):
     endereco: Endereco = Field(default_factory=Endereco)
     contato_nome: str = ""
     contatos: list[Contato] = Field(default_factory=lambda: [Contato()])
+
+    @model_validator(mode="after")
+    def _clear_pf_pj_crossfields(self) -> "Contratante":
+        # Garante que campos da outra pessoa nao vazem para o documento final:
+        # PF nao deve carregar razao_social/cnpj; PJ nao deve carregar nome/cpf.
+        if self.tipo_pessoa == "fisica":
+            self.razao_social = ""
+            self.cnpj = ""
+        else:
+            self.nome = ""
+            self.cpf = ""
+        return self
 
 
 class Escopo(BaseModel):

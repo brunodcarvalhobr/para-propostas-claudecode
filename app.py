@@ -1,9 +1,10 @@
 """DocGen by PMRA Legal Tech (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
+import html
+import logging
 import os
 import re
-import traceback
 from datetime import datetime
 
 import streamlit as st
@@ -14,6 +15,8 @@ from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
 from pmra.defaults import proposal_form_default
 from pmra.schema import ProposalForm, UF_OPTIONS
 from pmra.template_engine import render_proposal
+
+logger = logging.getLogger(__name__)
 
 # Lê o SVG do logo uma vez no carregamento do módulo
 _SVG_PATH = os.path.join(os.path.dirname(__file__), "pmra-icon.svg")
@@ -455,25 +458,6 @@ components.html("""
   function start() {
     setupMasks();
     obs.observe(window.parent.document.body, { childList: true, subtree: true });
-    
-    // Inject and initialize MS Teams SDK in the parent document
-    const parentDoc = window.parent.document;
-    if (!parentDoc.getElementById('teams-sdk-script')) {
-      const tsScript = parentDoc.createElement('script');
-      tsScript.id = 'teams-sdk-script';
-      tsScript.src = 'https://res.cdn.office.net/teams-js/2.11.0/js/MicrosoftTeams.min.js';
-      tsScript.onload = function() {
-        if (window.parent.microsoftTeams && window.parent.microsoftTeams.app) {
-          window.parent.microsoftTeams.app.initialize().then(function() {
-            window.parent.microsoftTeams.app.notifySuccess();
-            console.log("MS Teams SDK initialized successfully.");
-          }).catch(function(e) {
-            console.log("Teams initialization failed (or not running in Teams):", e);
-          });
-        }
-      };
-      parentDoc.head.appendChild(tsScript);
-    }
   }
 
   if (window.parent.document.readyState === 'loading') {
@@ -1229,23 +1213,27 @@ elif current == 4:
     uf = form["contratante"]["endereco"]["uf"]
 
     localidade = f"{cidade}/{uf}" if cidade else "—"
+    review_nome = html.escape(nome_cliente or "—")
+    review_doc = html.escape(doc_cliente or "—")
+    review_localidade = html.escape(localidade)
+    review_modal = html.escape(modal.capitalize())
     st.markdown(f"""
 <div class="review-grid">
   <div class="review-card">
     <div class="review-label">Contratante</div>
-    <div class="review-value">{nome_cliente or "—"}</div>
+    <div class="review-value">{review_nome}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Documento</div>
-    <div class="review-value">{doc_cliente or "—"}</div>
+    <div class="review-value">{review_doc}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Localidade</div>
-    <div class="review-value">{localidade}</div>
+    <div class="review-value">{review_localidade}</div>
   </div>
   <div class="review-card">
     <div class="review-label">Modalidade</div>
-    <div class="review-value">{modal.capitalize()}</div>
+    <div class="review-value">{review_modal}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1261,9 +1249,12 @@ elif current == 4:
             with st.spinner("Gerando proposta…"):
                 st.session_state.generated_doc = render_proposal(context)
             st.success("Proposta gerada com sucesso. Clique em **Baixar .docx** para salvar.")
-        except Exception as e:
-            st.error(f"Erro ao gerar proposta: {e}")
-            st.code(traceback.format_exc())
+        except Exception:
+            logger.exception("Falha ao gerar proposta")
+            st.error(
+                "Não foi possível gerar a proposta. Verifique os campos preenchidos "
+                "e tente novamente. Se o problema persistir, contate o suporte."
+            )
 
     if st.session_state.generated_doc:
         safe_name = (
