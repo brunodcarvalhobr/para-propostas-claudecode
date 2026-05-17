@@ -485,21 +485,8 @@ div[role="listbox"] {
         visibility: visible !important;
     }
 
-    /* (c) CARDS DE MODALIDADE MOBILE — empilha 1 por linha (4 lado a lado
-       fica apertado em ≤720px e o texto quebra de forma feia). */
-    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"]) {
-        flex-wrap: wrap !important;
-    }
-    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"])
-      > [data-testid="stColumn"] {
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
-        width: 100% !important;
-    }
-    /* Em mobile, com 1 card por linha, não precisa de min-height grande */
-    [data-testid="stColumn"] [data-testid="stCheckbox"] {
-        min-height: 54px !important;
-    }
+    /* (c) Mobile: checkboxes de modalidade ficam no fluxo normal do
+       Streamlit (sem visual de card). Layout responsivo padrão. */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -995,94 +982,17 @@ hr {
    ════════════════════════════════════════════════════════════════════════════*/
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   1. SEGMENTED CONTROL — radio horizontal vira pill-tab moderno
-   Aplicado quando radiogroup tem horizontal layout (flex-direction: row).
-   ────────────────────────────────────────────────────────────────────────────*/
-.stApp [role="radiogroup"][aria-orientation="horizontal"],
-.stApp div:has(> [role="radiogroup"]) [role="radiogroup"] {
-    display: inline-flex !important;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.55) !important;
-    border: 0.5px solid rgba(0, 0, 0, 0.06);
-    border-radius: 999px;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-.stApp [role="radiogroup"] > label {
-    margin: 0 !important;
-    padding: 7px 16px !important;
-    border-radius: 999px !important;
-    cursor: pointer;
-    transition: background 180ms var(--ease-out-soft),
-                color 180ms var(--ease-out-soft),
-                transform 180ms var(--ease-out-soft);
-}
-/* Esconde a bolinha do radio — agora é só pill */
-.stApp [role="radiogroup"] > label > div:first-child {
-    display: none !important;
-}
-.stApp [role="radiogroup"] > label[aria-checked="true"],
-.stApp [role="radiogroup"] > label:has(input:checked) {
-    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
-    background-color: #ea580c !important;
-    color: #ffffff !important;
-    box-shadow:
-        0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
-        0 4px 12px -4px rgba(249, 115, 22, 0.45) !important;
-}
-.stApp [role="radiogroup"] > label[aria-checked="true"] *,
-.stApp [role="radiogroup"] > label:has(input:checked) * {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-}
-.stApp [role="radiogroup"] > label:not([aria-checked="true"]):hover {
-    background: rgba(249, 115, 22, 0.08);
-}
+   1. (removido) SEGMENTED CONTROL — radio horizontal voltou ao visual padrão
+   do Streamlit (bolinha + label). O efeito pill-tab custava lag perceptível
+   ao alternar e bloqueava o click em alguns viewports.
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   2. CARDS SELECIONÁVEIS — checkboxes de modalidade (rows com 3+ checkboxes)
-   Identificados por: stHorizontalBlock que contém múltiplos stCheckbox lado-a-lado.
+   2. (removido) CARDS SELECIONÁVEIS — checkboxes de modalidade voltaram
+   ao visual padrão do Streamlit. As tentativas de igualar altura via min/max
+   height + reduzir font sacrificavam legibilidade ou criavam inconsistências
+   visuais em viewports diferentes. Visual padrão é estável e legível.
    ────────────────────────────────────────────────────────────────────────────*/
-[data-testid="stColumn"] [data-testid="stCheckbox"] {
-    background: rgba(255, 255, 255, 0.55);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 14px;
-    padding: 12px 14px;
-    transition: all 220ms var(--ease-out-soft);
-    cursor: pointer;
-    height: 100%;
-    display: flex;
-    align-items: center;
-}
-/* Texto dentro dos cards de modalidade: font reduzida + letter-spacing
-   compacto para garantir no máximo 2 linhas (mesmo "Valor Mensal Por
-   Processo" cabe em 2 linhas a 9.5px com letter-spacing apertado),
-   resultando em altura uniforme em toda a row. */
-[data-testid="stColumn"] [data-testid="stCheckbox"] label,
-[data-testid="stColumn"] [data-testid="stCheckbox"] [data-testid="stWidgetLabel"],
-[data-testid="stColumn"] [data-testid="stCheckbox"] [data-testid="stWidgetLabel"] * {
-    font-size: 9.5px !important;
-    letter-spacing: 0.08em !important;
-    line-height: 1.35 !important;
-}
-[data-testid="stColumn"] [data-testid="stCheckbox"]:hover {
-    border-color: rgba(249, 115, 22, 0.35);
-    background: rgba(255, 255, 255, 0.75);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px -8px rgba(249, 115, 22, 0.18);
-}
-[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
-    background: rgba(249, 115, 22, 0.08);
-    border-color: var(--color-ember-500);
-    box-shadow:
-        0 0 0 1px var(--color-ember-500) inset,
-        0 6px 16px -8px rgba(249, 115, 22, 0.25);
-}
-[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) label {
-    color: var(--color-ember-700) !important;
-    font-weight: 500;
-}
+
+
 
 /* ─────────────────────────────────────────────────────────────────────────────
    3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita.
@@ -1405,25 +1315,8 @@ hr {
                 background-color 220ms var(--ease-smooth) !important;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   18. CHECKBOX CARDS — feedback rápido na seleção (transição curta, sem
-   spring/scale para não causar percepção de lag). Apenas color/border/shadow.
-   ────────────────────────────────────────────────────────────────────────────*/
-[data-testid="stColumn"] [data-testid="stCheckbox"] {
-    transition: background-color 120ms var(--ease-smooth),
-                border-color 120ms var(--ease-smooth),
-                box-shadow 120ms var(--ease-smooth) !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   19. SEGMENTED CONTROL — transição rápida e direta (sem spring/scale, que
-   causa percepção de lag ao alternar). Color/bg em 120ms.
-   ────────────────────────────────────────────────────────────────────────────*/
-.stApp [role="radiogroup"] > label {
-    transition: background-color 120ms var(--ease-smooth),
-                color 120ms var(--ease-smooth),
-                box-shadow 120ms var(--ease-smooth) !important;
-}
+/* (18. e 19. removidos — checkbox cards e segmented control voltaram ao
+   visual padrão do Streamlit. Custavam lag e/ou problemas de altura.) */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    20. SUCCESS / ERROR CARDS — refinamento da animação de entrada (mais polida)
@@ -1523,46 +1416,7 @@ h2:hover .pmra-section-icon {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   25. CHECKBOX CARDS — min-height uniforme + vertical centering forçado.
-   "Valor Mensal Por Processo" (3 palavras compridas) quebra em até 3 linhas
-   em viewports estreitos. 104px acomoda 3 linhas com folga; todos os cards
-   ficam EXATAMENTE alinhados pela mesma altura. align-items: stretch no row
-   garante que cards menores se estiquem até bater no maior.
-   ────────────────────────────────────────────────────────────────────────────*/
-[data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"]) {
-    align-items: stretch !important;
-}
-[data-testid="stColumn"] [data-testid="stCheckbox"] {
-    height: 76px !important;
-    min-height: 76px !important;
-    max-height: 76px !important;
-    display: flex !important;
-    align-items: center !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-    /* pointer-events explícito — garante que o click sempre seja capturado */
-    pointer-events: auto !important;
-}
-/* Forçar o ELEMENTO PAI também a ocupar exatamente 76px — sem isso o
-   stElementContainer pode crescer maior que o card e dar percepção de
-   altura desigual quando o user está com zoom alto / viewport estreito. */
-[data-testid="stColumn"]:has([data-testid="stCheckbox"]),
-[data-testid="stColumn"]:has([data-testid="stCheckbox"]) > div,
-[data-testid="stColumn"]:has([data-testid="stCheckbox"]) [data-testid="stElementContainer"] {
-    height: 76px !important;
-    max-height: 76px !important;
-    overflow: hidden !important;
-}
-/* Streamlit envolve o input em stElementContainer — também precisa stretch */
-[data-testid="stColumn"]:has(> div > [data-testid="stElementContainer"] [data-testid="stCheckbox"]) {
-    display: flex !important;
-    flex-direction: column !important;
-}
-[data-testid="stColumn"] [data-testid="stElementContainer"]:has([data-testid="stCheckbox"]) {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: stretch;
-}
+   25. (removido) CHECKBOX CARDS — voltaram ao visual padrão do Streamlit. */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    26. ANIMAÇÕES VISÍVEIS — entrada da página + ênfase em interações
