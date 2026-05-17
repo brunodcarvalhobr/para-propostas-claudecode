@@ -299,6 +299,13 @@ def _init_state() -> None:
     if "generated_doc" not in st.session_state:
         st.session_state.generated_doc = None
 
+    # Migracao para sessoes legadas: se form existe mas algum default novo
+    # foi adicionado posteriormente (como sla_descricao), preenche com o
+    # valor do default atual quando esta vazio. Garante que usuarios em
+    # sessoes pre-deploy recebam os defaults novos automaticamente.
+    if not st.session_state.form["escopo"].get("sla_descricao"):
+        st.session_state.form["escopo"]["sla_descricao"] = defaults["escopo"]["sla_descricao"]
+
     f = st.session_state.form
     # Tabelas em chaves dedicadas — inicializadas apenas uma vez
     if "tbl_contatos" not in st.session_state:
@@ -1039,7 +1046,7 @@ elif current == 1:
                     "Descrição do SLA",
                     value=form["escopo"]["sla_descricao"],
                     height=160,
-                    key="sla_descricao_ta",
+                    key="sla_descricao_ta_v2",
                 )
         else:
             # Modal == contenciosa: SLA nao se aplica, zera por defesa em camadas
