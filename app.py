@@ -307,6 +307,32 @@ def _init_state() -> None:
         st.session_state.form["escopo"]["sla_descricao"] = defaults["escopo"]["sla_descricao"]
 
     f = st.session_state.form
+
+    # Sync widget state com form para inputs que usam on_change callback.
+    # Como esses widgets nao podem ter value= juntos com key= + callback
+    # (Streamlit avisa do conflito), pre-populamos session_state aqui e o
+    # widget usa apenas key=, sem value=. Apos cada interacao o callback
+    # atualiza session_state[key] (formatado), que vira o valor do form.
+    _INPUT_FORM_PATHS = (
+        ("cpf_input",       ("contratante", "cpf")),
+        ("cnpj_input",      ("contratante", "cnpj")),
+        ("cep_input",       ("contratante", "endereco", "cep")),
+        ("cons_hf_valor",   ("honorarios_consultiva", "hora_fixa_valor")),
+        ("cons_fm_valor",   ("honorarios_consultiva", "fixo_mensal_valor")),
+        ("cons_fm_exc",     ("honorarios_consultiva", "fixo_mensal_excedente")),
+        ("cons_vp_total",   ("honorarios_consultiva", "valor_projeto_total")),
+        ("cont_pm_valor",   ("honorarios_contenciosa", "preco_mensal_valor")),
+        ("cont_vp_total",   ("honorarios_contenciosa", "valor_projeto_total")),
+        ("cont_extra_valor",("honorarios_contenciosa", "horas_extra_valor")),
+        ("desp_taxa_input", ("despesas", "taxa_manutencao_processual")),
+    )
+    for widget_key, path in _INPUT_FORM_PATHS:
+        if widget_key not in st.session_state:
+            v = f
+            for p in path:
+                v = v[p]
+            st.session_state[widget_key] = v
+
     # Tabelas em chaves dedicadas — inicializadas apenas uma vez
     if "tbl_contatos" not in st.session_state:
         st.session_state.tbl_contatos = f["contratante"]["contatos"] or [{"telefone": "", "email": ""}]
@@ -553,26 +579,33 @@ def _render_rows(
             wk = f"{ss_key}__{field}__{i}"
             fmt_fn = formatters.get(field)
             ph = (placeholders or {}).get(field, "")
-            if field in text_areas_list:
-                row_cols[j].text_area(
-                    labels[j],
-                    value=row.get(field, ""),
-                    key=wk,
-                    label_visibility="collapsed",
-                    on_change=fmt_fn,
-                    args=(wk,) if fmt_fn else None,
-                    placeholder=ph,
-                )
+            # Quando tem on_change callback que escreve em session_state[wk],
+            # nao pode passar value= junto (Streamlit avisa). Pre-popula
+            # session_state e cria widget so com key=.
+            if fmt_fn is not None:
+                if wk not in st.session_state:
+                    st.session_state[wk] = row.get(field, "")
+                if field in text_areas_list:
+                    row_cols[j].text_area(
+                        labels[j], key=wk, label_visibility="collapsed",
+                        on_change=fmt_fn, args=(wk,), placeholder=ph,
+                    )
+                else:
+                    row_cols[j].text_input(
+                        labels[j], key=wk, label_visibility="collapsed",
+                        on_change=fmt_fn, args=(wk,), placeholder=ph,
+                    )
             else:
-                row_cols[j].text_input(
-                    labels[j],
-                    value=row.get(field, ""),
-                    key=wk,
-                    label_visibility="collapsed",
-                    on_change=fmt_fn,
-                    args=(wk,) if fmt_fn else None,
-                    placeholder=ph,
-                )
+                if field in text_areas_list:
+                    row_cols[j].text_area(
+                        labels[j], value=row.get(field, ""), key=wk,
+                        label_visibility="collapsed", placeholder=ph,
+                    )
+                else:
+                    row_cols[j].text_input(
+                        labels[j], value=row.get(field, ""), key=wk,
+                        label_visibility="collapsed", placeholder=ph,
+                    )
         row_cols[-1].button(
             "✕",
             key=f"{ss_key}__del__{i}",
@@ -643,7 +676,6 @@ def _step_honorarios() -> None:
             if cm["hora_fixa"]:
                 form["honorarios_consultiva"]["hora_fixa_valor"] = st.text_input(
                     "Valor por hora (independente do executor)",
-                    value=form["honorarios_consultiva"]["hora_fixa_valor"],
                     placeholder="Ex: R$ 700,00",
                     key="cons_hf_valor",
                     on_change=_on_money_change,
@@ -654,7 +686,6 @@ def _step_honorarios() -> None:
                 c1, c2, c3 = st.columns(3)
                 form["honorarios_consultiva"]["fixo_mensal_valor"] = c1.text_input(
                     "Valor mensal",
-                    value=form["honorarios_consultiva"]["fixo_mensal_valor"],
                     placeholder="Ex: R$ 15.000,00",
                     key="cons_fm_valor",
                     on_change=_on_money_change,
@@ -668,7 +699,6 @@ def _step_honorarios() -> None:
                 )
                 form["honorarios_consultiva"]["fixo_mensal_excedente"] = c3.text_input(
                     "Hora excedente",
-                    value=form["honorarios_consultiva"]["fixo_mensal_excedente"],
                     placeholder="Ex: R$ 600,00",
                     key="cons_fm_exc",
                     on_change=_on_money_change,
@@ -678,7 +708,6 @@ def _step_honorarios() -> None:
             if cm["valor_projeto"]:
                 form["honorarios_consultiva"]["valor_projeto_total"] = st.text_input(
                     "Preço global",
-                    value=form["honorarios_consultiva"]["valor_projeto_total"],
                     placeholder="Ex: R$ 50.000,00",
                     key="cons_vp_total",
                     on_change=_on_money_change,
@@ -748,7 +777,6 @@ def _step_honorarios() -> None:
                 c1, c2 = st.columns(2)
                 form["honorarios_contenciosa"]["preco_mensal_valor"] = c1.text_input(
                     "Valor mensal fixo",
-                    value=form["honorarios_contenciosa"]["preco_mensal_valor"],
                     placeholder="Ex: R$ 8.000,00",
                     key="cont_pm_valor",
                     on_change=_on_money_change,
@@ -776,7 +804,6 @@ def _step_honorarios() -> None:
             if cm["valor_projeto"]:
                 form["honorarios_contenciosa"]["valor_projeto_total"] = st.text_input(
                     "Preço global — contencioso",
-                    value=form["honorarios_contenciosa"]["valor_projeto_total"],
                     placeholder="Ex: R$ 30.000,00",
                     key="cont_vp_total",
                     on_change=_on_money_change,
@@ -825,7 +852,6 @@ def _step_honorarios() -> None:
                 if form["despesas"]["taxa_manutencao_ativa"]:
                     form["despesas"]["taxa_manutencao_processual"] = st.text_input(
                         "Valor da taxa",
-                        value=form["despesas"]["taxa_manutencao_processual"],
                         placeholder="Ex: R$ 50,00 por processo/mês",
                         key="desp_taxa_input",
                         on_change=_on_money_change,
@@ -864,7 +890,6 @@ def _step_honorarios() -> None:
                 else:
                     form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
                         "Valor por hora — extra escopo",
-                        value=form["honorarios_contenciosa"]["horas_extra_valor"],
                         placeholder="Ex: R$ 500,00",
                         key="cont_extra_valor",
                         on_change=_on_money_change,
@@ -915,7 +940,6 @@ if current == 0:
             )
             form["contratante"]["cpf"] = c2.text_input(
                 "CPF",
-                value=form["contratante"]["cpf"],
                 placeholder="000.000.000-00",
                 key="cpf_input",
                 on_change=_on_cpf_change,
@@ -929,7 +953,6 @@ if current == 0:
             )
             form["contratante"]["cnpj"] = c2.text_input(
                 "CNPJ",
-                value=form["contratante"]["cnpj"],
                 placeholder="00.000.000/0000-00",
                 key="cnpj_input",
                 on_change=_on_cnpj_change,
@@ -945,7 +968,7 @@ if current == 0:
 
         c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
         end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
-        end["cep"] = c2.text_input("CEP", value=end["cep"], placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
+        end["cep"] = c2.text_input("CEP", placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
         end["cidade"] = c3.text_input("Cidade", value=end["cidade"], key="cidade_input")
         end["uf"] = c4.selectbox(
             "UF",
