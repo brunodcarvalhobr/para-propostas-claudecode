@@ -1414,7 +1414,8 @@ components.html("""
     return true;
   }
 
-  win.setInterval(() => decorateTableButtons(), 500);
+  // MutationObserver já capta novas inserções; não precisamos de setInterval
+  // adicional (causava lag perceptível ao alternar entre seletores).
   let tries = 0;
   const interval = win.setInterval(() => {
     tries++;
