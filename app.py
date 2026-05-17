@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.7"
+APP_VERSION = "2.0.8"
 
 
 @st.cache_data
@@ -57,7 +57,7 @@ def _info_note(text: str) -> None:
 # StreamlitSetPageConfigMustBeFirstCommandError.
 st.set_page_config(
     page_title="Gerador de Propostas PMRA",
-    page_icon="⚖️",
+    page_icon="pmra-icon.svg",
     layout="wide",
 )
 
@@ -124,6 +124,23 @@ if not check_password():
 # ── Estilos PMRA ───────────────────────────────────────────────────────────────
 
 st.markdown(f"<style>{_load_text_asset('resources/static/styles.css')}</style>", unsafe_allow_html=True)
+
+# Injeta apple-touch-icon no <head> para atalhos na tela inicial do celular
+components.html("""
+<script>
+(function() {
+  var d = window.parent.document;
+  if (d.querySelector('link[rel="apple-touch-icon"]')) return;
+  ['180x180', '192x192'].forEach(function(s) {
+    var l = d.createElement('link');
+    l.rel = 'apple-touch-icon';
+    l.sizes = s;
+    l.href = '/app/static/pmra-touch-icon.png';
+    d.head.appendChild(l);
+  });
+})();
+</script>
+""", height=0)
 
 
 # ── Máscara em tempo real (JS via iframe) ──────────────────────────────────────
