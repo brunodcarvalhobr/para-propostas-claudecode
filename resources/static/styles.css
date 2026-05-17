@@ -165,8 +165,17 @@ section.main > .block-container,
 div.block-container,
 div[data-testid="stMainBlockContainer"] {
     padding-top: 0 !important;
-    padding-bottom: 16px !important;
+    padding-bottom: 0 !important;
     margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Colapsa wrappers dos iframes JS injetados no fim da página (height=0) */
+div[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:last-child > [data-testid="stElementContainer"]:last-child,
+div[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 0 !important;
 }
 
 /* (Tentamos várias soluções para tirar os iframes do fluxo — todas mataram
