@@ -58,3 +58,21 @@ dmypy.json
 
 # ── Outputs recriáveis (smoke_test.py) ────────────────────────────────────────
 out/
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Outros editores ───────────────────────────────────────────────────────────
+*.kate-swp
+Session.vim
+.netrwhist
+
+# ── Ambiente local (proteção contra secrets) ─────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Cache pip ─────────────────────────────────────────────────────────────────
+pip-wheel-metadata/
