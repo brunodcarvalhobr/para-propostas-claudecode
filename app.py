@@ -418,18 +418,38 @@ current: int = st.session_state.step
 if current == 0:
     _inject_input_masks()
 
+  # Sinal de step atual via atributo no body — JS observa a mudança e dispara
+# scroll-to-top de forma confiável (não depende de iframe condicional que
+# pode ser destruído antes do JS terminar).
+components.html(f"""
+<script>
+(function () {{
+    const win = window.parent;
+    const doc = win.document;
+    const STEP = "{current}";
+    const SCROLL_TARGETS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', '.main', 'html', 'body'];
+    function scrollTop() {{
+        try {{ win.scrollTo(0, 0); }} catch(_) {{}}
+        SCROLL_TARGETS.forEach(function (sel) {{
+            const el = doc.querySelector(sel);
+            if (el && 'scrollTop' in el) {{ try {{ el.scrollTop = 0; }} catch(_) {{}} }}
+        }});
+    }}
+    const prev = doc.body.dataset.pmraStep;
+    doc.body.dataset.pmraStep = STEP;
+    // Só rola se a etapa MUDOU desde o último render — evita scrollar à toa
+    // a cada interação interna (checkbox, input, etc) que dispara rerun.
+    if (prev !== undefined && prev !== STEP) {{
+        scrollTop();
+        [80, 250, 600, 1200, 1800].forEach(function(ms) {{ win.setTimeout(scrollTop, ms); }});
+    }}
+}})();
+</script>
+""", height=0)
+# A flag scroll_to_top continua sendo limpa por compatibilidade (caso algum
+# código ainda dependa dela), mas o scroll real agora é controlado pelo JS
+# acima via comparação de etapas no body.dataset.
 if st.session_state.get("scroll_to_top", False):
-    components.html("""
-    <script>
-        const win = window.parent;
-        win.scrollTo({top: 0, behavior: 'smooth'});
-        const selectors = ['.stApp', '.main', '[data-testid="stAppViewContainer"]', '[data-testid="stMain"]'];
-        selectors.forEach(sel => {
-            const el = win.document.querySelector(sel);
-            if (el) el.scrollTo({top: 0, behavior: 'smooth'});
-        });
-    </script>
-    """, height=0)
     st.session_state.scroll_to_top = False
 
 
