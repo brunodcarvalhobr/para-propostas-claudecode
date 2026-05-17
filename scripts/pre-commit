@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Incrementa automaticamente o patch de APP_VERSION em app.py a cada commit.
+set -euo pipefail
+
+APP_FILE="app.py"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+TARGET="$REPO_ROOT/$APP_FILE"
+
+if [[ ! -f "$TARGET" ]]; then
+    exit 0
+fi
+
+current=$(grep -oP 'APP_VERSION\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' "$TARGET" || true)
+if [[ -z "$current" ]]; then
+    exit 0
+fi
+
+major="${current%%.*}"
+rest="${current#*.}"
+minor="${rest%%.*}"
+patch="${rest#*.}"
+
+new_patch=$(( patch + 1 ))
+new_version="${major}.${minor}.${new_patch}"
+
+sed -i "s/APP_VERSION = \"${current}\"/APP_VERSION = \"${new_version}\"/" "$TARGET"
+git add "$TARGET"
+
+echo "🔖  APP_VERSION: ${current} → ${new_version}"
