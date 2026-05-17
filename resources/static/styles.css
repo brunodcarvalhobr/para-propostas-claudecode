@@ -441,14 +441,8 @@ div[role="listbox"] {
 [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) > div > [data-testid="stVerticalBlock"] {
     gap: 14px !important;
 }
-[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
-    transform: translateY(-1px);
-    box-shadow:
-        0 1px 0 0 rgba(255,255,255,0.9) inset,
-        0 0 0 0.5px rgba(0,0,0,0.06),
-        0 22px 50px -16px rgba(15,15,20,0.22),
-        0 6px 18px -8px rgba(249,115,22,0.12);
-}
+/* (hover dos cards consolidado mais abaixo em "16. CARD HOVER" e em
+   "26. ANIMAÇÕES VISÍVEIS (e)" — a última definição vence) */
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1106,21 +1100,9 @@ hr {
     background: rgba(249, 115, 22, 0.04);
 }
 
-/* 4. (sticky stepper scrolled shadow moved up — handled together with the
-   sticky stepper base rule via .pmra-stepper-row / .pmra-stepper-scrolled) */
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   5. FADE-IN SUTIL — toda mudança de estado tem polish de transição
-   Aplicado apenas em containers com border (cards) — não em toda renderização.
-   Aceita re-animar em interações para sensação de "vivo".
-   ────────────────────────────────────────────────────────────────────────────*/
-@keyframes pmra-fade-up {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
-    animation: pmra-fade-up 280ms var(--ease-out-soft) both;
-}
+/* 4. (sticky stepper scrolled shadow consolidado com .pmra-stepper-row) */
+/* 5. (fade-up dos containers consolidado em "26. ANIMAÇÕES VISÍVEIS (b)"
+   via @keyframes pmra-content-in) */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    6. SUCCESS CARD — substituiu st.success() na geração da proposta
@@ -1174,8 +1156,8 @@ hr {
 .pmra-success-subtitle strong { color: #14532d; font-weight: 600; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   7. EMPTY STATE EM TABELAS — quando há só 1 linha, o botão ✕ fica disabled.
-   Identifica pela classe .pmra-row-del[disabled] que o JS adiciona.
+   7. EMPTY STATE EM TABELAS — quando há só 1 linha, o ✕ fica disabled.
+   Identifica via [data-testid="stTooltipHoverTarget"] > button[disabled].
    ────────────────────────────────────────────────────────────────────────────*/
 [data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]):not(:hover) {
     background: rgba(0, 0, 0, 0.015);
@@ -1402,9 +1384,7 @@ hr {
     transition: transform 280ms var(--ease-smooth),
                 box-shadow 280ms var(--ease-smooth) !important;
 }
-[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
-    transform: translateY(-1px) scale(1.0015) !important;
-}
+/* (hover dos cards consolidado mais abaixo em "26 (e)") */
 .review-card {
     transition: transform 320ms var(--ease-smooth),
                 box-shadow 320ms var(--ease-smooth) !important;
