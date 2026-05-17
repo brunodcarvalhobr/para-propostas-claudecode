@@ -127,19 +127,22 @@ def main() -> None:
             cenario_pf_consultiva(),
             # Nome aparece em uppercase (RichText negrito+caixa alta) no template.
             ("JOAO DA SILVA", "111.444.777-35", "Belo Horizonte", "joao@example.com"),
-            (),
+            # Seção contenciosa deve ser removida integralmente (modalidade=consultiva).
+            ("Escopo Contencioso",),
         ),
         (
             "pj_mista_completa.docx",
             cenario_pj_mista_completa(),
-            ("ACME INDUSTRIA S.A.", "11.222.333/0001-81", "Trabalhista", "R$ 15.000,00"),
+            ("ACME INDUSTRIA S.A.", "11.222.333/0001-81", "Trabalhista", "R$ 15.000,00",
+             "Escopo Consultiv", "Escopo Contencioso"),
             (),
         ),
         (
             "pj_contenciosa_minimal.docx",
             cenario_pj_contenciosa_minimal(),
             ("BETA LTDA", "11.444.777/0001-61", "R$ 8.000,00", "R$ 500,00"),
-            (),
+            # Seção consultiva deve ser removida integralmente (modalidade=contenciosa).
+            ("Escopo Consultiv",),
         ),
     ]
 
