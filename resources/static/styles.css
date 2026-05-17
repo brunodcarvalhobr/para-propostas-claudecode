@@ -165,6 +165,7 @@ section.main > .block-container,
 div.block-container,
 div[data-testid="stMainBlockContainer"] {
     padding-top: 0 !important;
+    padding-bottom: 16px !important;
     margin-top: 0 !important;
 }
 
@@ -957,22 +958,31 @@ hr {
     justify-content: space-between;
     align-items: center;
     padding: 12px 28px;
-    background: rgba(253, 252, 250, 0.60);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 0.5px solid rgba(0,0,0,0.05);
+    background: rgba(253, 252, 250, 0.80);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
+    border: 0.5px solid rgba(0,0,0,0.06);
     font-size: 11px;
     color: var(--color-ink-400);
     margin-top: 40px;
-    margin-bottom: 16px;
-    border-radius: 18px;
-    border: 0.5px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 0;
+    border-radius: 16px;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 8px 24px -10px rgba(15,15,20,0.12);
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
 }
-.pmra-footer-left {
-    font-family: var(--font-display);
-    font-style: italic;
-    letter-spacing: 0.005em;
+.pmra-footer:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 16px 36px -14px rgba(15,15,20,0.18),
+        0 4px 12px -6px rgba(249,115,22,0.10);
 }
+.pmra-footer-left,
 .pmra-footer-right {
     font-variant-numeric: tabular-nums;
 }
