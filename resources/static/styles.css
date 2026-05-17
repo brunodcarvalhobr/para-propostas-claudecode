@@ -1419,7 +1419,8 @@ h2:hover .pmra-section-icon {
 .pmra-stepper-row button [data-testid="stMarkdownContainer"],
 .pmra-stepper-row button [data-testid="stMarkdownContainer"] * {
     white-space: nowrap !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
     line-height: 1.1 !important;
     text-overflow: ellipsis !important;
 }
