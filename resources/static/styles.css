@@ -1395,39 +1395,23 @@ hr {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   18. CHECKBOX CARDS — bounce sutil no momento da seleção
+   18. CHECKBOX CARDS — feedback rápido na seleção (transição curta, sem
+   spring/scale para não causar percepção de lag). Apenas color/border/shadow.
    ────────────────────────────────────────────────────────────────────────────*/
 [data-testid="stColumn"] [data-testid="stCheckbox"] {
-    transition: background-color 220ms var(--ease-smooth),
-                border-color 220ms var(--ease-smooth),
-                transform 260ms var(--ease-spring),
-                box-shadow 260ms var(--ease-smooth) !important;
-}
-[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
-    animation: pmra-card-select 360ms var(--ease-spring);
-}
-@keyframes pmra-card-select {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.025); }
-    100% { transform: scale(1); }
+    transition: background-color 120ms var(--ease-smooth),
+                border-color 120ms var(--ease-smooth),
+                box-shadow 120ms var(--ease-smooth) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   19. SEGMENTED CONTROL — bounce na pílula selecionada + shadow elegante
+   19. SEGMENTED CONTROL — transição rápida e direta (sem spring/scale, que
+   causa percepção de lag ao alternar). Color/bg em 120ms.
    ────────────────────────────────────────────────────────────────────────────*/
 .stApp [role="radiogroup"] > label {
-    transition: background-color 220ms var(--ease-smooth),
-                color 220ms var(--ease-smooth),
-                transform 260ms var(--ease-spring),
-                box-shadow 260ms var(--ease-smooth) !important;
-}
-.stApp [role="radiogroup"] > label:has(input:checked) {
-    animation: pmra-pill-select 380ms var(--ease-spring);
-}
-@keyframes pmra-pill-select {
-    0% { transform: scale(1); }
-    45% { transform: scale(1.04); }
-    100% { transform: scale(1); }
+    transition: background-color 120ms var(--ease-smooth),
+                color 120ms var(--ease-smooth),
+                box-shadow 120ms var(--ease-smooth) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1528,12 +1512,17 @@ h2:hover .pmra-section-icon {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   25. CHECKBOX CARDS — min-height uniforme + vertical centering forçado
-   Garante que "Hora Média" (1 linha) tenha mesma altura que "Valor Mensal Por
-   Processo" (2 linhas). 82px acomoda 2 linhas de texto + padding 14px.
+   25. CHECKBOX CARDS — min-height uniforme + vertical centering forçado.
+   "Valor Mensal Por Processo" (3 palavras compridas) quebra em até 3 linhas
+   em viewports estreitos. 104px acomoda 3 linhas com folga; todos os cards
+   ficam EXATAMENTE alinhados pela mesma altura. align-items: stretch no row
+   garante que cards menores se estiquem até bater no maior.
    ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"]) {
+    align-items: stretch !important;
+}
 [data-testid="stColumn"] [data-testid="stCheckbox"] {
-    min-height: 82px !important;
+    min-height: 108px !important;
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
