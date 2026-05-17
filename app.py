@@ -412,176 +412,12 @@ def _go_to(n: int) -> None:
 
 current: int = st.session_state.step
 
-# Iframe JS de masks roda so na etapa Contratante (CPF/CNPJ/CEP/tel). Em outras
-# etapas o iframe nao e necessario e a remocao reduz ~50-100ms de overhead por
-# rerun (alivia o lag percebido em toggles de checkbox).
-if current == 0:
-    _inject_input_masks()
-
-  # Sinal de step atual via atributo no body — JS observa a mudança e dispara
-# scroll-to-top de forma confiável (não depende de iframe condicional que
-# pode ser destruído antes do JS terminar).
-components.html(f"""
-<script>
-(function () {{
-    const win = window.parent;
-    const doc = win.document;
-    const STEP = "{current}";
-    const SCROLL_TARGETS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', '.main', 'html', 'body'];
-    function scrollTop() {{
-        try {{ win.scrollTo(0, 0); }} catch(_) {{}}
-        SCROLL_TARGETS.forEach(function (sel) {{
-            const el = doc.querySelector(sel);
-            if (el && 'scrollTop' in el) {{ try {{ el.scrollTop = 0; }} catch(_) {{}} }}
-        }});
-    }}
-    const prev = doc.body.dataset.pmraStep;
-    doc.body.dataset.pmraStep = STEP;
-    // Só rola se a etapa MUDOU desde o último render — evita scrollar à toa
-    // a cada interação interna (checkbox, input, etc) que dispara rerun.
-    if (prev !== undefined && prev !== STEP) {{
-        scrollTop();
-        [80, 250, 600, 1200, 1800].forEach(function(ms) {{ win.setTimeout(scrollTop, ms); }});
-    }}
-}})();
-</script>
-""", height=0)
-# A flag scroll_to_top continua sendo limpa por compatibilidade (caso algum
-# código ainda dependa dela), mas o scroll real agora é controlado pelo JS
-# acima via comparação de etapas no body.dataset.
-if st.session_state.get("scroll_to_top", False):
-    st.session_state.scroll_to_top = False
-
-
-# JS: (a) marca o stepper com `.pmra-stepper-row` e adiciona/remove
-# `.pmra-stepper-scrolled` quando a página rola; (b) substitui os caracteres
-# Unicode ✓/○ dos labels dos step buttons por classes (.pmra-step-done /
-# .pmra-step-pending / .pmra-step-current) que o CSS converte em ícones
-# Material Symbols animados. Decoração idempotente — flag em `dataset` para
-# não reprocessar a cada MutationObserver tick.
-components.html("""
-<script>
-(function() {
-  const win = window.parent;
-  const doc = win.document;
-  const SCROLL_SELECTORS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', 'main'];
-  let attached = false;
-
-  function findStepper() {
-    const blocks = doc.querySelectorAll('[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"]');
-    for (const b of blocks) {
-      if (b.querySelectorAll('button').length >= 4) {
-        b.classList.add('pmra-stepper-row');
-        return b;
-      }
-    }
-    return null;
-  }
-
-  // Marca buttons de tabela com classes próprias — Streamlit não expõe mais
-  // o `key` como `data-testid`, então seletores antigos quebraram. Identificamos
-  // pelo texto e marcamos com classe estável. Streamlit pode ou não preservar
-  // o "+" do "Adicionar linha" (markdown), por isso usamos endsWith.
-  // Marca o button "+ Adicionar linha" com classe estável. O ✕ delete é
-  // estilizado via CSS estrutural ([data-testid="stTooltipHoverTarget"] > button)
-  // porque Streamlit recria periodicamente o button e classes JS não persistem.
-  function decorateTableButtons() {
-    const buttons = doc.querySelectorAll('[data-testid="stMainBlockContainer"] button');
-    buttons.forEach(btn => {
-      const txt = (btn.textContent || '').trim();
-      if (txt.endsWith('Adicionar linha') && !btn.classList.contains('pmra-row-add')) {
-        btn.classList.add('pmra-row-add');
-      }
-    });
-  }
-
-  function decorateStepButtons(stepper) {
-    if (!stepper) return;
-    const buttons = stepper.querySelectorAll('button');
-    buttons.forEach(btn => {
-      // Container do label — pode ser <p> (secondary com texto puro) ou só o
-      // próprio markdownContainer (primary, onde "1. " virou <ol><li>).
-      const mdContainer = btn.querySelector('[data-testid="stMarkdownContainer"]');
-      const labelEl = btn.querySelector('[data-testid="stMarkdownContainer"] p') || mdContainer;
-      if (!labelEl) return;
-      const text = (labelEl.textContent || '').trim();
-      if (!text) return;
-
-      let kind = null;
-      let cleanLabel = text;
-
-      // Primary button = etapa atual (Streamlit marca via kind="primary")
-      if (btn.getAttribute('kind') === 'primary') {
-        kind = 'current';
-        // Remove "1. " caso ainda esteja presente (depende de como Streamlit renderiza)
-        cleanLabel = text.replace(/^\\d+\\.\\s*/, '').trim();
-      } else if (text.startsWith('✓ ')) {        // "✓ Contratante"
-        kind = 'done';
-        cleanLabel = text.slice(2).trim();
-      } else if (text.startsWith('○ ')) {        // "○ Escopo"
-        kind = 'pending';
-        cleanLabel = text.slice(2).trim();
-      }
-      if (!kind) return;
-
-      // Idempotência: pula se já está decorado com o mesmo estado e label
-      if (btn.dataset.pmraStep === kind && labelEl.textContent.trim() === cleanLabel) return;
-
-      btn.classList.remove('pmra-step-done', 'pmra-step-pending', 'pmra-step-current');
-      btn.classList.add('pmra-step-' + kind);
-      btn.dataset.pmraStep = kind;
-      labelEl.textContent = cleanLabel;
-    });
-  }
-
-  function getScrollY() {
-    for (const sel of SCROLL_SELECTORS) {
-      const el = doc.querySelector(sel);
-      if (el && el.scrollTop > 0) return el.scrollTop;
-    }
-    return win.scrollY || doc.documentElement.scrollTop || 0;
-  }
-
-  function refresh() {
-    const stepper = findStepper();
-    decorateTableButtons();
-    if (!stepper) return;
-    decorateStepButtons(stepper);
-    if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
-    else stepper.classList.remove('pmra-stepper-scrolled');
-  }
-
-  function tryAttach() {
-    const stepper = findStepper();
-    decorateTableButtons();
-    if (!stepper) return false;
-    decorateStepButtons(stepper);
-    if (attached) { refresh(); return true; }
-    win.addEventListener('scroll', refresh, { passive: true });
-    SCROLL_SELECTORS.forEach(sel => {
-      const el = doc.querySelector(sel);
-      if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
-    });
-    new win.MutationObserver(() => refresh()).observe(doc.body, { childList: true, subtree: true });
-    attached = true;
-    refresh();
-    return true;
-  }
-
-  // Loop persistente em baixa frequência (cada 500ms) — garante que buttons
-  // de tabela criados/removidos via st.rerun() sejam decorados mesmo que o
-  // MutationObserver perca alguma alteração. Custo desprezível: querySelector
-  // + class check, ambos O(n) sobre poucos elementos.
-  win.setInterval(() => decorateTableButtons(), 500);
-
-  let tries = 0;
-  const interval = win.setInterval(() => {
-    tries++;
-    if (tryAttach() || tries > 20) win.clearInterval(interval);
-  }, 250);
-})();
-</script>
-""", height=0)
+# (As injeções de iframe — input masks, scroll-to-top, sticky stepper —
+# foram movidas para o FINAL deste arquivo, depois do footer. Cada iframe
+# components.html ocupa ~26px no fluxo do DOM mesmo com height=0; se eles
+# fossem injetados aqui ANTES do header, empurrariam todo o layout para
+# baixo de forma inconsistente entre etapas — a etapa Contratante usa
+# 1 iframe a mais (input masks), causando offset visível.)
 
 
 # ── Cabeçalho com logo ────────────────────────────────────────────────────────
@@ -1461,3 +1297,129 @@ st.markdown("""
     <div class="pmra-footer-right">PMRA Propostas</div>
 </div>
 """, unsafe_allow_html=True)
+
+
+# ── Iframes de JS (injetados no FINAL para não empurrarem o layout) ───────────
+
+# Input masks: só na etapa Contratante (CPF/CNPJ/CEP/telefone).
+if current == 0:
+    _inject_input_masks()
+
+# Scroll-to-top quando a etapa muda — JS clássico, smooth scroll.
+if st.session_state.get("scroll_to_top", False):
+    components.html("""
+    <script>
+        const win = window.parent;
+        win.scrollTo({top: 0, behavior: 'smooth'});
+        const selectors = ['.stApp', '.main', '[data-testid="stAppViewContainer"]', '[data-testid="stMain"]'];
+        selectors.forEach(sel => {
+            const el = win.document.querySelector(sel);
+            if (el) el.scrollTo({top: 0, behavior: 'smooth'});
+        });
+    </script>
+    """, height=0)
+    st.session_state.scroll_to_top = False
+
+# Sticky stepper shadow + decoração dos step buttons com ícones Material Symbols.
+components.html("""
+<script>
+(function() {
+  const win = window.parent;
+  const doc = win.document;
+  const SCROLL_SELECTORS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', 'main'];
+  let attached = false;
+
+  function findStepper() {
+    const blocks = doc.querySelectorAll('[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"]');
+    for (const b of blocks) {
+      if (b.querySelectorAll('button').length >= 4) {
+        b.classList.add('pmra-stepper-row');
+        return b;
+      }
+    }
+    return null;
+  }
+
+  function decorateTableButtons() {
+    const buttons = doc.querySelectorAll('[data-testid="stMainBlockContainer"] button');
+    buttons.forEach(btn => {
+      const txt = (btn.textContent || '').trim();
+      if (txt.endsWith('Adicionar linha') && !btn.classList.contains('pmra-row-add')) {
+        btn.classList.add('pmra-row-add');
+      }
+    });
+  }
+
+  function decorateStepButtons(stepper) {
+    if (!stepper) return;
+    const buttons = stepper.querySelectorAll('button');
+    buttons.forEach(btn => {
+      const mdContainer = btn.querySelector('[data-testid="stMarkdownContainer"]');
+      const labelEl = btn.querySelector('[data-testid="stMarkdownContainer"] p') || mdContainer;
+      if (!labelEl) return;
+      const text = (labelEl.textContent || '').trim();
+      if (!text) return;
+      let kind = null;
+      let cleanLabel = text;
+      if (btn.getAttribute('kind') === 'primary') {
+        kind = 'current';
+        cleanLabel = text.replace(/^\\d+\\.\\s*/, '').trim();
+      } else if (text.startsWith('✓ ')) {
+        kind = 'done';
+        cleanLabel = text.slice(2).trim();
+      } else if (text.startsWith('○ ')) {
+        kind = 'pending';
+        cleanLabel = text.slice(2).trim();
+      }
+      if (!kind) return;
+      if (btn.dataset.pmraStep === kind && labelEl.textContent.trim() === cleanLabel) return;
+      btn.classList.remove('pmra-step-done', 'pmra-step-pending', 'pmra-step-current');
+      btn.classList.add('pmra-step-' + kind);
+      btn.dataset.pmraStep = kind;
+      labelEl.textContent = cleanLabel;
+    });
+  }
+
+  function getScrollY() {
+    for (const sel of SCROLL_SELECTORS) {
+      const el = doc.querySelector(sel);
+      if (el && el.scrollTop > 0) return el.scrollTop;
+    }
+    return win.scrollY || doc.documentElement.scrollTop || 0;
+  }
+
+  function refresh() {
+    const stepper = findStepper();
+    decorateTableButtons();
+    if (!stepper) return;
+    decorateStepButtons(stepper);
+    if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
+    else stepper.classList.remove('pmra-stepper-scrolled');
+  }
+
+  function tryAttach() {
+    const stepper = findStepper();
+    decorateTableButtons();
+    if (!stepper) return false;
+    decorateStepButtons(stepper);
+    if (attached) { refresh(); return true; }
+    win.addEventListener('scroll', refresh, { passive: true });
+    SCROLL_SELECTORS.forEach(sel => {
+      const el = doc.querySelector(sel);
+      if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
+    });
+    new win.MutationObserver(() => refresh()).observe(doc.body, { childList: true, subtree: true });
+    attached = true;
+    refresh();
+    return true;
+  }
+
+  win.setInterval(() => decorateTableButtons(), 500);
+  let tries = 0;
+  const interval = win.setInterval(() => {
+    tries++;
+    if (tryAttach() || tries > 20) win.clearInterval(interval);
+  }, 250);
+})();
+</script>
+""", height=0)

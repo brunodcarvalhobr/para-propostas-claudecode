@@ -1650,3 +1650,19 @@ h2:hover .pmra-section-icon {
     align-items: center !important;
     height: 100% !important;
 }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   ANIMAÇÕES DESLIGADAS — causavam flickering em reruns sucessivos do
+   Streamlit (cada interação reroda o `@keyframes`, criando percepção de
+   movimento indesejada). Mantemos apenas transições de hover (rodam só
+   quando user interage) e a animação do success card (aparece uma vez).
+   ════════════════════════════════════════════════════════════════════════════*/
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0),
+.pmra-stepper-row button.pmra-step-current::before,
+.pmra-stepper-row button.pmra-step-done::before,
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked),
+.stApp [role="radiogroup"] > label:has(input:checked),
+.pmra-section-icon,
+.pmra-icon {
+    animation: none !important;
+}
