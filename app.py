@@ -19,6 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
+APP_VERSION = "2.0.1"
 
 
 @st.cache_data
@@ -1322,10 +1323,10 @@ if current < len(STEPS) - 1:
         key="nav_next",
     )
 
-st.markdown("""
+st.markdown(f"""
 <div class="pmra-footer">
-    <div class="pmra-footer-left">O nosso negócio é fazer direito</div>
-    <div class="pmra-footer-right">PMRA Propostas</div>
+    <div class="pmra-footer-left">Legal Tech | Desenvolvido por Bruno Carvalho</div>
+    <div class="pmra-footer-right">PMRA &nbsp;·&nbsp; v{APP_VERSION}</div>
 </div>
 """, unsafe_allow_html=True)
 
