@@ -1048,12 +1048,23 @@ hr {
     background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 14px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     transition: all 220ms var(--ease-out-soft);
     cursor: pointer;
     height: 100%;
     display: flex;
     align-items: center;
+}
+/* Texto dentro dos cards de modalidade: font reduzida + letter-spacing
+   compacto para garantir no máximo 2 linhas (mesmo "Valor Mensal Por
+   Processo" cabe em 2 linhas a 9.5px com letter-spacing apertado),
+   resultando em altura uniforme em toda a row. */
+[data-testid="stColumn"] [data-testid="stCheckbox"] label,
+[data-testid="stColumn"] [data-testid="stCheckbox"] [data-testid="stWidgetLabel"],
+[data-testid="stColumn"] [data-testid="stCheckbox"] [data-testid="stWidgetLabel"] * {
+    font-size: 9.5px !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.35 !important;
 }
 [data-testid="stColumn"] [data-testid="stCheckbox"]:hover {
     border-color: rgba(249, 115, 22, 0.35);
@@ -1522,7 +1533,7 @@ h2:hover .pmra-section-icon {
     align-items: stretch !important;
 }
 [data-testid="stColumn"] [data-testid="stCheckbox"] {
-    min-height: 108px !important;
+    min-height: 76px !important;
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
