@@ -168,13 +168,24 @@ div[data-testid="stMainBlockContainer"] {
     margin-top: 0 !important;
 }
 
-/* Primeiro filho do container principal nao deve ter margin-top */
-[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
+/* Primeiro filho do container principal nao deve ter margin-top.
+   Cobre TODAS as variantes de hierarquia que Streamlit usa (com ou sem o
+   stVerticalBlockBorderWrapper extra). Sem isso, a etapa 1 (Contratante)
+   pode ficar com offset diferente das outras dependendo de como Streamlit
+   monta os wrappers. */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"],
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"],
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"]:first-of-type {
     gap: 0 !important;
 }
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div > [data-testid="stVerticalBlock"],
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:first-child,
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child > [data-testid="stMarkdown"],
-[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stMarkdown"]:first-child {
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stMarkdown"]:first-child,
+[data-testid="stMainBlockContainer"] [data-testid="stElementContainer"]:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
@@ -559,8 +570,9 @@ div[role="listbox"] {
     box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 3px rgba(249,115,22,0.16) !important;
 }
 
-/* Headings */
-h1, h2, h3, .pmra-sub-hdr {
+/* Headings — Fraunces serif. .pmra-sub-hdr é tratado separadamente abaixo
+   (sans-serif + ember). NÃO agrupar aqui senão herda fonte/cor errada. */
+h1, h2, h3 {
     font-family: var(--font-display) !important;
     color: var(--color-ink) !important;
 }
@@ -583,14 +595,17 @@ h3 {
     align-items: center !important;
 }
 
-/* Labels */
+/* Labels — TIPO DE PESSOA, MATÉRIAS, etc. Mesma tipografia que .pmra-sub-hdr
+   (tamanho e letter-spacing idênticos) — única diferença é a cor (cinza
+   neutro vs ember). Garante coesão visual entre rótulos de seção e de campo. */
 label {
     font-family: var(--font-sans) !important;
-    font-size: 11.5px !important;
+    font-size: 11px !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.12em !important;
+    letter-spacing: 0.14em !important;
     color: var(--color-ink-600) !important;
     font-weight: 500 !important;
+    line-height: 1.4 !important;
 }
 
 /* Selection */
@@ -610,14 +625,17 @@ label {
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(64,64,64,0.32); background-clip: content-box; }
 
-/* Subheaders within cards */
+/* Subheaders within cards — tipografia idêntica aos labels (mesmo size,
+   letter-spacing, weight). Apenas a cor difere: ember para hierarquia
+   visual de "marcador de seção". */
 .pmra-sub-hdr {
     font-family: var(--font-sans) !important;
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--color-ember-600);
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: var(--color-ember-600) !important;
+    line-height: 1.4 !important;
     margin-top: 16px;
     margin-bottom: 12px;
 }
