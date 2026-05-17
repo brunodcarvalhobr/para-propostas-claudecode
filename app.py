@@ -347,6 +347,44 @@ def _init_state() -> None:
                 v = v[p]
             st.session_state[widget_key] = v
 
+    # Mesmo pattern para checkboxes e radios — passar `value=` + `key=` juntos
+    # ao mesmo tempo causa bug conhecido do Streamlit: precisa de 2 cliques pra
+    # alternar (segundo click é tratado como reset, não toggle). Pre-populando
+    # session_state aqui e usando apenas `key=` nos widgets, evitamos o conflito.
+    _BOOL_FORM_PATHS = (
+        ("cons_hs",            ("honorarios_consultiva", "modalidades", "hora_senioridade")),
+        ("cons_hf",            ("honorarios_consultiva", "modalidades", "hora_fixa")),
+        ("cons_fm",            ("honorarios_consultiva", "modalidades", "fixo_mensal")),
+        ("cons_vp",            ("honorarios_consultiva", "modalidades", "valor_projeto")),
+        ("cont_va",            ("honorarios_contenciosa", "modalidades", "valor_acao")),
+        ("cont_vap",           ("honorarios_contenciosa", "modalidades", "valor_ato_processual")),
+        ("cont_pm",            ("honorarios_contenciosa", "modalidades", "preco_mensal_massa")),
+        ("cont_vp",            ("honorarios_contenciosa", "modalidades", "valor_projeto")),
+        ("cont_exito_cb",      ("honorarios_contenciosa", "exito_ativo")),
+        ("desp_taxa_ativa_cb", ("despesas", "taxa_manutencao_ativa")),
+        ("sla_ativo_cb",       ("escopo", "sla_ativo")),
+        ("disp_ativo_cb",      ("disposicoes", "ativo")),
+    )
+    for widget_key, path in _BOOL_FORM_PATHS:
+        if widget_key not in st.session_state:
+            v = f
+            for p in path:
+                v = v[p]
+            st.session_state[widget_key] = bool(v)
+
+    # Radios: o `key=` armazena a STRING da opção selecionada
+    _RADIO_FORM_PATHS = (
+        ("tipo_pessoa",            ("contratante", "tipo_pessoa")),
+        ("modalidade_radio",       ("escopo", "modalidade")),
+        ("horas_extra_modo_radio", ("honorarios_contenciosa", "horas_extra_escopo_modo")),
+    )
+    for widget_key, path in _RADIO_FORM_PATHS:
+        if widget_key not in st.session_state:
+            v = f
+            for p in path:
+                v = v[p]
+            st.session_state[widget_key] = v
+
     # Tabelas em chaves dedicadas — inicializadas apenas uma vez
     if "tbl_contatos" not in st.session_state:
         st.session_state.tbl_contatos = f["contratante"]["contatos"] or [{"telefone": "", "email": ""}]
@@ -634,10 +672,10 @@ def _step_honorarios() -> None:
             # Checkboxes booleanos: padrao direto value= + key= (sem callback).
             # O return value do widget e atribuido a cm[key] que ja e referencia
             # ao form em session_state, garantindo persistencia entre etapas.
-            cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", value=cm["hora_senioridade"], key="cons_hs")
-            cm["hora_fixa"] = c2.checkbox("Hora Média", value=cm["hora_fixa"], key="cons_hf")
-            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", value=cm["fixo_mensal"], key="cons_fm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
+            cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", key="cons_hs")
+            cm["hora_fixa"] = c2.checkbox("Hora Média", key="cons_hf")
+            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", key="cons_fm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", key="cons_vp")
 
             if cm["hora_senioridade"]:
                 st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
@@ -706,10 +744,10 @@ def _step_honorarios() -> None:
             cm = form["honorarios_contenciosa"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
-            cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
-            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
+            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", key="cont_va")
+            cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", key="cont_vap")
+            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", key="cont_pm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", key="cont_vp")
 
             if cm["valor_acao"]:
                 st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
@@ -805,7 +843,6 @@ def _step_honorarios() -> None:
             with st.container(border=True):
                 form["honorarios_contenciosa"]["exito_ativo"] = st.checkbox(
                     "Cobrar honorários de êxito?",
-                    value=form["honorarios_contenciosa"]["exito_ativo"],
                     key="cont_exito_cb",
                 )
                 if form["honorarios_contenciosa"]["exito_ativo"]:
@@ -819,7 +856,6 @@ def _step_honorarios() -> None:
                 # Taxa de manutencao processual — checkbox com a mesma logica do Exito
                 form["despesas"]["taxa_manutencao_ativa"] = st.checkbox(
                     "Cobrar taxa de manutenção processual?",
-                    value=form["despesas"]["taxa_manutencao_ativa"],
                     key="desp_taxa_ativa_cb",
                 )
                 if form["despesas"]["taxa_manutencao_ativa"]:
@@ -847,7 +883,6 @@ def _step_honorarios() -> None:
                     "Modo de cobrança",
                     options=modos,
                     format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
-                    index=modos.index(form["honorarios_contenciosa"]["horas_extra_escopo_modo"]),
                     horizontal=True,
                     key="horas_extra_modo_radio",
                 )
@@ -899,7 +934,6 @@ if current == 0:
             "Tipo de pessoa",
             options=("fisica", "juridica"),
             format_func=lambda x: "Pessoa Física" if x == "fisica" else "Pessoa Jurídica",
-            index=0 if form["contratante"]["tipo_pessoa"] == "fisica" else 1,
             horizontal=True,
             key="tipo_pessoa",
         )
@@ -986,7 +1020,6 @@ elif current == 1:
                 "contenciosa": "Contenciosa",
                 "mista": "Mista (Consultiva + Contenciosa)",
             }[x],
-            index=modalidades.index(form["escopo"]["modalidade"]),
             horizontal=True,
             key="modalidade_radio",
         )
@@ -1016,7 +1049,6 @@ elif current == 1:
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">timer</span>SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
             form["escopo"]["sla_ativo"] = st.checkbox(
                 "Definir prazos de resposta por complexidade?",
-                value=form["escopo"]["sla_ativo"],
                 key="sla_ativo_cb",
             )
             if form["escopo"]["sla_ativo"]:
@@ -1094,7 +1126,6 @@ elif current == 3:
         )
         form["disposicoes"]["ativo"] = st.checkbox(
             "Incluir seção de disposições específicas no contrato?",
-            value=form["disposicoes"]["ativo"],
             key="disp_ativo_cb",
         )
         if form["disposicoes"]["ativo"]:
@@ -1320,19 +1351,17 @@ if st.session_state.get("scroll_to_top", False):
     """, height=0)
     st.session_state.scroll_to_top = False
 
-# Sticky stepper shadow + decoração dos step buttons com Material Symbols.
-# IMPORTANTE: Streamlit recria o iframe a cada rerun, e SEM uma flag global
-# cada rerun criaria um novo MutationObserver/listener acumulando no parent
-# (cada click → todos os observers disparam → lag crescente).
-# Flag `win.__pmraInit` garante que listeners e observers são registrados
-# apenas UMA VEZ no ciclo de vida da página; reruns subsequentes apenas
-# chamam o `refresh` já existente, sem criar nada novo.
+# JS MÍNIMO: apenas marca o stepper com classe `.pmra-stepper-row` para o
+# CSS de sticky pegar, e adiciona/remove `.pmra-stepper-scrolled` no scroll.
+# NÃO usa MutationObserver, NÃO altera textContent de buttons, NÃO interage
+# com inputs/checkboxes/radios — o MutationObserver no body causava
+# interferência no estado dos seletores (precisava 2 cliques pra desmarcar).
 components.html("""
 <script>
 (function() {
   const win = window.parent;
   const doc = win.document;
-  const SCROLL_SELECTORS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', 'main'];
+  const SCROLL_SEL = '[data-testid="stMain"]';
 
   function findStepper() {
     const blocks = doc.querySelectorAll('[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"]');
@@ -1345,97 +1374,29 @@ components.html("""
     return null;
   }
 
-  function decorateTableButtons() {
-    const buttons = doc.querySelectorAll('[data-testid="stMainBlockContainer"] button');
-    buttons.forEach(btn => {
-      const txt = (btn.textContent || '').trim();
-      if (txt.endsWith('Adicionar linha') && !btn.classList.contains('pmra-row-add')) {
-        btn.classList.add('pmra-row-add');
-      }
-    });
-  }
-
-  function decorateStepButtons(stepper) {
-    if (!stepper) return;
-    const buttons = stepper.querySelectorAll('button');
-    buttons.forEach(btn => {
-      const mdContainer = btn.querySelector('[data-testid="stMarkdownContainer"]');
-      const labelEl = btn.querySelector('[data-testid="stMarkdownContainer"] p') || mdContainer;
-      if (!labelEl) return;
-      const text = (labelEl.textContent || '').trim();
-      if (!text) return;
-      let kind = null;
-      let cleanLabel = text;
-      if (btn.getAttribute('kind') === 'primary') {
-        kind = 'current';
-        cleanLabel = text.replace(/^\\d+\\.\\s*/, '').trim();
-      } else if (text.startsWith('✓ ')) {
-        kind = 'done';
-        cleanLabel = text.slice(2).trim();
-      } else if (text.startsWith('○ ')) {
-        kind = 'pending';
-        cleanLabel = text.slice(2).trim();
-      }
-      if (!kind) return;
-      if (btn.dataset.pmraStep === kind && labelEl.textContent.trim() === cleanLabel) return;
-      btn.classList.remove('pmra-step-done', 'pmra-step-pending', 'pmra-step-current');
-      btn.classList.add('pmra-step-' + kind);
-      btn.dataset.pmraStep = kind;
-      labelEl.textContent = cleanLabel;
-    });
-  }
-
-  function getScrollY() {
-    for (const sel of SCROLL_SELECTORS) {
-      const el = doc.querySelector(sel);
-      if (el && el.scrollTop > 0) return el.scrollTop;
-    }
-    return win.scrollY || doc.documentElement.scrollTop || 0;
-  }
-
-  function refresh() {
+  function onScroll() {
     const stepper = findStepper();
-    decorateTableButtons();
     if (!stepper) return;
-    decorateStepButtons(stepper);
-    if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
+    const sc = doc.querySelector(SCROLL_SEL);
+    const y = (sc && sc.scrollTop) || win.scrollY || 0;
+    if (y > 8) stepper.classList.add('pmra-stepper-scrolled');
     else stepper.classList.remove('pmra-stepper-scrolled');
   }
 
-  // Reruns subsequentes: só dispara o refresh já registrado; NÃO cria novo
-  // MutationObserver/listener.
-  if (win.__pmraInit) {
-    refresh();
-    win.__pmraRefresh = refresh;
-    return;
-  }
-
-  // Primeira inicialização — registra listeners e observer UMA vez.
-  win.__pmraInit = true;
-  win.__pmraRefresh = refresh;
-
-  // Scroll listener no window e nos containers internos do Streamlit
-  win.addEventListener('scroll', refresh, { passive: true });
-  SCROLL_SELECTORS.forEach(sel => {
-    const el = doc.querySelector(sel);
-    if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
-  });
-
-  // MutationObserver com debounce — evita disparos em cascata
-  let moTimer = null;
-  const mo = new win.MutationObserver(() => {
-    if (moTimer) win.clearTimeout(moTimer);
-    moTimer = win.setTimeout(refresh, 60);
-  });
-  mo.observe(doc.body, { childList: true, subtree: true });
-
-  // Tentativa inicial: até 8 tentativas em 100ms cada (= 800ms max para
-  // achar o stepper). Sem setInterval acumulado entre reruns.
+  // Re-init em cada rerun é OK: apenas tenta achar o stepper algumas vezes
+  // (a cada 200ms até 10 tentativas) e adiciona o scroll listener UMA vez
+  // globalmente (flag __pmraInit).
   let tries = 0;
   const initInterval = win.setInterval(() => {
-    refresh();
-    if (findStepper() || ++tries > 8) win.clearInterval(initInterval);
-  }, 100);
+    if (findStepper() || ++tries > 10) win.clearInterval(initInterval);
+  }, 200);
+  onScroll();
+
+  if (win.__pmraInit) return;
+  win.__pmraInit = true;
+  win.addEventListener('scroll', onScroll, { passive: true });
+  const sc = doc.querySelector(SCROLL_SEL);
+  if (sc) sc.addEventListener('scroll', onScroll, { passive: true });
 })();
 </script>
 """, height=0)
