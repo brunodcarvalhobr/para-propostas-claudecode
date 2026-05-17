@@ -64,6 +64,23 @@ def _fmt_rows(rows: list[dict], money_cols: tuple[str, ...] = ("valor",)) -> lis
     ]
 
 
+def _filter_rows_by(rows: list[dict], required_field: str) -> list[dict]:
+    """Remove linhas onde o campo obrigatorio (ex.: 'valor') esta vazio.
+
+    Usado para acoes/atos onde o help_text diz "Linhas sem valor sao ignoradas".
+    """
+    return [r for r in rows if str(r.get(required_field, "")).strip()]
+
+
+def _filter_non_empty_rows(rows: list[dict]) -> list[dict]:
+    """Remove linhas onde TODOS os campos estao vazios.
+
+    Usado para tabelas onde qualquer combinacao de campo preenchido conta
+    (senioridade, despesas).
+    """
+    return [r for r in rows if any(str(v).strip() for v in r.values())]
+
+
 def montar_endereco(end: Endereco) -> str:
     linha1 = _non_empty(
         ", ".join(p for p in [end.logradouro, end.numero] if p),
@@ -122,7 +139,7 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "show_hora_fixa": show_consultiva and consultiva_mod.hora_fixa,
             "show_fixo_mensal": show_consultiva and consultiva_mod.fixo_mensal,
             "show_valor_projeto": show_consultiva and consultiva_mod.valor_projeto,
-            "tabela_senioridade": _fmt_rows([s.model_dump() for s in form.honorarios_consultiva.tabela_senioridade]),
+            "tabela_senioridade": _filter_non_empty_rows(_fmt_rows([s.model_dump() for s in form.honorarios_consultiva.tabela_senioridade])),
             "hora_fixa_valor": _fmt_money(form.honorarios_consultiva.hora_fixa_valor),
             "fixo_mensal_valor": _fmt_money(form.honorarios_consultiva.fixo_mensal_valor),
             "fixo_mensal_cap": form.honorarios_consultiva.fixo_mensal_cap,
@@ -135,8 +152,10 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "show_valor_ato": show_contenciosa and contenciosa_mod.valor_ato_processual,
             "show_preco_mensal": show_contenciosa and contenciosa_mod.preco_mensal_massa,
             "show_valor_projeto": show_contenciosa and contenciosa_mod.valor_projeto,
-            "tabela_acoes": _fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_acoes]),
-            "tabela_atos": _fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_atos]),
+            # tabela_acoes e tabela_atos: filtra linhas sem valor (help_text do
+            # form ja avisa "Linhas sem valor sao ignoradas")
+            "tabela_acoes": _filter_rows_by(_fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_acoes]), "valor"),
+            "tabela_atos": _filter_rows_by(_fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_atos]), "valor"),
             "preco_mensal_valor": _fmt_money(form.honorarios_contenciosa.preco_mensal_valor),
             "preco_mensal_maximo_acoes": form.honorarios_contenciosa.preco_mensal_maximo_acoes,
             "preco_mensal_maximo_acoes_extenso": form.honorarios_contenciosa.preco_mensal_maximo_acoes_extenso,
@@ -152,13 +171,13 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "show_extra_hora_fixa": (
                 show_contenciosa and form.honorarios_contenciosa.horas_extra_escopo_modo == "horaFixa"
             ),
-            "horas_extra_senioridade": _fmt_rows([
+            "horas_extra_senioridade": _filter_non_empty_rows(_fmt_rows([
                 s.model_dump() for s in form.honorarios_contenciosa.horas_extra_senioridade
-            ]),
+            ])),
             "horas_extra_valor": _fmt_money(form.honorarios_contenciosa.horas_extra_valor),
         },
         "despesas": {
-            "tabela_despesas": _fmt_rows([d.model_dump() for d in form.despesas.tabela_despesas]),
+            "tabela_despesas": _filter_non_empty_rows(_fmt_rows([d.model_dump() for d in form.despesas.tabela_despesas])),
             "taxa_manutencao_processual": _fmt_money(form.despesas.taxa_manutencao_processual),
             "show_taxa_manutencao": form.despesas.taxa_manutencao_ativa,
         },

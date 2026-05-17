@@ -145,3 +145,54 @@ class TestFormToContext:
         assert "JOAO DA SILVA" in rendered
         # docxtpl RichText embute negrito como <w:b/> no XML do run
         assert "<w:b/>" in rendered
+
+
+class TestFilterEmptyRows:
+    """Linhas vazias nao devem aparecer no documento final."""
+
+    def test_acoes_sem_valor_sao_ignoradas(self):
+        from pmra.schema import AcaoRow
+        f = proposal_form_default()
+        f.escopo.modalidade = "contenciosa"
+        f.honorarios_contenciosa.modalidades.valor_acao = True
+        f.honorarios_contenciosa.tabela_acoes = [
+            AcaoRow(natureza="Trabalhista", fase="Conhecimento", valor="5000"),
+            AcaoRow(natureza="Civel", fase="Recurso", valor=""),  # sem valor — deve ser filtrado
+        ]
+        ctx = form_to_context(f)
+        rows = ctx["contenciosa"]["tabela_acoes"]
+        assert len(rows) == 1
+        assert rows[0]["natureza"] == "Trabalhista"
+
+    def test_atos_sem_valor_sao_ignorados(self):
+        from pmra.schema import AtoProcessualRow
+        f = proposal_form_default()
+        f.escopo.modalidade = "contenciosa"
+        f.honorarios_contenciosa.modalidades.valor_ato_processual = True
+        f.honorarios_contenciosa.tabela_atos = [
+            AtoProcessualRow(ato="Peticao", descricao="Inicial", valor="1000"),
+            AtoProcessualRow(ato="Contestacao", descricao="Defesa", valor=""),
+        ]
+        ctx = form_to_context(f)
+        rows = ctx["contenciosa"]["tabela_atos"]
+        assert len(rows) == 1
+
+    def test_senioridade_totalmente_vazia_filtrada(self):
+        from pmra.schema import SenioridadeRow
+        f = proposal_form_default()
+        f.honorarios_consultiva.tabela_senioridade = [
+            SenioridadeRow(categoria="Socio", valor="1050"),
+            SenioridadeRow(categoria="", valor=""),  # totalmente vazia
+        ]
+        ctx = form_to_context(f)
+        assert len(ctx["consultiva"]["tabela_senioridade"]) == 1
+
+    def test_despesas_totalmente_vazia_filtrada(self):
+        from pmra.schema import DespesaItem
+        f = proposal_form_default()
+        f.despesas.tabela_despesas = [
+            DespesaItem(categoria="Logisticas", descricao="Combustivel"),
+            DespesaItem(categoria="", descricao=""),
+        ]
+        ctx = form_to_context(f)
+        assert len(ctx["despesas"]["tabela_despesas"]) == 1
