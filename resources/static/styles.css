@@ -168,6 +168,22 @@ div[data-testid="stMainBlockContainer"] {
     margin-top: 0 !important;
 }
 
+/* IFRAMES HEIGHT-ZERO (components.html para JS) — cada iframe injetado
+   ocupa ~26px no stElementContainer pai. Como a etapa Contratante usa 4
+   iframes (input masks extra) e as outras só 3, o header descia ~40px
+   só nela. Tiramos do fluxo via position:absolute + h/w mínimos. O JS
+   dentro do iframe continua executando (display:none impediria). */
+.stApp [data-testid="stElementContainer"]:has([data-testid="stIFrame"]) {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+}
+
 /* Primeiro filho do container principal nao deve ter margin-top — limita
    APENAS ao primeiro filho direto, sem zerar o `gap` natural do Streamlit
    no resto da árvore (isso colava todos os elementos verticais). */
@@ -373,7 +389,7 @@ div[role="listbox"] {
     -webkit-backdrop-filter: blur(48px);
     border: 0.5px solid rgba(0,0,0,0.06);
     margin-bottom: 16px;
-    margin-top: -2rem !important;
+    margin-top: 0 !important;
     border-radius: 16px;
     transition: transform 220ms var(--ease-out-soft),
                 box-shadow 220ms var(--ease-out-soft);
@@ -412,6 +428,7 @@ div[role="listbox"] {
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 0.5px solid var(--color-glass-border) !important;
+    border-left: 3px solid var(--color-ember-500) !important;
     box-shadow: var(--shadow-glass) !important;
     border-radius: 18px !important;
     padding: 28px !important;
@@ -699,8 +716,15 @@ label {
     text-transform: uppercase !important;
     color: var(--color-ember-600) !important;
     line-height: 1.4 !important;
-    margin-top: 24px !important;
-    margin-bottom: 16px !important;
+    margin-top: 32px !important;
+    margin-bottom: 18px !important;
+    padding-top: 8px !important;
+}
+/* Quando o sub-hdr vem logo após uma nota informativa (caso comum: nota
+   explicativa + sub-section abaixo), aumenta ainda mais o respiro. */
+[data-testid="stMarkdown"]:has(.pmra-info-note) + [data-testid="stElementContainer"] .pmra-sub-hdr,
+[data-testid="stMarkdown"]:has(.pmra-info-note) + [data-testid="stElementContainer"] [data-testid="stMarkdown"] .pmra-sub-hdr {
+    margin-top: 16px !important;
 }
 /* Primeiro subheader dentro de um container nao precisa de margin-top */
 [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) .pmra-sub-hdr:first-child,
@@ -719,7 +743,7 @@ label {
     line-height: 1.6;
     color: #1e3a8a;
     text-align: left;
-    margin: 16px 0 20px;
+    margin: 18px 0 28px;
     display: flex;
     gap: 10px;
     align-items: flex-start;
@@ -1572,15 +1596,15 @@ h2:hover .pmra-section-icon {
     animation: pmra-current-pulse 1800ms var(--ease-smooth) infinite !important;
 }
 
-/* (b) Entrada de conteúdo na troca de etapa — fade-up sequencial */
+/* (b) Entrada de conteúdo na troca de etapa — fade-up sequencial.
+   NÃO aplicada ao h2 (header da etapa) para evitar percepção de header
+   "saltando" entre etapas. Apenas containers ganham fade-up. */
 @keyframes pmra-content-in {
-    0% { opacity: 0; transform: translateY(12px); }
+    0% { opacity: 0; transform: translateY(8px); }
     100% { opacity: 1; transform: translateY(0); }
 }
-[data-testid="stMainBlockContainer"] h2,
-[data-testid="stMainBlockContainer"] .pmra-section-hdr,
 [data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
-    animation: pmra-content-in 420ms var(--ease-decel) both;
+    animation: pmra-content-in 360ms var(--ease-decel) both;
 }
 /* Stagger: cada container subsequente entra 60ms depois do anterior */
 [data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(1) { animation-delay: 0ms; }
