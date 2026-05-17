@@ -168,16 +168,9 @@ div[data-testid="stMainBlockContainer"] {
     margin-top: 0 !important;
 }
 
-/* Primeiro filho do container principal nao deve ter margin-top.
-   Cobre TODAS as variantes de hierarquia que Streamlit usa (com ou sem o
-   stVerticalBlockBorderWrapper extra). Sem isso, a etapa 1 (Contratante)
-   pode ficar com offset diferente das outras dependendo de como Streamlit
-   monta os wrappers. */
-[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"],
-[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"] > div > [data-testid="stVerticalBlock"],
-[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlock"]:first-of-type {
-    gap: 0 !important;
-}
+/* Primeiro filho do container principal nao deve ter margin-top — limita
+   APENAS ao primeiro filho direto, sem zerar o `gap` natural do Streamlit
+   no resto da árvore (isso colava todos os elementos verticais). */
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child,
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child,
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div,
@@ -421,10 +414,15 @@ div[role="listbox"] {
     border: 0.5px solid var(--color-glass-border) !important;
     box-shadow: var(--shadow-glass) !important;
     border-radius: 18px !important;
-    padding: 24px !important;
+    padding: 28px !important;
     margin-bottom: 16px !important;
     transition: transform 220ms var(--ease-out-soft),
                 box-shadow 220ms var(--ease-out-soft);
+}
+/* Gap entre elementos verticais DENTRO de um card glass — Streamlit usa
+   gap padrão pequeno; aumentamos para respirar. */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) > div > [data-testid="stVerticalBlock"] {
+    gap: 14px !important;
 }
 [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
     transform: translateY(-1px);
@@ -653,7 +651,8 @@ h3 {
 
 /* Labels — TIPO DE PESSOA, MATÉRIAS, etc. Mesma tipografia que .pmra-sub-hdr
    (tamanho e letter-spacing idênticos) — única diferença é a cor (cinza
-   neutro vs ember). Garante coesão visual entre rótulos de seção e de campo. */
+   neutro vs ember). Garante coesão visual entre rótulos de seção e de campo.
+   Padding-bottom cria respiro entre label e input. */
 label {
     font-family: var(--font-sans) !important;
     font-size: 11px !important;
@@ -662,6 +661,13 @@ label {
     color: var(--color-ink-600) !important;
     font-weight: 500 !important;
     line-height: 1.4 !important;
+    padding-bottom: 6px !important;
+}
+/* Garante espaço entre o sub-header de uma seção e o widget que vem logo
+   abaixo (label do input ou um checkbox standalone). */
+.pmra-sub-hdr + [data-testid="stElementContainer"],
+[data-testid="stMarkdown"]:has(.pmra-sub-hdr) + [data-testid="stElementContainer"] {
+    margin-top: 4px !important;
 }
 
 /* Selection */
@@ -683,7 +689,8 @@ label {
 
 /* Subheaders within cards — tipografia idêntica aos labels (mesmo size,
    letter-spacing, weight). Apenas a cor difere: ember para hierarquia
-   visual de "marcador de seção". */
+   visual de "marcador de seção". Margens generosas pra criar respiro
+   entre seções e seu conteúdo. */
 .pmra-sub-hdr {
     font-family: var(--font-sans) !important;
     font-size: 11px !important;
@@ -692,8 +699,8 @@ label {
     text-transform: uppercase !important;
     color: var(--color-ember-600) !important;
     line-height: 1.4 !important;
-    margin-top: 16px;
-    margin-bottom: 12px;
+    margin-top: 24px !important;
+    margin-bottom: 16px !important;
 }
 /* Primeiro subheader dentro de um container nao precisa de margin-top */
 [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) .pmra-sub-hdr:first-child,
@@ -712,7 +719,7 @@ label {
     line-height: 1.6;
     color: #1e3a8a;
     text-align: left;
-    margin: 8px 0 16px;
+    margin: 16px 0 20px;
     display: flex;
     gap: 10px;
     align-items: flex-start;
