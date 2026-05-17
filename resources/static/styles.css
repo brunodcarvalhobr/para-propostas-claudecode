@@ -403,7 +403,7 @@ div[role="listbox"] {
 }
 
 /* Container override for glassmorphism — margin-bottom para gap entre cards */
-div[data-testid="stVerticalBlock"] > div[style*="border"] {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
     background: var(--color-glass-white) !important;
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -415,7 +415,7 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     transition: transform 220ms var(--ease-out-soft),
                 box-shadow 220ms var(--ease-out-soft);
 }
-div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
     transform: translateY(-1px);
     box-shadow:
         0 1px 0 0 rgba(255,255,255,0.9) inset,
@@ -430,7 +430,7 @@ div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
    tem header compartilhado em cima — cada input usa label_visibility="collapsed".
    ────────────────────────────────────────────────────────────────────────────*/
 @media (max-width: 720px) {
-    div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
         padding: 16px !important;
     }
     div[data-testid="stMainBlockContainer"] {
@@ -622,8 +622,8 @@ label {
     margin-bottom: 12px;
 }
 /* Primeiro subheader dentro de um container nao precisa de margin-top */
-div[data-testid="stVerticalBlock"] > div[style*="border"] .pmra-sub-hdr:first-child,
-div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmra-sub-hdr {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) .pmra-sub-hdr:first-child,
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) > div:first-child .pmra-sub-hdr {
     margin-top: 0 !important;
 }
 
@@ -1036,7 +1036,7 @@ hr {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
-div[data-testid="stVerticalBlock"] > div[style*="border"] {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
     animation: pmra-fade-up 280ms var(--ease-out-soft) both;
 }
 
@@ -1315,11 +1315,11 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
    16. CARD HOVER — refinamento com escala muito leve (1.002) + translate
    Sensação tátil "elevado e crescendo" sem distorcer texto/inputs internos.
    ────────────────────────────────────────────────────────────────────────────*/
-div[data-testid="stVerticalBlock"] > div[style*="border"] {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
     transition: transform 280ms var(--ease-smooth),
                 box-shadow 280ms var(--ease-smooth) !important;
 }
-div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
     transform: translateY(-1px) scale(1.0015) !important;
 }
 .review-card {
@@ -1435,4 +1435,166 @@ h2:hover .pmra-section-icon {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 5 — fix de alinhamento e visibilidade de animações
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   24. STEPPER BUTTONS — altura e font-size uniformes em TODOS os 5 botões
+   Streamlit aplica font-size: 16px no <p> interno que sobrescreve a regra do
+   button. Forço o tamanho/nowrap em toda a árvore descendente.
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row button {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 14px !important;
+    letter-spacing: 0 !important;
+    line-height: 1 !important;
+    overflow: hidden !important;
+}
+.pmra-stepper-row button,
+.pmra-stepper-row button p,
+.pmra-stepper-row button [data-testid="stMarkdownContainer"],
+.pmra-stepper-row button [data-testid="stMarkdownContainer"] * {
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    line-height: 1.1 !important;
+    text-overflow: ellipsis !important;
+}
+/* Para o ícone Material Symbols ::before continuar com seu tamanho próprio */
+.pmra-stepper-row button.pmra-step-done::before,
+.pmra-stepper-row button.pmra-step-pending::before,
+.pmra-stepper-row button.pmra-step-current::before {
+    font-size: 17px !important;
+    line-height: 1 !important;
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    font-size: 11px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   25. CHECKBOX CARDS — min-height uniforme + vertical centering forçado
+   Garante que "Hora Média" (1 linha) tenha mesma altura que "Valor Mensal Por
+   Processo" (2 linhas). 82px acomoda 2 linhas de texto + padding 14px.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stColumn"] [data-testid="stCheckbox"] {
+    min-height: 82px !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+/* Streamlit envolve o input em stElementContainer — também precisa stretch */
+[data-testid="stColumn"]:has(> div > [data-testid="stElementContainer"] [data-testid="stCheckbox"]) {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stColumn"] [data-testid="stElementContainer"]:has([data-testid="stCheckbox"]) {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: stretch;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   26. ANIMAÇÕES VISÍVEIS — entrada da página + ênfase em interações
+   As animations do round 4 ficaram sutis demais. Aumento amplitude e duração
+   nos pontos críticos: aparecimento de conteúdo + pulse da etapa atual.
+   ────────────────────────────────────────────────────────────────────────────*/
+
+/* (a) Pulse mais visível na etapa atual — escala 0.75 → 1.05, amplitude maior */
+@keyframes pmra-current-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(0.75); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    animation: pmra-current-pulse 1800ms var(--ease-smooth) infinite !important;
+}
+
+/* (b) Entrada de conteúdo na troca de etapa — fade-up sequencial */
+@keyframes pmra-content-in {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+[data-testid="stMainBlockContainer"] h2,
+[data-testid="stMainBlockContainer"] .pmra-section-hdr,
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
+    animation: pmra-content-in 420ms var(--ease-decel) both;
+}
+/* Stagger: cada container subsequente entra 60ms depois do anterior */
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(1) { animation-delay: 0ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(2) { animation-delay: 60ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(3) { animation-delay: 120ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(4) { animation-delay: 180ms; }
+
+/* (c) Primary button — sutil shimmer ember no hover (luz passando) */
+.stApp button[kind="primary"],
+.stApp [data-testid="stBaseButton-primary"] > button {
+    position: relative;
+    overflow: hidden !important;
+}
+.stApp button[kind="primary"]::after,
+.stApp [data-testid="stBaseButton-primary"] > button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.28) 50%,
+        transparent 100%
+    );
+    transform: skewX(-22deg);
+    pointer-events: none;
+    transition: left 600ms var(--ease-smooth);
+}
+.stApp button[kind="primary"]:hover::after,
+.stApp [data-testid="stBaseButton-primary"] > button:hover::after {
+    left: 130%;
+}
+
+/* (d) Checkbox card selection — animação mais perceptível */
+@keyframes pmra-card-select {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.05); }
+    70% { transform: scale(0.985); }
+    100% { transform: scale(1); }
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    animation: pmra-card-select 420ms var(--ease-spring);
+}
+
+/* (e) Container hover — lift ligeiramente mais visível */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
+    transform: translateY(-2px) scale(1.003) !important;
+}
+
+/* (f) Step button hover — leve scale + transição clara */
+.pmra-stepper-row button:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.02) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   27. UNIFORMIZAÇÃO FINAL — alinhamentos sutis em outros pontos
+   ────────────────────────────────────────────────────────────────────────────*/
+
+/* Stepper row: centraliza alturas dos columns + gap consistente */
+.pmra-stepper-row {
+    align-items: center !important;
+    gap: 8px !important;
+}
+.pmra-stepper-row > [data-testid="stColumn"] {
+    align-self: center !important;
+}
+
+/* Stepper buttons: garante texto centralizado verticalmente */
+.pmra-stepper-row button [data-testid="stMarkdownContainer"] {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
 }
