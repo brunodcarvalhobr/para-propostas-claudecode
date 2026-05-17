@@ -347,29 +347,6 @@ def _init_state() -> None:
     if "tbl_despesas" not in st.session_state:
         st.session_state.tbl_despesas = f["despesas"]["tabela_despesas"]
 
-    # Sync inicial dos checkboxes de modalidade (consultiva + contenciosa) para
-    # session_state. Padrao callback (em vez de value=X + key=K) elimina race
-    # condition em toggles rapidos: o callback escreve direto no form dict.
-    _CB_MODALIDADE_MAP = (
-        ("cons_hs", "honorarios_consultiva", "hora_senioridade"),
-        ("cons_hf", "honorarios_consultiva", "hora_fixa"),
-        ("cons_fm", "honorarios_consultiva", "fixo_mensal"),
-        ("cons_vp", "honorarios_consultiva", "valor_projeto"),
-        ("cont_va", "honorarios_contenciosa", "valor_acao"),
-        ("cont_vap", "honorarios_contenciosa", "valor_ato_processual"),
-        ("cont_pm", "honorarios_contenciosa", "preco_mensal_massa"),
-        ("cont_vp", "honorarios_contenciosa", "valor_projeto"),
-    )
-    for widget_key, secao, campo in _CB_MODALIDADE_MAP:
-        if widget_key not in st.session_state:
-            st.session_state[widget_key] = f[secao]["modalidades"][campo]
-
-
-def _on_modalidade_toggle(secao: str, campo: str, widget_key: str) -> None:
-    """Callback: sincroniza checkbox -> form imediatamente, sem depender de
-    rerun re-executar o trecho de codigo que faz cm[k] = checkbox(...)."""
-    st.session_state.form[secao]["modalidades"][campo] = st.session_state[widget_key]
-
 
 _init_state()
 form: dict = st.session_state.form
@@ -653,14 +630,13 @@ def _step_honorarios() -> None:
             cm = form["honorarios_consultiva"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            c1.checkbox("Hora por senioridade", key="cons_hs",
-                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "hora_senioridade", "cons_hs"))
-            c2.checkbox("Hora Média", key="cons_hf",
-                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "hora_fixa", "cons_hf"))
-            c3.checkbox("Fixo Mensal/Cap", key="cons_fm",
-                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "fixo_mensal", "cons_fm"))
-            c4.checkbox("Preço Global", key="cons_vp",
-                        on_change=_on_modalidade_toggle, args=("honorarios_consultiva", "valor_projeto", "cons_vp"))
+            # Checkboxes booleanos: padrao direto value= + key= (sem callback).
+            # O return value do widget e atribuido a cm[key] que ja e referencia
+            # ao form em session_state, garantindo persistencia entre etapas.
+            cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", value=cm["hora_senioridade"], key="cons_hs")
+            cm["hora_fixa"] = c2.checkbox("Hora Média", value=cm["hora_fixa"], key="cons_hf")
+            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", value=cm["fixo_mensal"], key="cons_fm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
 
             if cm["hora_senioridade"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
@@ -729,14 +705,10 @@ def _step_honorarios() -> None:
             cm = form["honorarios_contenciosa"]["modalidades"]
             st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
-            c1.checkbox("Valor Mensal Por Processo", key="cont_va",
-                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_acao", "cont_va"))
-            c2.checkbox("Valor por ato processual", key="cont_vap",
-                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_ato_processual", "cont_vap"))
-            c3.checkbox("Preço mensal", key="cont_pm",
-                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "preco_mensal_massa", "cont_pm"))
-            c4.checkbox("Preço Global", key="cont_vp",
-                        on_change=_on_modalidade_toggle, args=("honorarios_contenciosa", "valor_projeto", "cont_vp"))
+            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
+            cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
+            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", value=cm["preco_mensal_massa"], key="cont_pm")
+            cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
 
             if cm["valor_acao"]:
                 st.markdown('<div class="pmra-sub-hdr">Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
