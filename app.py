@@ -593,11 +593,14 @@ def _render_rows(
     return _sync_rows(ss_key, col_keys)
 
 
-@st.fragment
 def _step_honorarios() -> None:
-    """Etapa 3 — Honorarios. Em st.fragment para isolar reruns dos toggles
-    de modalidade: cliques em checkboxes/inputs aqui dentro nao re-injetam
-    CSS/iframe/header do app inteiro, eliminando o lag percebido."""
+    """Etapa 3 — Honorarios.
+
+    NAO usar @st.fragment aqui: ao navegar entre etapas o fragment desmonta
+    e widget keys podem perder vinculo com session_state, fazendo checkboxes
+    aparecerem desmarcados ao voltar. Estado persistente e mais importante
+    que o ganho marginal de performance do fragment.
+    """
     form = st.session_state.form
     modal = form["escopo"]["modalidade"]
     show_consultiva = modal in ("consultiva", "mista")
