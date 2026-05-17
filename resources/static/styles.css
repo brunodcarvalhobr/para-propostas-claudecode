@@ -437,8 +437,7 @@ div[role="listbox"] {
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LAYOUT MOBILE — padding reduzido em containers/header. As tabelas (_render_rows)
-   tem header compartilhado em cima — cada input usa label_visibility="collapsed".
+   LAYOUT MOBILE
    ────────────────────────────────────────────────────────────────────────────*/
 @media (max-width: 720px) {
     [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
@@ -451,10 +450,12 @@ div[role="listbox"] {
         padding: 12px 16px;
     }
 
-    /* Forca os botoes do stepper a ocuparem 100% da linha em mobile —
-       sem isso, Streamlit pode quebrar o quinto botao (Gerar Proposta) em
-       largura diferente dos outros porque o nome e maior */
+    /* (a) STEPPER MOBILE — empilha botões (1 por linha) E remove sticky:
+       em mobile, header fixo atrapalha porque ocupa muito espaço vertical
+       (5 botões empilhados ~250px) e impede o usuário de ver o conteúdo
+       enquanto preenche. Rola junto com a página. */
     [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
+        position: static !important;
         flex-wrap: wrap !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
@@ -463,6 +464,61 @@ div[role="listbox"] {
         min-width: 100% !important;
         width: 100% !important;
     }
+
+    /* (b) TABELAS row-by-row MOBILE — labels individuais visíveis sob cada
+       input. No desktop o header compartilhado (.pmra-tbl-hdr) fica em cima
+       e cada input usa label_visibility="collapsed". Quando colunas empilham
+       em mobile, o header compartilhado fica órfão (TELEFONE / E-MAIL ambos
+       em cima dos 2 inputs). Solução: esconde o header e mostra o label de
+       cada input (sobrescreve o `display: none` que Streamlit aplica). */
+    .pmra-tbl-hdr {
+        display: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) [data-testid="stWidgetLabel"] {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0 0 4px !important;
+        margin: 6px 0 0 !important;
+        opacity: 1 !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) [data-testid="stWidgetLabel"] * {
+        height: auto !important;
+        visibility: visible !important;
+    }
+
+    /* (c) CARDS DE MODALIDADE MOBILE — empilha 1 por linha (4 lado a lado
+       fica apertado em ≤720px e o texto quebra de forma feia). */
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"]) {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stColumn"] [data-testid="stCheckbox"])
+      > [data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+    /* Em mobile, com 1 card por linha, não precisa de min-height grande */
+    [data-testid="stColumn"] [data-testid="stCheckbox"] {
+        min-height: 54px !important;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   STEPPER BUTTON SIZE — regras agressivas (desktop + mobile) para garantir
+   que NUNCA cresça em altura por causa de texto longo ("Gerar Proposta").
+   Aplica nowrap em TODOS os descendentes, não apenas no button.
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row [data-testid="stColumn"] button,
+.pmra-stepper-row [data-testid="stColumn"] button p,
+.pmra-stepper-row [data-testid="stColumn"] button div,
+.pmra-stepper-row [data-testid="stColumn"] button [data-testid="stMarkdownContainer"],
+.pmra-stepper-row [data-testid="stColumn"] button [data-testid="stMarkdownContainer"] * {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-height: 40px !important;
+    line-height: 1.1 !important;
 }
 
 /* Primary button — gradient ember + texto BRANCO consistente em TODAS as
@@ -700,9 +756,12 @@ hr {
     margin: 12px 0 !important;
 }
 
-/* Compact clear row buttons */
-[data-testid$="__del"] > div > button,
-[data-testid*="__del__"] > div > button {
+/* Compact clear row buttons — identificados ESTRUTURALMENTE pelo wrapper
+   `[data-testid="stTooltipHoverTarget"]` que Streamlit cria em volta de
+   buttons com `help=`. No app, apenas o ✕ delete usa help, então o seletor
+   é exclusivo. NÃO depende de JS adicionando classe (Streamlit recria o
+   button periodicamente e remove classes JS). */
+.stApp [data-testid="stTooltipHoverTarget"] > button {
     padding-top: 0.3rem !important;
     padding-bottom: 0.3rem !important;
     font-size: 0.8rem !important;
@@ -714,8 +773,7 @@ hr {
     opacity: 0.65 !important;
     transition: all 180ms var(--ease-out-soft) !important;
 }
-[data-testid$="__del"] > div > button:hover:not(:disabled),
-[data-testid*="__del__"] > div > button:hover:not(:disabled) {
+.stApp [data-testid="stTooltipHoverTarget"] > button:hover:not(:disabled) {
     color: #dc2626 !important;
     border-color: rgba(220, 38, 38, 0.35) !important;
     background: rgba(254, 226, 226, 0.5) !important;
@@ -723,7 +781,7 @@ hr {
 }
 
 /* "+ Adicionar linha" buttons — dashed outline, ember accent */
-[data-testid$="__add"] > div > button {
+.stApp button.pmra-row-add {
     border: 1.5px dashed rgba(249,115,22,0.40) !important;
     background: transparent !important;
     color: var(--color-ember-600) !important;
@@ -732,14 +790,14 @@ hr {
     letter-spacing: 0.03em !important;
     transition: all 200ms var(--ease-out-soft) !important;
 }
-[data-testid$="__add"] > div > button:hover:not(:disabled) {
+.stApp button.pmra-row-add:hover:not(:disabled) {
     border-color: var(--color-ember-500) !important;
     background: rgba(249,115,22,0.06) !important;
     color: var(--color-ember-700) !important;
     transform: translateY(-1px) !important;
 }
-[data-testid$="__add"] > div > button *,
-[data-testid$="__add"] > div > button:hover * {
+.stApp button.pmra-row-add *,
+.stApp button.pmra-row-add:hover * {
     color: inherit !important;
 }
 
@@ -1002,43 +1060,18 @@ hr {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita
+   3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita.
+   Identifica linha de tabela como stHorizontalBlock que contém stTooltipIcon
+   (do ✕ delete com tooltip "Remover linha"). Funciona independente do
+   data-testid do button (que Streamlit deixou de expor).
    ────────────────────────────────────────────────────────────────────────────*/
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]),
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]) {
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) {
     border-radius: 10px;
     margin: 2px 0;
     padding: 4px 6px;
     transition: background 180ms var(--ease-out-soft);
 }
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]):hover,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]):hover {
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]):hover {
     background: rgba(249, 115, 22, 0.04);
 }
 
@@ -1110,14 +1143,15 @@ hr {
 .pmra-success-subtitle strong { color: #14532d; font-weight: 600; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   7. EMPTY STATE EM TABELAS — quando há só 1 linha (botão del disabled)
+   7. EMPTY STATE EM TABELAS — quando há só 1 linha, o botão ✕ fica disabled.
+   Identifica pela classe .pmra-row-del[disabled] que o JS adiciona.
    ────────────────────────────────────────────────────────────────────────────*/
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]):not(:hover) {
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]):not(:hover) {
     background: rgba(0, 0, 0, 0.015);
     border: 1px dashed rgba(0, 0, 0, 0.08);
 }
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) input,
-[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) textarea {
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]) input,
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]) textarea {
     background: transparent !important;
 }
 

@@ -458,6 +458,23 @@ components.html("""
     return null;
   }
 
+  // Marca buttons de tabela com classes próprias — Streamlit não expõe mais
+  // o `key` como `data-testid`, então seletores antigos quebraram. Identificamos
+  // pelo texto e marcamos com classe estável. Streamlit pode ou não preservar
+  // o "+" do "Adicionar linha" (markdown), por isso usamos endsWith.
+  // Marca o button "+ Adicionar linha" com classe estável. O ✕ delete é
+  // estilizado via CSS estrutural ([data-testid="stTooltipHoverTarget"] > button)
+  // porque Streamlit recria periodicamente o button e classes JS não persistem.
+  function decorateTableButtons() {
+    const buttons = doc.querySelectorAll('[data-testid="stMainBlockContainer"] button');
+    buttons.forEach(btn => {
+      const txt = (btn.textContent || '').trim();
+      if (txt.endsWith('Adicionar linha') && !btn.classList.contains('pmra-row-add')) {
+        btn.classList.add('pmra-row-add');
+      }
+    });
+  }
+
   function decorateStepButtons(stepper) {
     if (!stepper) return;
     const buttons = stepper.querySelectorAll('button');
@@ -507,6 +524,7 @@ components.html("""
 
   function refresh() {
     const stepper = findStepper();
+    decorateTableButtons();
     if (!stepper) return;
     decorateStepButtons(stepper);
     if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
@@ -515,6 +533,7 @@ components.html("""
 
   function tryAttach() {
     const stepper = findStepper();
+    decorateTableButtons();
     if (!stepper) return false;
     decorateStepButtons(stepper);
     if (attached) { refresh(); return true; }
@@ -528,6 +547,12 @@ components.html("""
     refresh();
     return true;
   }
+
+  // Loop persistente em baixa frequência (cada 500ms) — garante que buttons
+  // de tabela criados/removidos via st.rerun() sejam decorados mesmo que o
+  // MutationObserver perca alguma alteração. Custo desprezível: querySelector
+  // + class check, ambos O(n) sobre poucos elementos.
+  win.setInterval(() => decorateTableButtons(), 500);
 
   let tries = 0;
   const interval = win.setInterval(() => {
