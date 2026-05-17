@@ -39,6 +39,7 @@ def cenario_mista_completa():
     f.contratante.contatos = [
         Contato(telefone="(31) 3333-4444", email="juridico@verdejar.com.br"),
         Contato(telefone="(31) 99999-8888", email="carolina.mendes@verdejar.com.br"),
+        Contato(telefone="(31) 98765-4321", email="financeiro@verdejar.com.br"),
     ]
 
     # ── Escopo mista, com SLA
@@ -93,15 +94,23 @@ def cenario_mista_completa():
     f.honorarios_contenciosa.tabela_acoes = [
         AcaoRow(natureza="Trabalhista", fase="Conhecimento (1a instancia)", valor="5.000,00"),
         AcaoRow(natureza="Trabalhista", fase="Recurso ordinario (2a instancia)", valor="3.500,00"),
+        AcaoRow(natureza="Trabalhista", fase="Execucao", valor="2.500,00"),
         AcaoRow(natureza="Civel", fase="Conhecimento (1a instancia)", valor="6.500,00"),
+        AcaoRow(natureza="Civel", fase="Apelacao (2a instancia)", valor="4.500,00"),
         AcaoRow(natureza="Tributaria", fase="Defesa administrativa", valor="8.000,00"),
         AcaoRow(natureza="Tributaria", fase="Execucao fiscal", valor="12.000,00"),
+        AcaoRow(natureza="Ambiental", fase="Conhecimento e perícia", valor="9.500,00"),
     ]
     f.honorarios_contenciosa.tabela_atos = [
-        AtoProcessualRow(ato="Audiencia inicial", descricao="Comparecimento e sustentacao oral", valor="1.500,00"),
-        AtoProcessualRow(ato="Audiencia de instrucao", descricao="Inquiricao de testemunhas", valor="2.500,00"),
-        AtoProcessualRow(ato="Memoriais", descricao="Razoes finais escritas", valor="1.800,00"),
-        AtoProcessualRow(ato="Recurso", descricao="Apelacao ou agravo", valor="3.000,00"),
+        AtoProcessualRow(ato="Petição Inicial", descricao="Elaboracao e protocolo da peca inaugural.", valor="2.000,00"),
+        AtoProcessualRow(ato="Contestação", descricao="Elaboracao e protocolo de defesa em processo judicial.", valor="2.200,00"),
+        AtoProcessualRow(ato="Recurso Ordinário", descricao="Elaboracao e protocolo de recurso ordinario na Justiça do Trabalho ou equivalente.", valor="2.800,00"),
+        AtoProcessualRow(ato="Agravo", descricao="Elaboracao e protocolo de agravo de instrumento ou agravo interno, conforme o caso.", valor="1.800,00"),
+        AtoProcessualRow(ato="Apelação", descricao="Elaboracao e protocolo de apelacao civel em 1o grau de jurisdicao.", valor="3.200,00"),
+        AtoProcessualRow(ato="Recurso Especial / Extraordinário", descricao="Elaboracao e protocolo de recursos excepcionais junto ao STJ e ao STF, inclusive agravos correlatos.", valor="4.500,00"),
+        AtoProcessualRow(ato="Audiência", descricao="Comparecimento, acompanhamento e atuacao em audiencia.", valor="1.500,00"),
+        AtoProcessualRow(ato="Diligência Externa", descricao="Realizacao de diligencia presencial em cartorio, orgao publico ou unidade do Contratante.", valor="850,00"),
+        AtoProcessualRow(ato="Memoriais Finais", descricao="Razoes finais escritas.", valor="1.800,00"),
     ]
     f.honorarios_contenciosa.preco_mensal_valor = "8.000,00"
     f.honorarios_contenciosa.preco_mensal_maximo_acoes = "20"
@@ -126,6 +135,8 @@ def cenario_mista_completa():
         SenioridadeRow(categoria="Socio", valor="1.200,00"),
         SenioridadeRow(categoria="Associado Senior", valor="950,00"),
         SenioridadeRow(categoria="Associado Pleno", valor="750,00"),
+        SenioridadeRow(categoria="Associado Junior", valor="550,00"),
+        SenioridadeRow(categoria="Estagiario/Paralegal", valor="300,00"),
     ]
 
     # ── Despesas
@@ -144,6 +155,14 @@ def cenario_mista_completa():
                 "Custas e emolumentos judiciais e administrativos, depositos recursais, "
                 "diligencias externas simples (R$ 150,00 por diligencia), servicos de "
                 "correspondentes e demais despesas correlatas."
+            ),
+        ),
+        DespesaItem(
+            categoria="Despesas com Terceiros",
+            descricao=(
+                "Honorarios de peritos, assistentes tecnicos, traducoes juramentadas, "
+                "consultorias especializadas e demais profissionais contratados em nome "
+                "do Contratante, apurados conforme orcamento previamente aprovado."
             ),
         ),
     ]
