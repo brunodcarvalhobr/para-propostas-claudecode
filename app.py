@@ -1320,14 +1320,19 @@ if st.session_state.get("scroll_to_top", False):
     """, height=0)
     st.session_state.scroll_to_top = False
 
-# Sticky stepper shadow + decoração dos step buttons com ícones Material Symbols.
+# Sticky stepper shadow + decoração dos step buttons com Material Symbols.
+# IMPORTANTE: Streamlit recria o iframe a cada rerun, e SEM uma flag global
+# cada rerun criaria um novo MutationObserver/listener acumulando no parent
+# (cada click → todos os observers disparam → lag crescente).
+# Flag `win.__pmraInit` garante que listeners e observers são registrados
+# apenas UMA VEZ no ciclo de vida da página; reruns subsequentes apenas
+# chamam o `refresh` já existente, sem criar nada novo.
 components.html("""
 <script>
 (function() {
   const win = window.parent;
   const doc = win.document;
   const SCROLL_SELECTORS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', 'main'];
-  let attached = false;
 
   function findStepper() {
     const blocks = doc.querySelectorAll('[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"]');
@@ -1397,30 +1402,40 @@ components.html("""
     else stepper.classList.remove('pmra-stepper-scrolled');
   }
 
-  function tryAttach() {
-    const stepper = findStepper();
-    decorateTableButtons();
-    if (!stepper) return false;
-    decorateStepButtons(stepper);
-    if (attached) { refresh(); return true; }
-    win.addEventListener('scroll', refresh, { passive: true });
-    SCROLL_SELECTORS.forEach(sel => {
-      const el = doc.querySelector(sel);
-      if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
-    });
-    new win.MutationObserver(() => refresh()).observe(doc.body, { childList: true, subtree: true });
-    attached = true;
+  // Reruns subsequentes: só dispara o refresh já registrado; NÃO cria novo
+  // MutationObserver/listener.
+  if (win.__pmraInit) {
     refresh();
-    return true;
+    win.__pmraRefresh = refresh;
+    return;
   }
 
-  // MutationObserver já capta novas inserções; não precisamos de setInterval
-  // adicional (causava lag perceptível ao alternar entre seletores).
+  // Primeira inicialização — registra listeners e observer UMA vez.
+  win.__pmraInit = true;
+  win.__pmraRefresh = refresh;
+
+  // Scroll listener no window e nos containers internos do Streamlit
+  win.addEventListener('scroll', refresh, { passive: true });
+  SCROLL_SELECTORS.forEach(sel => {
+    const el = doc.querySelector(sel);
+    if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
+  });
+
+  // MutationObserver com debounce — evita disparos em cascata
+  let moTimer = null;
+  const mo = new win.MutationObserver(() => {
+    if (moTimer) win.clearTimeout(moTimer);
+    moTimer = win.setTimeout(refresh, 60);
+  });
+  mo.observe(doc.body, { childList: true, subtree: true });
+
+  // Tentativa inicial: até 8 tentativas em 100ms cada (= 800ms max para
+  // achar o stepper). Sem setInterval acumulado entre reruns.
   let tries = 0;
-  const interval = win.setInterval(() => {
-    tries++;
-    if (tryAttach() || tries > 20) win.clearInterval(interval);
-  }, 250);
+  const initInterval = win.setInterval(() => {
+    refresh();
+    if (findStepper() || ++tries > 8) win.clearInterval(initInterval);
+  }, 100);
 })();
 </script>
 """, height=0)
