@@ -433,6 +433,71 @@ if st.session_state.get("scroll_to_top", False):
     st.session_state.scroll_to_top = False
 
 
+# JS: marca o stepper com classe `.pmra-stepper-row` e adiciona
+# `.pmra-stepper-scrolled` quando a página (ou o container interno do Streamlit)
+# rola. Identifica o stepper pelo número de botões (4+) — mais robusto que
+# :first-of-type porque Streamlit muda a hierarquia entre versões.
+components.html("""
+<script>
+(function() {
+  const win = window.parent;
+  const doc = win.document;
+  const SCROLL_SELECTORS = ['[data-testid="stMain"]', '[data-testid="stAppViewContainer"]', '.stApp', 'main'];
+  let attached = false;
+
+  function findStepper() {
+    const blocks = doc.querySelectorAll('[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"]');
+    for (const b of blocks) {
+      if (b.querySelectorAll('button').length >= 4) {
+        b.classList.add('pmra-stepper-row');
+        return b;
+      }
+    }
+    return null;
+  }
+
+  function getScrollY() {
+    for (const sel of SCROLL_SELECTORS) {
+      const el = doc.querySelector(sel);
+      if (el && el.scrollTop > 0) return el.scrollTop;
+    }
+    return win.scrollY || doc.documentElement.scrollTop || 0;
+  }
+
+  function onScroll() {
+    const stepper = findStepper();
+    if (!stepper) return;
+    if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
+    else stepper.classList.remove('pmra-stepper-scrolled');
+  }
+
+  function tryAttach() {
+    const stepper = findStepper();
+    if (!stepper) return false;
+    if (attached) { onScroll(); return true; }
+    win.addEventListener('scroll', onScroll, { passive: true });
+    SCROLL_SELECTORS.forEach(sel => {
+      const el = doc.querySelector(sel);
+      if (el && 'scrollTop' in el) el.addEventListener('scroll', onScroll, { passive: true });
+    });
+    // Re-aplica .pmra-stepper-row em reruns do Streamlit (DOM recriado)
+    new win.MutationObserver(() => { findStepper(); onScroll(); }).observe(doc.body, { childList: true, subtree: true });
+    attached = true;
+    onScroll();
+    return true;
+  }
+
+  // Tenta múltiplas vezes — Streamlit constrói o DOM async
+  let tries = 0;
+  const interval = win.setInterval(() => {
+    tries++;
+    if (tryAttach() || tries > 20) win.clearInterval(interval);
+  }, 250);
+})();
+</script>
+""", height=0)
+
+
 # ── Cabeçalho com logo ────────────────────────────────────────────────────────
 
 _logo_html = f'<div class="pmra-header"><div class="pmra-header-left">'
@@ -1241,7 +1306,16 @@ elif current == 4:
             context = form_to_context(proposal)
             with st.spinner("Gerando proposta…"):
                 st.session_state.generated_doc = render_proposal(context)
-            st.success("Proposta gerada com sucesso. Clique em **Baixar .docx** para salvar.")
+            st.markdown(
+                '<div class="pmra-success-card">'
+                '<span class="material-symbols-outlined pmra-success-icon">task_alt</span>'
+                '<div class="pmra-success-text">'
+                '<div class="pmra-success-title">Proposta gerada com sucesso</div>'
+                '<div class="pmra-success-subtitle">'
+                'Clique em <strong>Baixar .docx</strong> para salvar no seu dispositivo.'
+                '</div></div></div>',
+                unsafe_allow_html=True,
+            )
         except Exception:
             logger.exception("Falha ao gerar proposta")
             st.error(

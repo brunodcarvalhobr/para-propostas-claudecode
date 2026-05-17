@@ -440,14 +440,10 @@ div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
     /* Forca os botoes do stepper a ocuparem 100% da linha em mobile —
        sem isso, Streamlit pode quebrar o quinto botao (Gerar Proposta) em
        largura diferente dos outros porque o nome e maior */
-    [data-testid="stMainBlockContainer"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]:first-of-type {
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
         flex-wrap: wrap !important;
     }
-    [data-testid="stMainBlockContainer"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]:first-of-type
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
       > [data-testid="stColumn"] {
         flex: 1 1 100% !important;
         min-width: 100% !important;
@@ -517,10 +513,11 @@ div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
 }
 
 /* Sticky stepper compacto: bg paper translucido + padding reduzido para
-   ocupar pouca altura quando fixo no topo. */
-[data-testid="stMainBlockContainer"]
-  > [data-testid="stVerticalBlock"]
-  > [data-testid="stHorizontalBlock"]:first-of-type {
+   ocupar pouca altura quando fixo no topo. Identifica o stepper como o
+   primeiro stHorizontalBlock dentro do main container — funciona em qualquer
+   hierarquia (Streamlit adiciona stVerticalBlockBorderWrapper em algumas
+   versões). */
+[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
     position: sticky;
     top: 0;
     z-index: 25;
@@ -532,6 +529,13 @@ div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
     margin-right: -12px;
     margin-top: -4px;
     border-bottom: 0.5px solid rgba(0,0,0,0.05);
+    transition: box-shadow 220ms var(--ease-out-soft),
+                background-color 220ms var(--ease-out-soft);
+}
+.pmra-stepper-row.pmra-stepper-scrolled {
+    box-shadow: 0 8px 24px -12px rgba(15, 15, 20, 0.18),
+                0 2px 6px -2px rgba(0, 0, 0, 0.05);
+    background-color: rgba(250, 249, 247, 0.97) !important;
 }
 
 /* Input fields */
@@ -862,4 +866,224 @@ hr {
 }
 .pmra-footer-right {
     font-variant-numeric: tabular-nums;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 2 — 8 melhorias visuais sem mexer em funcionalidade
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. SEGMENTED CONTROL — radio horizontal vira pill-tab moderno
+   Aplicado quando radiogroup tem horizontal layout (flex-direction: row).
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [role="radiogroup"][aria-orientation="horizontal"],
+.stApp div:has(> [role="radiogroup"]) [role="radiogroup"] {
+    display: inline-flex !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.stApp [role="radiogroup"] > label {
+    margin: 0 !important;
+    padding: 7px 16px !important;
+    border-radius: 999px !important;
+    cursor: pointer;
+    transition: background 180ms var(--ease-out-soft),
+                color 180ms var(--ease-out-soft),
+                transform 180ms var(--ease-out-soft);
+}
+/* Esconde a bolinha do radio — agora é só pill */
+.stApp [role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+.stApp [role="radiogroup"] > label[aria-checked="true"],
+.stApp [role="radiogroup"] > label:has(input:checked) {
+    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
+        0 4px 12px -4px rgba(249, 115, 22, 0.45) !important;
+}
+.stApp [role="radiogroup"] > label[aria-checked="true"] *,
+.stApp [role="radiogroup"] > label:has(input:checked) * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stApp [role="radiogroup"] > label:not([aria-checked="true"]):hover {
+    background: rgba(249, 115, 22, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. CARDS SELECIONÁVEIS — checkboxes de modalidade (rows com 3+ checkboxes)
+   Identificados por: stHorizontalBlock que contém múltiplos stCheckbox lado-a-lado.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stColumn"] [data-testid="stCheckbox"] {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 220ms var(--ease-out-soft);
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:hover {
+    border-color: rgba(249, 115, 22, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -8px rgba(249, 115, 22, 0.18);
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    background: rgba(249, 115, 22, 0.08);
+    border-color: var(--color-ember-500);
+    box-shadow:
+        0 0 0 1px var(--color-ember-500) inset,
+        0 6px 16px -8px rgba(249, 115, 22, 0.25);
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) label {
+    color: var(--color-ember-700) !important;
+    font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]) {
+    border-radius: 10px;
+    margin: 2px 0;
+    padding: 4px 6px;
+    transition: background 180ms var(--ease-out-soft);
+}
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]):hover {
+    background: rgba(249, 115, 22, 0.04);
+}
+
+/* 4. (sticky stepper scrolled shadow moved up — handled together with the
+   sticky stepper base rule via .pmra-stepper-row / .pmra-stepper-scrolled) */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. FADE-IN SUTIL — toda mudança de estado tem polish de transição
+   Aplicado apenas em containers com border (cards) — não em toda renderização.
+   Aceita re-animar em interações para sensação de "vivo".
+   ────────────────────────────────────────────────────────────────────────────*/
+@keyframes pmra-fade-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    animation: pmra-fade-up 280ms var(--ease-out-soft) both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. SUCCESS CARD — substituiu st.success() na geração da proposta
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.04));
+    border-left: 3px solid #16a34a;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 480ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(34, 197, 94, 0.25);
+}
+@keyframes pmra-success-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    60% { opacity: 1; transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+.pmra-success-icon {
+    font-size: 32px !important;
+    color: #16a34a !important;
+    flex-shrink: 0;
+    animation: pmra-check-pop 600ms var(--ease-out-soft) 120ms both;
+}
+@keyframes pmra-check-pop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+.pmra-success-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.pmra-success-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #14532d;
+    letter-spacing: -0.01em;
+}
+.pmra-success-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #166534;
+    line-height: 1.5;
+}
+.pmra-success-subtitle strong { color: #14532d; font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. EMPTY STATE EM TABELAS — quando há só 1 linha (botão del disabled)
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]):not(:hover) {
+    background: rgba(0, 0, 0, 0.015);
+    border: 1px dashed rgba(0, 0, 0, 0.08);
+}
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) input,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) textarea {
+    background: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. FOCUS RINGS CONSISTENTES — keyboard navigation com ember accent
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button:focus-visible,
+.stApp [role="radio"]:focus-visible,
+.stApp label:focus-visible,
+.stApp [data-baseweb="checkbox"]:focus-within {
+    outline: 2.5px solid rgba(249, 115, 22, 0.42) !important;
+    outline-offset: 2px !important;
+}
+.stApp input:focus-visible,
+.stApp textarea:focus-visible,
+.stApp [role="combobox"]:focus-visible {
+    outline: none !important;
+    /* O focus-within do parent já aplica o ring laranja nos inputs */
 }
