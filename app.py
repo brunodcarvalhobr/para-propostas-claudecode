@@ -433,10 +433,12 @@ if st.session_state.get("scroll_to_top", False):
     st.session_state.scroll_to_top = False
 
 
-# JS: marca o stepper com classe `.pmra-stepper-row` e adiciona
-# `.pmra-stepper-scrolled` quando a página (ou o container interno do Streamlit)
-# rola. Identifica o stepper pelo número de botões (4+) — mais robusto que
-# :first-of-type porque Streamlit muda a hierarquia entre versões.
+# JS: (a) marca o stepper com `.pmra-stepper-row` e adiciona/remove
+# `.pmra-stepper-scrolled` quando a página rola; (b) substitui os caracteres
+# Unicode ✓/○ dos labels dos step buttons por classes (.pmra-step-done /
+# .pmra-step-pending / .pmra-step-current) que o CSS converte em ícones
+# Material Symbols animados. Decoração idempotente — flag em `dataset` para
+# não reprocessar a cada MutationObserver tick.
 components.html("""
 <script>
 (function() {
@@ -456,6 +458,45 @@ components.html("""
     return null;
   }
 
+  function decorateStepButtons(stepper) {
+    if (!stepper) return;
+    const buttons = stepper.querySelectorAll('button');
+    buttons.forEach(btn => {
+      // Container do label — pode ser <p> (secondary com texto puro) ou só o
+      // próprio markdownContainer (primary, onde "1. " virou <ol><li>).
+      const mdContainer = btn.querySelector('[data-testid="stMarkdownContainer"]');
+      const labelEl = btn.querySelector('[data-testid="stMarkdownContainer"] p') || mdContainer;
+      if (!labelEl) return;
+      const text = (labelEl.textContent || '').trim();
+      if (!text) return;
+
+      let kind = null;
+      let cleanLabel = text;
+
+      // Primary button = etapa atual (Streamlit marca via kind="primary")
+      if (btn.getAttribute('kind') === 'primary') {
+        kind = 'current';
+        // Remove "1. " caso ainda esteja presente (depende de como Streamlit renderiza)
+        cleanLabel = text.replace(/^\\d+\\.\\s*/, '').trim();
+      } else if (text.startsWith('✓ ')) {        // "✓ Contratante"
+        kind = 'done';
+        cleanLabel = text.slice(2).trim();
+      } else if (text.startsWith('○ ')) {        // "○ Escopo"
+        kind = 'pending';
+        cleanLabel = text.slice(2).trim();
+      }
+      if (!kind) return;
+
+      // Idempotência: pula se já está decorado com o mesmo estado e label
+      if (btn.dataset.pmraStep === kind && labelEl.textContent.trim() === cleanLabel) return;
+
+      btn.classList.remove('pmra-step-done', 'pmra-step-pending', 'pmra-step-current');
+      btn.classList.add('pmra-step-' + kind);
+      btn.dataset.pmraStep = kind;
+      labelEl.textContent = cleanLabel;
+    });
+  }
+
   function getScrollY() {
     for (const sel of SCROLL_SELECTORS) {
       const el = doc.querySelector(sel);
@@ -464,9 +505,10 @@ components.html("""
     return win.scrollY || doc.documentElement.scrollTop || 0;
   }
 
-  function onScroll() {
+  function refresh() {
     const stepper = findStepper();
     if (!stepper) return;
+    decorateStepButtons(stepper);
     if (getScrollY() > 8) stepper.classList.add('pmra-stepper-scrolled');
     else stepper.classList.remove('pmra-stepper-scrolled');
   }
@@ -474,20 +516,19 @@ components.html("""
   function tryAttach() {
     const stepper = findStepper();
     if (!stepper) return false;
-    if (attached) { onScroll(); return true; }
-    win.addEventListener('scroll', onScroll, { passive: true });
+    decorateStepButtons(stepper);
+    if (attached) { refresh(); return true; }
+    win.addEventListener('scroll', refresh, { passive: true });
     SCROLL_SELECTORS.forEach(sel => {
       const el = doc.querySelector(sel);
-      if (el && 'scrollTop' in el) el.addEventListener('scroll', onScroll, { passive: true });
+      if (el && 'scrollTop' in el) el.addEventListener('scroll', refresh, { passive: true });
     });
-    // Re-aplica .pmra-stepper-row em reruns do Streamlit (DOM recriado)
-    new win.MutationObserver(() => { findStepper(); onScroll(); }).observe(doc.body, { childList: true, subtree: true });
+    new win.MutationObserver(() => refresh()).observe(doc.body, { childList: true, subtree: true });
     attached = true;
-    onScroll();
+    refresh();
     return true;
   }
 
-  // Tenta múltiplas vezes — Streamlit constrói o DOM async
   let tries = 0;
   const interval = win.setInterval(() => {
     tries++;

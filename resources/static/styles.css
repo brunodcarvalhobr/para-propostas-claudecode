@@ -37,6 +37,9 @@
     0 2px 6px -2px rgba(234,88,12,0.4);
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);          /* Material Design standard */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);     /* Overshoot leve para "pop" */
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);             /* Aceleração rápida → desaceleração */
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -1235,4 +1238,201 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     background: rgba(255, 255, 255, 1) !important;
     border-color: rgba(249, 115, 22, 0.35) !important;
     color: var(--color-ember-700) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 4 — step icons Material Symbols + animações refinadas
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   15. STEP INDICATORS — substitui Unicode ✓/○ por Material Symbols via JS
+   O JS marca cada button do stepper com .pmra-step-done / .pmra-step-pending /
+   .pmra-step-current, e remove o caractere unicode do textContent (movido pra
+   atributo data-step-label como fallback de leitura por screen reader não é
+   afetado porque o <p> com o nome continua existindo).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row button.pmra-step-done,
+.pmra-stepper-row button.pmra-step-pending,
+.pmra-stepper-row button.pmra-step-current {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+.pmra-stepper-row button.pmra-step-done::before,
+.pmra-stepper-row button.pmra-step-pending::before,
+.pmra-stepper-row button.pmra-step-current::before {
+    font-family: 'Material Symbols Outlined' !important;
+    font-feature-settings: 'liga' !important;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    font-size: 18px;
+    flex-shrink: 0;
+    display: inline-block;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    transition: transform 280ms var(--ease-spring),
+                color 220ms var(--ease-smooth);
+}
+.pmra-stepper-row button.pmra-step-done::before {
+    content: "check_circle";
+    color: var(--color-ember-600);
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    animation: pmra-check-pop-stepper 420ms var(--ease-spring) both;
+}
+.pmra-stepper-row button.pmra-step-pending::before {
+    content: "radio_button_unchecked";
+    color: var(--color-ink-400);
+    opacity: 0.55;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.pmra-stepper-row button.pmra-step-pending:hover::before {
+    color: var(--color-ember-500);
+    opacity: 0.85;
+    transform: scale(1.08);
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    content: "circle";
+    color: #ffffff;
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 12px;
+    transform: scale(0.85);
+    animation: pmra-current-pulse 2400ms var(--ease-smooth) infinite;
+}
+
+@keyframes pmra-check-pop-stepper {
+    0% { opacity: 0; transform: scale(0) rotate(-30deg); }
+    55% { opacity: 1; transform: scale(1.25) rotate(0deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes pmra-current-pulse {
+    0%, 100% { opacity: 0.9; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   16. CARD HOVER — refinamento com escala muito leve (1.002) + translate
+   Sensação tátil "elevado e crescendo" sem distorcer texto/inputs internos.
+   ────────────────────────────────────────────────────────────────────────────*/
+div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    transition: transform 280ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth) !important;
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+    transform: translateY(-1px) scale(1.0015) !important;
+}
+.review-card {
+    transition: transform 320ms var(--ease-smooth),
+                box-shadow 320ms var(--ease-smooth) !important;
+}
+.review-card:hover {
+    transform: translateY(-2px) scale(1.0025) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   17. INPUTS — micro-interaction no focus com easing smooth
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-baseweb="input"],
+[data-baseweb="textarea"],
+[data-baseweb="select"],
+[data-baseweb="base-input"] {
+    transition: border-color 220ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth),
+                background-color 220ms var(--ease-smooth) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   18. CHECKBOX CARDS — bounce sutil no momento da seleção
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stColumn"] [data-testid="stCheckbox"] {
+    transition: background-color 220ms var(--ease-smooth),
+                border-color 220ms var(--ease-smooth),
+                transform 260ms var(--ease-spring),
+                box-shadow 260ms var(--ease-smooth) !important;
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    animation: pmra-card-select 360ms var(--ease-spring);
+}
+@keyframes pmra-card-select {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.025); }
+    100% { transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   19. SEGMENTED CONTROL — bounce na pílula selecionada + shadow elegante
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [role="radiogroup"] > label {
+    transition: background-color 220ms var(--ease-smooth),
+                color 220ms var(--ease-smooth),
+                transform 260ms var(--ease-spring),
+                box-shadow 260ms var(--ease-smooth) !important;
+}
+.stApp [role="radiogroup"] > label:has(input:checked) {
+    animation: pmra-pill-select 380ms var(--ease-spring);
+}
+@keyframes pmra-pill-select {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   20. SUCCESS / ERROR CARDS — refinamento da animação de entrada (mais polida)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card,
+.pmra-error-card {
+    animation: pmra-card-in 520ms var(--ease-spring);
+    will-change: transform, opacity;
+}
+@keyframes pmra-card-in {
+    0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+    60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   21. PRIMARY BUTTONS — micro-press feedback ao clicar (active)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button[kind="primary"]:active,
+.stApp [data-testid="stBaseButton-primary"] > button:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:active:not(:disabled) {
+    transform: translateY(0) scale(0.99) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   22. ICONES PMRA — pequena animação ao aparecer (subheaders das seções)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-section-icon,
+.pmra-icon {
+    animation: pmra-icon-in 360ms var(--ease-smooth) both;
+}
+@keyframes pmra-icon-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 0.85; transform: scale(1); }
+}
+.pmra-section-icon {
+    transition: transform 280ms var(--ease-spring);
+}
+h2:hover .pmra-section-icon {
+    transform: scale(1.08) rotate(-3deg);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   23. REDUÇÃO DE MOVIMENTO — respeita prefers-reduced-motion
+   ────────────────────────────────────────────────────────────────────────────*/
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
