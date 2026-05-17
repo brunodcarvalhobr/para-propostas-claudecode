@@ -100,6 +100,25 @@ def _collapse_empty_paragraphs(xml: str) -> str:
     return "".join(out)
 
 
+_TBL_BORDERS_RE = re.compile(r"<w:tblBorders>(.*?)</w:tblBorders>", re.DOTALL)
+_TBL_BOTTOM_RE = re.compile(r"<w:bottom[^/]*/>")
+
+
+def _remove_table_outer_bottom_borders(xml: str) -> str:
+    """Remove a borda inferior do <w:tblBorders> de cada tabela.
+
+    Sem isso, a ultima linha aparenta ser mais grossa porque a borda
+    inferior da CELULA (em tcBorders) e a borda inferior da TABELA
+    (em tblBorders) se sobrepoem visualmente. A borda inferior das
+    celulas da ultima linha continua desenhando o fim da tabela.
+    """
+    def repl(m: re.Match[str]) -> str:
+        inner = _TBL_BOTTOM_RE.sub("", m.group(1))
+        return f"<w:tblBorders>{inner}</w:tblBorders>"
+
+    return _TBL_BORDERS_RE.sub(repl, xml)
+
+
 def _post_process(docx_bytes: bytes) -> bytes:
     src = BytesIO(docx_bytes)
     dst = BytesIO()
@@ -115,6 +134,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                         continue
                     xml = _split_linebreaks(xml)
                     xml = _collapse_empty_paragraphs(xml)
+                    xml = _remove_table_outer_bottom_borders(xml)
                     data = xml.encode("utf-8")
                 zout.writestr(item, data)
     return dst.getvalue()
