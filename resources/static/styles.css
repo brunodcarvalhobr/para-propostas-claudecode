@@ -563,10 +563,19 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmr
     font-size: 13.5px;
     line-height: 1.6;
     color: #1e3a8a;
-    text-align: justify;
+    text-align: left;
     margin: 8px 0 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
 }
 .pmra-info-note strong { color: #1e3a8a; }
+.pmra-note-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 1.6;
+    opacity: 0.80;
+}
 
 /* Progress Bar container override */
 [data-testid="stProgressBar"] > div > div {
@@ -600,19 +609,45 @@ hr {
 }
 
 /* Compact clear row buttons */
-[data-testid$="__del"] > div > button {
+[data-testid$="__del"] > div > button,
+[data-testid*="__del__"] > div > button {
     padding-top: 0.3rem !important;
     padding-bottom: 0.3rem !important;
     font-size: 0.8rem !important;
     color: var(--color-ink-400) !important;
-    border-color: rgba(0,0,0,0.10) !important;
+    border-color: rgba(0,0,0,0.08) !important;
     background: transparent !important;
     box-shadow: none !important;
+    opacity: 0.65 !important;
+    transition: all 180ms var(--ease-out-soft) !important;
 }
-[data-testid$="__del"] > div > button:hover {
-    color: var(--color-danger-600) !important;
-    border-color: var(--color-danger-600) !important;
-    background: rgba(239, 68, 68, 0.1) !important;
+[data-testid$="__del"] > div > button:hover:not(:disabled),
+[data-testid*="__del__"] > div > button:hover:not(:disabled) {
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.35) !important;
+    background: rgba(254, 226, 226, 0.5) !important;
+    opacity: 1 !important;
+}
+
+/* "+ Adicionar linha" buttons — dashed outline, ember accent */
+[data-testid$="__add"] > div > button {
+    border: 1.5px dashed rgba(249,115,22,0.40) !important;
+    background: transparent !important;
+    color: var(--color-ember-600) !important;
+    box-shadow: none !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.03em !important;
+    transition: all 200ms var(--ease-out-soft) !important;
+}
+[data-testid$="__add"] > div > button:hover:not(:disabled) {
+    border-color: var(--color-ember-500) !important;
+    background: rgba(249,115,22,0.06) !important;
+    color: var(--color-ember-700) !important;
+    transform: translateY(-1px) !important;
+}
+[data-testid$="__add"] > div > button *,
+[data-testid$="__add"] > div > button:hover * {
+    color: inherit !important;
 }
 
 /* Review Cards — grid 2x2 (1 coluna em mobile) */
@@ -656,6 +691,8 @@ hr {
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--color-ember-600);
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.07);
 }
 .review-value {
     font-family: var(--font-display);
@@ -752,7 +789,7 @@ hr {
     border-top: 0.5px solid rgba(0,0,0,0.05);
     font-size: 11px;
     color: var(--color-ink-400);
-    margin-top: 64px;
+    margin-top: 40px;
     border-radius: 16px 16px 0 0;
 }
 .pmra-footer-left {

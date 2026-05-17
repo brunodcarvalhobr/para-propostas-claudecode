@@ -29,12 +29,15 @@ def _load_text_asset(relative_path: str) -> str:
 
 
 def _info_note(text: str) -> None:
-    """Renderiza nota explicativa com fundo azul claro, texto justificado.
+    """Renderiza nota explicativa com fundo azul claro.
 
     Substitui st.caption() para mensagens importantes/longas. Mantemos
     st.caption() apenas para hints curtos (ex.: "Ex: Sócio | R$ 1.050,00").
     """
-    st.markdown(f'<div class="pmra-info-note">{text}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="pmra-info-note"><span class="pmra-note-icon">ℹ</span><span>{text}</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 # st.set_page_config DEVE ser o primeiro comando Streamlit — qualquer chamada
@@ -458,7 +461,7 @@ for i, (col, name) in enumerate(zip(indicator_cols, STEPS)):
     else:
         # Etapas futuras tambem clicaveis — usuario pode pular livre entre secoes.
         col.button(
-            f"{i + 1}. {name}",
+            f"○ {name}",
             key=f"step_btn_{i}",
             use_container_width=True,
             on_click=_go_to,
