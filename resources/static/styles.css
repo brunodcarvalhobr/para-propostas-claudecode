@@ -1533,11 +1533,25 @@ h2:hover .pmra-section-icon {
     align-items: stretch !important;
 }
 [data-testid="stColumn"] [data-testid="stCheckbox"] {
+    height: 76px !important;
     min-height: 76px !important;
-    height: 100% !important;
+    max-height: 76px !important;
     display: flex !important;
     align-items: center !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
+    /* pointer-events explícito — garante que o click sempre seja capturado */
+    pointer-events: auto !important;
+}
+/* Forçar o ELEMENTO PAI também a ocupar exatamente 76px — sem isso o
+   stElementContainer pode crescer maior que o card e dar percepção de
+   altura desigual quando o user está com zoom alto / viewport estreito. */
+[data-testid="stColumn"]:has([data-testid="stCheckbox"]),
+[data-testid="stColumn"]:has([data-testid="stCheckbox"]) > div,
+[data-testid="stColumn"]:has([data-testid="stCheckbox"]) [data-testid="stElementContainer"] {
+    height: 76px !important;
+    max-height: 76px !important;
+    overflow: hidden !important;
 }
 /* Streamlit envolve o input em stElementContainer — também precisa stretch */
 [data-testid="stColumn"]:has(> div > [data-testid="stElementContainer"] [data-testid="stCheckbox"]) {
