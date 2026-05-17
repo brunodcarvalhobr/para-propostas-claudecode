@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block');
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap');
 
 :root {
@@ -39,6 +40,45 @@
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MATERIAL SYMBOLS OUTLINED — ícones via font ligature
+   .pmra-icon       : ícone inline nos pmra-sub-hdr (10.5px → 14px visual)
+   .pmra-section-icon: ícone nos section headers gerados por _subheader()
+   ────────────────────────────────────────────────────────────────────────────*/
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+    user-select: none;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.pmra-icon {
+    font-size: 14px;
+    color: var(--color-ember-600);
+    opacity: 0.80;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+.pmra-section-icon {
+    font-size: 20px;
+    color: var(--color-ember-600);
+    opacity: 0.85;
+    margin-right: 8px;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
 }
 
 /* Base text */
@@ -328,6 +368,16 @@ div[role="listbox"] {
     margin-bottom: 16px;
     margin-top: -2rem !important;
     border-radius: 16px;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.pmra-header:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 16px 36px -14px rgba(15,15,20,0.18),
+        0 4px 12px -6px rgba(249,115,22,0.10);
 }
 .pmra-header-left {
     display: flex;
@@ -359,7 +409,16 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     border-radius: 18px !important;
     padding: 24px !important;
     margin-bottom: 16px !important;
-    transition: all 220ms var(--ease-out-soft);
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 22px 50px -16px rgba(15,15,20,0.22),
+        0 6px 18px -8px rgba(249,115,22,0.12);
 }
 
 
@@ -507,6 +566,10 @@ h3 {
     letter-spacing: -0.005em !important;
     margin-top: 12px !important;
     margin-bottom: 12px !important;
+}
+.pmra-section-hdr {
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* Labels */

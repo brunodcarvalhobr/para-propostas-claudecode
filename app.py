@@ -28,6 +28,17 @@ def _load_text_asset(relative_path: str) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
+def _subheader(icon: str, text: str) -> None:
+    """Renderiza section header com ícone Material Symbols à esquerda."""
+    st.markdown(
+        f'<h2 class="pmra-section-hdr">'
+        f'<span class="material-symbols-outlined pmra-section-icon">{icon}</span>'
+        f'{html.escape(text)}'
+        f'</h2>',
+        unsafe_allow_html=True,
+    )
+
+
 def _info_note(text: str) -> None:
     """Renderiza nota explicativa com fundo azul claro.
 
@@ -627,11 +638,11 @@ def _step_honorarios() -> None:
 
     # ── 3a. Consultiva
     if show_consultiva:
-        st.subheader("Honorários — Atuação Consultiva")
+        _subheader("payments", "Honorários — Atuação Consultiva")
 
         with st.container(border=True):
             cm = form["honorarios_consultiva"]["modalidades"]
-            st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             # Checkboxes booleanos: padrao direto value= + key= (sem callback).
             # O return value do widget e atribuido a cm[key] que ja e referencia
@@ -642,7 +653,7 @@ def _step_honorarios() -> None:
             cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cons_vp")
 
             if cm["hora_senioridade"]:
-                st.markdown('<div class="pmra-sub-hdr">Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
                 form["honorarios_consultiva"]["tabela_senioridade"] = _render_rows(
                     "tbl_sen_cons",
                     {"categoria": "Categoria", "valor": "Valor por hora"},
@@ -702,11 +713,11 @@ def _step_honorarios() -> None:
 
     # ── 3b. Contenciosa
     if show_contenciosa:
-        st.subheader("Honorários — Atuação Contenciosa")
+        _subheader("gavel", "Honorários — Atuação Contenciosa")
 
         with st.container(border=True):
             cm = form["honorarios_contenciosa"]["modalidades"]
-            st.markdown('<div class="pmra-sub-hdr">Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", value=cm["valor_acao"], key="cont_va")
             cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", value=cm["valor_ato_processual"], key="cont_vap")
@@ -714,7 +725,7 @@ def _step_honorarios() -> None:
             cm["valor_projeto"] = c4.checkbox("Preço Global", value=cm["valor_projeto"], key="cont_vp")
 
             if cm["valor_acao"]:
-                st.markdown('<div class="pmra-sub-hdr">Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
                 form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
                     "tbl_acoes",
                     {"natureza": "Natureza da ação", "fase": "Fase processual", "valor": "Valor"},
@@ -729,7 +740,7 @@ def _step_honorarios() -> None:
                 )
 
             if cm["valor_ato_processual"]:
-                st.markdown('<div class="pmra-sub-hdr">Tabela — Atos Processuais</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Tabela — Atos Processuais</div>', unsafe_allow_html=True)
                 _info_note(
                     "Preencha o valor de cada ato (Ex: R$ 1.500,00). "
                     "Linhas sem valor são ignoradas. Use o X para remover "
@@ -842,7 +853,7 @@ def _step_honorarios() -> None:
             # para o escopo contencioso porque consultivo e contencioso sao
             # tratados como escopos independentes no documento final.
             with st.container(border=True):
-                st.markdown('<div class="pmra-sub-hdr">Horas para serviços extra escopo</div>', unsafe_allow_html=True)
+                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">schedule</span>Horas para serviços extra escopo</div>', unsafe_allow_html=True)
                 _info_note("Obrigatório inserir ao menos uma das modalidades para serviços excedentes.")
                 modos = ("senioridade", "horaFixa")
                 form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
@@ -884,7 +895,7 @@ def _step_honorarios() -> None:
 # ── ETAPA 1: CONTRATANTE ───────────────────────────────────────────────────────
 
 if current == 0:
-    st.subheader("Identificação do contratante")
+    _subheader("manage_accounts", "Identificação do contratante")
 
     _info_note(
         "Todos os campos são opcionais. Caso algum campo não seja preenchido, "
@@ -896,7 +907,7 @@ if current == 0:
     )
 
     with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Identificação</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">badge</span>Identificação</div>', unsafe_allow_html=True)
         form["contratante"]["tipo_pessoa"] = st.radio(
             "Tipo de pessoa",
             options=("fisica", "juridica"),
@@ -934,7 +945,7 @@ if current == 0:
             )
 
     with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Endereço</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">location_on</span>Endereço</div>', unsafe_allow_html=True)
         end = form["contratante"]["endereco"]
 
         c1, c2 = st.columns([3, 1])
@@ -953,7 +964,7 @@ if current == 0:
         )
 
     with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Responsável e contatos</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">contact_phone</span>Responsável e contatos</div>', unsafe_allow_html=True)
         form["contratante"]["contato_nome"] = st.text_input(
             "Nome do responsável",
             value=form["contratante"]["contato_nome"],
@@ -976,7 +987,7 @@ if current == 0:
 # ── ETAPA 2: ESCOPO ───────────────────────────────────────────────────────────
 
 elif current == 1:
-    st.subheader("Escopo da contratação")
+    _subheader("description", "Escopo da contratação")
 
     with st.container(border=True):
         modalidades = ("consultiva", "contenciosa", "mista")
@@ -996,7 +1007,7 @@ elif current == 1:
         modal = form["escopo"]["modalidade"]
 
         if modal in ("consultiva", "mista"):
-            st.markdown('<div class="pmra-sub-hdr">Atuação Consultiva</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">article</span>Atuação Consultiva</div>', unsafe_allow_html=True)
             form["escopo"]["atuacao_consultiva"] = st.text_area(
                 "Áreas, matérias e entregáveis",
                 value=form["escopo"]["atuacao_consultiva"],
@@ -1015,7 +1026,7 @@ elif current == 1:
             # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
             # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
             # o else abaixo zera os campos.
-            st.markdown('<div class="pmra-sub-hdr">SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">timer</span>SLA por Complexidade/Prazos de Entrega</div>', unsafe_allow_html=True)
             form["escopo"]["sla_ativo"] = st.checkbox(
                 "Definir prazos de resposta por complexidade?",
                 value=form["escopo"]["sla_ativo"],
@@ -1040,7 +1051,7 @@ elif current == 1:
             form["escopo"]["sla_descricao"] = ""
 
         if modal in ("contenciosa", "mista"):
-            st.markdown('<div class="pmra-sub-hdr">Atuação Contenciosa</div>', unsafe_allow_html=True)
+            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Atuação Contenciosa</div>', unsafe_allow_html=True)
             form["escopo"]["atuacao_contenciosa"] = st.text_area(
                 "Matérias, foros, instâncias e atos processuais",
                 value=form["escopo"]["atuacao_contenciosa"],
@@ -1063,10 +1074,10 @@ elif current == 2:
     _step_honorarios()
 
 elif current == 3:
-    st.subheader("Despesas e Disposições Específicas")
+    _subheader("receipt_long", "Despesas e Disposições Específicas")
 
     with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Despesas previstas</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">receipt_long</span>Despesas previstas</div>', unsafe_allow_html=True)
         _info_note(
             "Adicione ou remova despesas conforme aplicável ao escopo. "
             "Caso a natureza do projeto seja apenas consultiva, remova "
@@ -1088,7 +1099,7 @@ elif current == 3:
         )
 
     with st.container(border=True):
-        st.markdown('<div class="pmra-sub-hdr">Disposições específicas</div>', unsafe_allow_html=True)
+        st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">article</span>Disposições específicas</div>', unsafe_allow_html=True)
         _info_note(
             "Inclua aqui quaisquer outras disposições específicas que serão "
             "aplicáveis fora das condições gerais do Escritório. Elas "
@@ -1111,7 +1122,7 @@ elif current == 3:
 # ── ETAPA 5: REVISAR E GERAR ───────────────────────────────────────────────────
 
 elif current == 4:
-    st.subheader("Revisar e Gerar Proposta")
+    _subheader("rate_review", "Revisar e Gerar Proposta")
 
     modal = form["escopo"]["modalidade"]
     tipo = form["contratante"]["tipo_pessoa"]
@@ -1262,7 +1273,7 @@ _, nav_prev, _gap, nav_next, _ = st.columns([2, 1, 0.4, 1, 2])
 
 if current > 0:
     nav_prev.button(
-        "Anterior",
+        "← Anterior",
         on_click=_go_prev,
         use_container_width=True,
         key="nav_prev",
