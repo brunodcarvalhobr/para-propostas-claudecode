@@ -1641,17 +1641,61 @@ h2:hover .pmra-section-icon {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   ANIMAÇÕES DESLIGADAS — causavam flickering em reruns sucessivos do
-   Streamlit (cada interação reroda o `@keyframes`, criando percepção de
-   movimento indesejada). Mantemos apenas transições de hover (rodam só
-   quando user interage) e a animação do success card (aparece uma vez).
+   KILL SWITCH — desliga TODAS as animações e transitions pesadas.
+   Causavam lag perceptível ao alternar entre seletores (cada interação do
+   Streamlit dispara rerun completo, e re-executar @keyframes + transforms
+   em massa cria latência cumulativa). Mantemos transitions simples e curtas
+   apenas em hover de cor/bg/border — visualmente suficientes.
    ════════════════════════════════════════════════════════════════════════════*/
-[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0),
-.pmra-stepper-row button.pmra-step-current::before,
-.pmra-stepper-row button.pmra-step-done::before,
-[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked),
-.stApp [role="radiogroup"] > label:has(input:checked),
-.pmra-section-icon,
-.pmra-icon {
+
+/* Cancela TODAS as animations no app — sem exceções. */
+.stApp *,
+.stApp *::before,
+.stApp *::after {
     animation: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+}
+
+/* Cancela transitions com transform/scale/spring — mantém só cor/bg/border. */
+.stApp *,
+.stApp *::before,
+.stApp *::after {
+    transition-property: background-color, border-color, color, box-shadow, opacity !important;
+    transition-duration: 100ms !important;
+    transition-timing-function: ease-out !important;
+}
+
+/* Hover dos containers sem `transform: scale/translate` — só shadow. */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
+    transform: none !important;
+}
+.review-card:hover {
+    transform: none !important;
+}
+.pmra-stepper-row button:hover:not(:disabled) {
+    transform: none !important;
+}
+.pmra-header:hover,
+.pmra-login-logo:hover,
+[data-testid="stForm"]:hover {
+    transform: none !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   ALTURA UNIFORME — qualquer linha de botões/checkboxes em `st.columns`
+   tem todas as células forçadas ao mesmo tamanho (align-items: stretch +
+   conteúdo h 100%). Aplica universalmente a `stHorizontalBlock`.
+   ════════════════════════════════════════════════════════════════════════════*/
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] > div {
+    flex: 1 1 auto !important;
+    height: 100% !important;
 }
