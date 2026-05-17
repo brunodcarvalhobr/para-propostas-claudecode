@@ -191,6 +191,7 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "nome_ou_razao_social": RichText(
                 (form.contratante.nome if pf else form.contratante.razao_social).upper(),
                 bold=True,
+                font="Arvo",
             ),
         },
     }
