@@ -48,15 +48,21 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# 1. (Opcional) Configurar senha
+# 1. Instalar o hook de versionamento automático
+cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+# 2. (Opcional) Configurar senha
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 # edite .streamlit/secrets.toml e defina APP_PASSWORD
 
-# 2. Rodar o app
+# 3. Rodar o app
 streamlit run app.py
 ```
 
 Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
+
+O hook `scripts/pre-commit` incrementa automaticamente `APP_VERSION` em `app.py`
+a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, a versão não muda.
 
 ## Testes
 
