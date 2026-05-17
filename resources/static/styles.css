@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block');
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap');
 
 :root {
@@ -36,9 +37,51 @@
     0 2px 6px -2px rgba(234,88,12,0.4);
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);          /* Material Design standard */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);     /* Overshoot leve para "pop" */
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);             /* Aceleração rápida → desaceleração */
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MATERIAL SYMBOLS OUTLINED — ícones via font ligature
+   .pmra-icon       : ícone inline nos pmra-sub-hdr (10.5px → 14px visual)
+   .pmra-section-icon: ícone nos section headers gerados por _subheader()
+   ────────────────────────────────────────────────────────────────────────────*/
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+    user-select: none;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.pmra-icon {
+    font-size: 14px;
+    color: var(--color-ember-600);
+    opacity: 0.80;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+.pmra-section-icon {
+    font-size: 20px;
+    color: var(--color-ember-600);
+    opacity: 0.85;
+    margin-right: 8px;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
 }
 
 /* Base text */
@@ -328,6 +371,16 @@ div[role="listbox"] {
     margin-bottom: 16px;
     margin-top: -2rem !important;
     border-radius: 16px;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.pmra-header:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 16px 36px -14px rgba(15,15,20,0.18),
+        0 4px 12px -6px rgba(249,115,22,0.10);
 }
 .pmra-header-left {
     display: flex;
@@ -359,7 +412,16 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     border-radius: 18px !important;
     padding: 24px !important;
     margin-bottom: 16px !important;
-    transition: all 220ms var(--ease-out-soft);
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 22px 50px -16px rgba(15,15,20,0.22),
+        0 6px 18px -8px rgba(249,115,22,0.12);
 }
 
 
@@ -381,14 +443,10 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
     /* Forca os botoes do stepper a ocuparem 100% da linha em mobile —
        sem isso, Streamlit pode quebrar o quinto botao (Gerar Proposta) em
        largura diferente dos outros porque o nome e maior */
-    [data-testid="stMainBlockContainer"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]:first-of-type {
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
         flex-wrap: wrap !important;
     }
-    [data-testid="stMainBlockContainer"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]:first-of-type
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
       > [data-testid="stColumn"] {
         flex: 1 1 100% !important;
         min-width: 100% !important;
@@ -458,21 +516,33 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
 }
 
 /* Sticky stepper compacto: bg paper translucido + padding reduzido para
-   ocupar pouca altura quando fixo no topo. */
-[data-testid="stMainBlockContainer"]
-  > [data-testid="stVerticalBlock"]
-  > [data-testid="stHorizontalBlock"]:first-of-type {
+   ocupar pouca altura quando fixo no topo. Identifica o stepper como o
+   primeiro stHorizontalBlock dentro do main container — funciona em qualquer
+   hierarquia (Streamlit adiciona stVerticalBlockBorderWrapper em algumas
+   versões). */
+[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
     position: sticky;
-    top: 0;
+    top: 4px;
     z-index: 25;
     background-color: rgba(250, 249, 247, 0.92);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
-    padding: 8px 12px;
-    margin-left: -12px;
-    margin-right: -12px;
+    padding: 8px 14px;
     margin-top: -4px;
-    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border-radius: 18px;
+    transition: box-shadow 220ms var(--ease-out-soft),
+                background-color 220ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft);
+}
+.pmra-stepper-row.pmra-stepper-scrolled {
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.05),
+        0 12px 32px -14px rgba(15, 15, 20, 0.22),
+        0 4px 12px -6px rgba(249, 115, 22, 0.10);
+    background-color: rgba(250, 249, 247, 0.97) !important;
 }
 
 /* Input fields */
@@ -507,6 +577,10 @@ h3 {
     letter-spacing: -0.005em !important;
     margin-top: 12px !important;
     margin-bottom: 12px !important;
+}
+.pmra-section-hdr {
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* Labels */
@@ -557,16 +631,25 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmr
 .pmra-info-note {
     background: rgba(59, 130, 246, 0.08);
     border-left: 3px solid #3b82f6;
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 14px 18px;
     font-family: var(--font-sans);
     font-size: 13.5px;
     line-height: 1.6;
     color: #1e3a8a;
-    text-align: justify;
+    text-align: left;
     margin: 8px 0 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
 }
 .pmra-info-note strong { color: #1e3a8a; }
+.pmra-note-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 1.6;
+    opacity: 0.80;
+}
 
 /* Progress Bar container override */
 [data-testid="stProgressBar"] > div > div {
@@ -600,19 +683,46 @@ hr {
 }
 
 /* Compact clear row buttons */
-[data-testid$="__del"] > div > button {
+[data-testid$="__del"] > div > button,
+[data-testid*="__del__"] > div > button {
     padding-top: 0.3rem !important;
     padding-bottom: 0.3rem !important;
     font-size: 0.8rem !important;
     color: var(--color-ink-400) !important;
-    border-color: rgba(0,0,0,0.10) !important;
+    border-color: rgba(0,0,0,0.08) !important;
     background: transparent !important;
     box-shadow: none !important;
+    border-radius: 12px !important;
+    opacity: 0.65 !important;
+    transition: all 180ms var(--ease-out-soft) !important;
 }
-[data-testid$="__del"] > div > button:hover {
-    color: var(--color-danger-600) !important;
-    border-color: var(--color-danger-600) !important;
-    background: rgba(239, 68, 68, 0.1) !important;
+[data-testid$="__del"] > div > button:hover:not(:disabled),
+[data-testid*="__del__"] > div > button:hover:not(:disabled) {
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.35) !important;
+    background: rgba(254, 226, 226, 0.5) !important;
+    opacity: 1 !important;
+}
+
+/* "+ Adicionar linha" buttons — dashed outline, ember accent */
+[data-testid$="__add"] > div > button {
+    border: 1.5px dashed rgba(249,115,22,0.40) !important;
+    background: transparent !important;
+    color: var(--color-ember-600) !important;
+    box-shadow: none !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.03em !important;
+    transition: all 200ms var(--ease-out-soft) !important;
+}
+[data-testid$="__add"] > div > button:hover:not(:disabled) {
+    border-color: var(--color-ember-500) !important;
+    background: rgba(249,115,22,0.06) !important;
+    color: var(--color-ember-700) !important;
+    transform: translateY(-1px) !important;
+}
+[data-testid$="__add"] > div > button *,
+[data-testid$="__add"] > div > button:hover * {
+    color: inherit !important;
 }
 
 /* Review Cards — grid 2x2 (1 coluna em mobile) */
@@ -656,6 +766,8 @@ hr {
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--color-ember-600);
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.07);
 }
 .review-value {
     font-family: var(--font-display);
@@ -696,10 +808,32 @@ hr {
 }
 .pmra-login-logo {
     margin-bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: var(--color-glass-white);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-glass);
+    transition: transform 260ms var(--ease-out-soft),
+                box-shadow 260ms var(--ease-out-soft);
+}
+.pmra-login-logo:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.24),
+        0 6px 18px -8px rgba(249, 115, 22, 0.18);
 }
 .pmra-login-logo svg {
     height: 72px;
     width: auto;
+    border-radius: 14px;
+    display: block;
 }
 .pmra-login-title,
 .pmra-login-subtitle,
@@ -752,8 +886,10 @@ hr {
     border-top: 0.5px solid rgba(0,0,0,0.05);
     font-size: 11px;
     color: var(--color-ink-400);
-    margin-top: 64px;
-    border-radius: 16px 16px 0 0;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    border-radius: 18px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 .pmra-footer-left {
     font-family: var(--font-display);
@@ -762,4 +898,541 @@ hr {
 }
 .pmra-footer-right {
     font-variant-numeric: tabular-nums;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 2 — 8 melhorias visuais sem mexer em funcionalidade
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. SEGMENTED CONTROL — radio horizontal vira pill-tab moderno
+   Aplicado quando radiogroup tem horizontal layout (flex-direction: row).
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [role="radiogroup"][aria-orientation="horizontal"],
+.stApp div:has(> [role="radiogroup"]) [role="radiogroup"] {
+    display: inline-flex !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.stApp [role="radiogroup"] > label {
+    margin: 0 !important;
+    padding: 7px 16px !important;
+    border-radius: 999px !important;
+    cursor: pointer;
+    transition: background 180ms var(--ease-out-soft),
+                color 180ms var(--ease-out-soft),
+                transform 180ms var(--ease-out-soft);
+}
+/* Esconde a bolinha do radio — agora é só pill */
+.stApp [role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+.stApp [role="radiogroup"] > label[aria-checked="true"],
+.stApp [role="radiogroup"] > label:has(input:checked) {
+    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.4) inset,
+        0 4px 12px -4px rgba(249, 115, 22, 0.45) !important;
+}
+.stApp [role="radiogroup"] > label[aria-checked="true"] *,
+.stApp [role="radiogroup"] > label:has(input:checked) * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stApp [role="radiogroup"] > label:not([aria-checked="true"]):hover {
+    background: rgba(249, 115, 22, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. CARDS SELECIONÁVEIS — checkboxes de modalidade (rows com 3+ checkboxes)
+   Identificados por: stHorizontalBlock que contém múltiplos stCheckbox lado-a-lado.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stColumn"] [data-testid="stCheckbox"] {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 220ms var(--ease-out-soft);
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:hover {
+    border-color: rgba(249, 115, 22, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -8px rgba(249, 115, 22, 0.18);
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    background: rgba(249, 115, 22, 0.08);
+    border-color: var(--color-ember-500);
+    box-shadow:
+        0 0 0 1px var(--color-ember-500) inset,
+        0 6px 16px -8px rgba(249, 115, 22, 0.25);
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) label {
+    color: var(--color-ember-700) !important;
+    font-weight: 500;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]),
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]) {
+    border-radius: 10px;
+    margin: 2px 0;
+    padding: 4px 6px;
+    transition: background 180ms var(--ease-out-soft);
+}
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__1"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__2"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__3"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__4"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__5"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__6"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__7"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__8"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__9"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__10"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__11"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__12"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__13"]):hover,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__14"]):hover {
+    background: rgba(249, 115, 22, 0.04);
+}
+
+/* 4. (sticky stepper scrolled shadow moved up — handled together with the
+   sticky stepper base rule via .pmra-stepper-row / .pmra-stepper-scrolled) */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. FADE-IN SUTIL — toda mudança de estado tem polish de transição
+   Aplicado apenas em containers com border (cards) — não em toda renderização.
+   Aceita re-animar em interações para sensação de "vivo".
+   ────────────────────────────────────────────────────────────────────────────*/
+@keyframes pmra-fade-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    animation: pmra-fade-up 280ms var(--ease-out-soft) both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. SUCCESS CARD — substituiu st.success() na geração da proposta
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.04));
+    border-left: 3px solid #16a34a;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 480ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(34, 197, 94, 0.25);
+}
+@keyframes pmra-success-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    60% { opacity: 1; transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+.pmra-success-icon {
+    font-size: 32px !important;
+    color: #16a34a !important;
+    flex-shrink: 0;
+    animation: pmra-check-pop 600ms var(--ease-out-soft) 120ms both;
+}
+@keyframes pmra-check-pop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+.pmra-success-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.pmra-success-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #14532d;
+    letter-spacing: -0.01em;
+}
+.pmra-success-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #166534;
+    line-height: 1.5;
+}
+.pmra-success-subtitle strong { color: #14532d; font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. EMPTY STATE EM TABELAS — quando há só 1 linha (botão del disabled)
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]):not(:hover) {
+    background: rgba(0, 0, 0, 0.015);
+    border: 1px dashed rgba(0, 0, 0, 0.08);
+}
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) input,
+[data-testid="stHorizontalBlock"]:has(button[data-testid$="__del__0"][disabled]) textarea {
+    background: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. FOCUS RINGS CONSISTENTES — keyboard navigation com ember accent
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button:focus-visible,
+.stApp [role="radio"]:focus-visible,
+.stApp label:focus-visible,
+.stApp [data-baseweb="checkbox"]:focus-within {
+    outline: 2.5px solid rgba(249, 115, 22, 0.42) !important;
+    outline-offset: 2px !important;
+}
+.stApp input:focus-visible,
+.stApp textarea:focus-visible,
+.stApp [role="combobox"]:focus-visible {
+    outline: none !important;
+    /* O focus-within do parent já aplica o ring laranja nos inputs */
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 3 — round corners completos + extras
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. ERROR CARD — pareado com .pmra-success-card para mensagem de falha
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-error-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04));
+    border-left: 3px solid #dc2626;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 360ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(239, 68, 68, 0.25);
+}
+.pmra-error-icon {
+    font-size: 32px !important;
+    color: #dc2626 !important;
+    flex-shrink: 0;
+}
+.pmra-error-text { display: flex; flex-direction: column; gap: 2px; }
+.pmra-error-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #7f1d1d;
+    letter-spacing: -0.01em;
+}
+.pmra-error-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #991b1b;
+    line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. BOTÕES SECUNDÁRIOS — hover lift consistente (Anterior, etc)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-testid="stBaseButton-secondary"] > button,
+.stApp button[kind="secondary"] {
+    transition: background 200ms var(--ease-out-soft),
+                color 200ms var(--ease-out-soft),
+                border-color 200ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled),
+.stApp button[kind="secondary"]:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+        0 4px 12px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   11. SUB-HEADERS — barra decorativa ember à esquerda do texto
+   Adicionado ao pseudo-element ::before do .pmra-sub-hdr (em complemento ao
+   ícone Material Symbols que já está no HTML).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-sub-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   12. LOGIN FORM — container glassmorphism em torno do campo de senha
+   Streamlit gera um <div data-testid="stForm"> em volta de st.form().
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stForm"] {
+    background: var(--color-glass-strong) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-glass) !important;
+    padding: 22px 24px !important;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+[data-testid="stForm"]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.22),
+        0 6px 18px -8px rgba(249, 115, 22, 0.12) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   13. ROUND CORNERS GLOBAIS — todo elemento com border-radius < 8 sobe pra 8
+   Garante consistência visual em pequenos elementos que ficaram com radius
+   muito baixo (alguns botões nativos do Baseweb).
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-baseweb="popover"],
+.stApp [data-baseweb="popover-content"],
+.stApp [data-baseweb="menu"],
+.stApp [data-baseweb="list"],
+.stApp [data-baseweb="select-dropdown"] {
+    border-radius: 14px !important;
+}
+.stApp [role="option"] {
+    border-radius: 8px !important;
+    margin: 2px 4px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   14. STEPPER BUTTONS — hover lift individual (cada pill)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 1) !important;
+    border-color: rgba(249, 115, 22, 0.35) !important;
+    color: var(--color-ember-700) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 4 — step icons Material Symbols + animações refinadas
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   15. STEP INDICATORS — substitui Unicode ✓/○ por Material Symbols via JS
+   O JS marca cada button do stepper com .pmra-step-done / .pmra-step-pending /
+   .pmra-step-current, e remove o caractere unicode do textContent (movido pra
+   atributo data-step-label como fallback de leitura por screen reader não é
+   afetado porque o <p> com o nome continua existindo).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row button.pmra-step-done,
+.pmra-stepper-row button.pmra-step-pending,
+.pmra-stepper-row button.pmra-step-current {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+.pmra-stepper-row button.pmra-step-done::before,
+.pmra-stepper-row button.pmra-step-pending::before,
+.pmra-stepper-row button.pmra-step-current::before {
+    font-family: 'Material Symbols Outlined' !important;
+    font-feature-settings: 'liga' !important;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    font-size: 18px;
+    flex-shrink: 0;
+    display: inline-block;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    transition: transform 280ms var(--ease-spring),
+                color 220ms var(--ease-smooth);
+}
+.pmra-stepper-row button.pmra-step-done::before {
+    content: "check_circle";
+    color: var(--color-ember-600);
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    animation: pmra-check-pop-stepper 420ms var(--ease-spring) both;
+}
+.pmra-stepper-row button.pmra-step-pending::before {
+    content: "radio_button_unchecked";
+    color: var(--color-ink-400);
+    opacity: 0.55;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.pmra-stepper-row button.pmra-step-pending:hover::before {
+    color: var(--color-ember-500);
+    opacity: 0.85;
+    transform: scale(1.08);
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    content: "circle";
+    color: #ffffff;
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 12px;
+    transform: scale(0.85);
+    animation: pmra-current-pulse 2400ms var(--ease-smooth) infinite;
+}
+
+@keyframes pmra-check-pop-stepper {
+    0% { opacity: 0; transform: scale(0) rotate(-30deg); }
+    55% { opacity: 1; transform: scale(1.25) rotate(0deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes pmra-current-pulse {
+    0%, 100% { opacity: 0.9; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   16. CARD HOVER — refinamento com escala muito leve (1.002) + translate
+   Sensação tátil "elevado e crescendo" sem distorcer texto/inputs internos.
+   ────────────────────────────────────────────────────────────────────────────*/
+div[data-testid="stVerticalBlock"] > div[style*="border"] {
+    transition: transform 280ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth) !important;
+}
+div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+    transform: translateY(-1px) scale(1.0015) !important;
+}
+.review-card {
+    transition: transform 320ms var(--ease-smooth),
+                box-shadow 320ms var(--ease-smooth) !important;
+}
+.review-card:hover {
+    transform: translateY(-2px) scale(1.0025) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   17. INPUTS — micro-interaction no focus com easing smooth
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-baseweb="input"],
+[data-baseweb="textarea"],
+[data-baseweb="select"],
+[data-baseweb="base-input"] {
+    transition: border-color 220ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth),
+                background-color 220ms var(--ease-smooth) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   18. CHECKBOX CARDS — bounce sutil no momento da seleção
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stColumn"] [data-testid="stCheckbox"] {
+    transition: background-color 220ms var(--ease-smooth),
+                border-color 220ms var(--ease-smooth),
+                transform 260ms var(--ease-spring),
+                box-shadow 260ms var(--ease-smooth) !important;
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    animation: pmra-card-select 360ms var(--ease-spring);
+}
+@keyframes pmra-card-select {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.025); }
+    100% { transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   19. SEGMENTED CONTROL — bounce na pílula selecionada + shadow elegante
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [role="radiogroup"] > label {
+    transition: background-color 220ms var(--ease-smooth),
+                color 220ms var(--ease-smooth),
+                transform 260ms var(--ease-spring),
+                box-shadow 260ms var(--ease-smooth) !important;
+}
+.stApp [role="radiogroup"] > label:has(input:checked) {
+    animation: pmra-pill-select 380ms var(--ease-spring);
+}
+@keyframes pmra-pill-select {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   20. SUCCESS / ERROR CARDS — refinamento da animação de entrada (mais polida)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card,
+.pmra-error-card {
+    animation: pmra-card-in 520ms var(--ease-spring);
+    will-change: transform, opacity;
+}
+@keyframes pmra-card-in {
+    0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+    60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   21. PRIMARY BUTTONS — micro-press feedback ao clicar (active)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button[kind="primary"]:active,
+.stApp [data-testid="stBaseButton-primary"] > button:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:active:not(:disabled) {
+    transform: translateY(0) scale(0.99) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   22. ICONES PMRA — pequena animação ao aparecer (subheaders das seções)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-section-icon,
+.pmra-icon {
+    animation: pmra-icon-in 360ms var(--ease-smooth) both;
+}
+@keyframes pmra-icon-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 0.85; transform: scale(1); }
+}
+.pmra-section-icon {
+    transition: transform 280ms var(--ease-spring);
+}
+h2:hover .pmra-section-icon {
+    transform: scale(1.08) rotate(-3deg);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   23. REDUÇÃO DE MOVIMENTO — respeita prefers-reduced-motion
+   ────────────────────────────────────────────────────────────────────────────*/
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
