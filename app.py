@@ -1318,9 +1318,16 @@ elif current == 4:
             )
         except Exception:
             logger.exception("Falha ao gerar proposta")
-            st.error(
-                "Não foi possível gerar a proposta. Verifique os campos preenchidos "
-                "e tente novamente. Se o problema persistir, contate o suporte."
+            st.markdown(
+                '<div class="pmra-error-card">'
+                '<span class="material-symbols-outlined pmra-error-icon">error</span>'
+                '<div class="pmra-error-text">'
+                '<div class="pmra-error-title">Não foi possível gerar a proposta</div>'
+                '<div class="pmra-error-subtitle">'
+                'Verifique os campos preenchidos e tente novamente. '
+                'Se o problema persistir, contate o suporte.'
+                '</div></div></div>',
+                unsafe_allow_html=True,
             )
 
     if st.session_state.generated_doc:

@@ -519,22 +519,26 @@ div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
    versões). */
 [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
     position: sticky;
-    top: 0;
+    top: 4px;
     z-index: 25;
     background-color: rgba(250, 249, 247, 0.92);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
-    padding: 8px 12px;
-    margin-left: -12px;
-    margin-right: -12px;
+    padding: 8px 14px;
     margin-top: -4px;
-    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border-radius: 18px;
     transition: box-shadow 220ms var(--ease-out-soft),
-                background-color 220ms var(--ease-out-soft);
+                background-color 220ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft);
 }
 .pmra-stepper-row.pmra-stepper-scrolled {
-    box-shadow: 0 8px 24px -12px rgba(15, 15, 20, 0.18),
-                0 2px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.05),
+        0 12px 32px -14px rgba(15, 15, 20, 0.22),
+        0 4px 12px -6px rgba(249, 115, 22, 0.10);
     background-color: rgba(250, 249, 247, 0.97) !important;
 }
 
@@ -624,7 +628,7 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] > div:first-child .pmr
 .pmra-info-note {
     background: rgba(59, 130, 246, 0.08);
     border-left: 3px solid #3b82f6;
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 14px 18px;
     font-family: var(--font-sans);
     font-size: 13.5px;
@@ -685,6 +689,7 @@ hr {
     border-color: rgba(0,0,0,0.08) !important;
     background: transparent !important;
     box-shadow: none !important;
+    border-radius: 12px !important;
     opacity: 0.65 !important;
     transition: all 180ms var(--ease-out-soft) !important;
 }
@@ -800,10 +805,32 @@ hr {
 }
 .pmra-login-logo {
     margin-bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: var(--color-glass-white);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-glass);
+    transition: transform 260ms var(--ease-out-soft),
+                box-shadow 260ms var(--ease-out-soft);
+}
+.pmra-login-logo:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.24),
+        0 6px 18px -8px rgba(249, 115, 22, 0.18);
 }
 .pmra-login-logo svg {
     height: 72px;
     width: auto;
+    border-radius: 14px;
+    display: block;
 }
 .pmra-login-title,
 .pmra-login-subtitle,
@@ -857,7 +884,9 @@ hr {
     font-size: 11px;
     color: var(--color-ink-400);
     margin-top: 40px;
-    border-radius: 16px 16px 0 0;
+    margin-bottom: 16px;
+    border-radius: 18px;
+    border: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 .pmra-footer-left {
     font-family: var(--font-display);
@@ -1086,4 +1115,124 @@ div[data-testid="stVerticalBlock"] > div[style*="border"] {
 .stApp [role="combobox"]:focus-visible {
     outline: none !important;
     /* O focus-within do parent já aplica o ring laranja nos inputs */
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 3 — round corners completos + extras
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. ERROR CARD — pareado com .pmra-success-card para mensagem de falha
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-error-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04));
+    border-left: 3px solid #dc2626;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 360ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(239, 68, 68, 0.25);
+}
+.pmra-error-icon {
+    font-size: 32px !important;
+    color: #dc2626 !important;
+    flex-shrink: 0;
+}
+.pmra-error-text { display: flex; flex-direction: column; gap: 2px; }
+.pmra-error-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #7f1d1d;
+    letter-spacing: -0.01em;
+}
+.pmra-error-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #991b1b;
+    line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. BOTÕES SECUNDÁRIOS — hover lift consistente (Anterior, etc)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-testid="stBaseButton-secondary"] > button,
+.stApp button[kind="secondary"] {
+    transition: background 200ms var(--ease-out-soft),
+                color 200ms var(--ease-out-soft),
+                border-color 200ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled),
+.stApp button[kind="secondary"]:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+        0 4px 12px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   11. SUB-HEADERS — barra decorativa ember à esquerda do texto
+   Adicionado ao pseudo-element ::before do .pmra-sub-hdr (em complemento ao
+   ícone Material Symbols que já está no HTML).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-sub-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   12. LOGIN FORM — container glassmorphism em torno do campo de senha
+   Streamlit gera um <div data-testid="stForm"> em volta de st.form().
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stForm"] {
+    background: var(--color-glass-strong) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-glass) !important;
+    padding: 22px 24px !important;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+[data-testid="stForm"]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.22),
+        0 6px 18px -8px rgba(249, 115, 22, 0.12) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   13. ROUND CORNERS GLOBAIS — todo elemento com border-radius < 8 sobe pra 8
+   Garante consistência visual em pequenos elementos que ficaram com radius
+   muito baixo (alguns botões nativos do Baseweb).
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-baseweb="popover"],
+.stApp [data-baseweb="popover-content"],
+.stApp [data-baseweb="menu"],
+.stApp [data-baseweb="list"],
+.stApp [data-baseweb="select-dropdown"] {
+    border-radius: 14px !important;
+}
+.stApp [role="option"] {
+    border-radius: 8px !important;
+    margin: 2px 4px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   14. STEPPER BUTTONS — hover lift individual (cada pill)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 1) !important;
+    border-color: rgba(249, 115, 22, 0.35) !important;
+    color: var(--color-ember-700) !important;
 }
