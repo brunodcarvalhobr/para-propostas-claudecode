@@ -1,29 +1,31 @@
-#!/usr/bin/env bash
-# Incrementa automaticamente o patch de APP_VERSION em app.py a cada commit.
-set -euo pipefail
+#!/usr/bin/env python3
+"""Incrementa automaticamente o patch de APP_VERSION em app.py a cada commit."""
+import re
+import subprocess
+import sys
+from pathlib import Path
 
-APP_FILE="app.py"
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-TARGET="$REPO_ROOT/$APP_FILE"
+APP_FILE = "app.py"
+repo_root = Path(
+    subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
+)
+target = repo_root / APP_FILE
 
-if [[ ! -f "$TARGET" ]]; then
-    exit 0
-fi
+if not target.exists():
+    sys.exit(0)
 
-current=$(grep -oP 'APP_VERSION\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' "$TARGET" || true)
-if [[ -z "$current" ]]; then
-    exit 0
-fi
+content = target.read_text(encoding="utf-8")
+m = re.search(r'APP_VERSION\s*=\s*"(\d+)\.(\d+)\.(\d+)"', content)
+if not m:
+    sys.exit(0)
 
-major="${current%%.*}"
-rest="${current#*.}"
-minor="${rest%%.*}"
-patch="${rest#*.}"
-
-new_patch=$(( patch + 1 ))
-new_version="${major}.${minor}.${new_patch}"
-
-sed -i "s/APP_VERSION = \"${current}\"/APP_VERSION = \"${new_version}\"/" "$TARGET"
-git add "$TARGET"
-
-echo "🔖  APP_VERSION: ${current} → ${new_version}"
+major, minor, patch = m.group(1), m.group(2), int(m.group(3))
+new_version = f"{major}.{minor}.{patch + 1}"
+new_content = re.sub(
+    r'APP_VERSION\s*=\s*"\d+\.\d+\.\d+"',
+    f'APP_VERSION = "{new_version}"',
+    content,
+)
+target.write_text(new_content, encoding="utf-8")
+subprocess.run(["git", "add", str(target)], check=True)
+print(f"🔖  APP_VERSION: {m.group(1)}.{m.group(2)}.{m.group(3)} → {new_version}")
