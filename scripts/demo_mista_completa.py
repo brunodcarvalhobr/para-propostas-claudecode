@@ -40,6 +40,7 @@ def cenario_mista_completa():
         Contato(telefone="(31) 3333-4444", email="juridico@verdejar.com.br"),
         Contato(telefone="(31) 99999-8888", email="carolina.mendes@verdejar.com.br"),
         Contato(telefone="(31) 98765-4321", email="financeiro@verdejar.com.br"),
+        Contato(telefone="(31) 90000-0000", email="teste@verdejar.com.br"),  # linha extra de teste
     ]
 
     # ── Escopo mista, com SLA
@@ -74,6 +75,7 @@ def cenario_mista_completa():
         SenioridadeRow(categoria="Associado Pleno", valor="650,00"),
         SenioridadeRow(categoria="Associado Junior", valor="450,00"),
         SenioridadeRow(categoria="Estagiario/Paralegal", valor="250,00"),
+        SenioridadeRow(categoria="Categoria Teste", valor="100,00"),  # linha extra de teste
     ]
     f.honorarios_consultiva.hora_fixa_valor = "700,00"
     f.honorarios_consultiva.fixo_mensal_valor = "15.000,00"
@@ -100,6 +102,7 @@ def cenario_mista_completa():
         AcaoRow(natureza="Tributaria", fase="Defesa administrativa", valor="8.000,00"),
         AcaoRow(natureza="Tributaria", fase="Execucao fiscal", valor="12.000,00"),
         AcaoRow(natureza="Ambiental", fase="Conhecimento e perícia", valor="9.500,00"),
+        AcaoRow(natureza="Natureza Teste", fase="Fase Teste", valor="999,00"),  # linha extra de teste
     ]
     f.honorarios_contenciosa.tabela_atos = [
         AtoProcessualRow(ato="Petição Inicial", descricao="Elaboracao e protocolo da peca inaugural.", valor="2.000,00"),
@@ -111,6 +114,7 @@ def cenario_mista_completa():
         AtoProcessualRow(ato="Audiência", descricao="Comparecimento, acompanhamento e atuacao em audiencia.", valor="1.500,00"),
         AtoProcessualRow(ato="Diligência Externa", descricao="Realizacao de diligencia presencial em cartorio, orgao publico ou unidade do Contratante.", valor="850,00"),
         AtoProcessualRow(ato="Memoriais Finais", descricao="Razoes finais escritas.", valor="1.800,00"),
+        AtoProcessualRow(ato="Ato de Teste", descricao="Descricao de teste para validacao do template.", valor="500,00"),  # linha extra de teste
     ]
     f.honorarios_contenciosa.preco_mensal_valor = "8.000,00"
     f.honorarios_contenciosa.preco_mensal_maximo_acoes = "20"
@@ -137,6 +141,7 @@ def cenario_mista_completa():
         SenioridadeRow(categoria="Associado Pleno", valor="750,00"),
         SenioridadeRow(categoria="Associado Junior", valor="550,00"),
         SenioridadeRow(categoria="Estagiario/Paralegal", valor="300,00"),
+        SenioridadeRow(categoria="Categoria Teste", valor="150,00"),  # linha extra de teste
     ]
 
     # ── Despesas
@@ -165,6 +170,10 @@ def cenario_mista_completa():
                 "do Contratante, apurados conforme orcamento previamente aprovado."
             ),
         ),
+        DespesaItem(
+            categoria="Categoria de Teste",
+            descricao="Descricao de teste para validacao da geracao de tabela com nova linha adicionada via formulario.",
+        ),  # linha extra de teste
     ]
     f.despesas.taxa_manutencao_ativa = True
     f.despesas.taxa_manutencao_processual = "50,00 por processo/mes"
