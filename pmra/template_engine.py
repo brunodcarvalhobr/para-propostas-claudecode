@@ -101,19 +101,28 @@ def _collapse_empty_paragraphs(xml: str) -> str:
 
 
 _TBL_BORDERS_RE = re.compile(r"<w:tblBorders>(.*?)</w:tblBorders>", re.DOTALL)
-_TBL_BOTTOM_RE = re.compile(r"<w:bottom[^/]*/>")
+# So pega <w:bottom> com w:val NAO sendo nil/none. Preserva
+# <w:bottom w:val="nil"/> e <w:bottom w:val="none"/> (declaracoes
+# explicitas de "sem borda" em tabelas invisiveis como assinaturas/
+# testemunhas — remove-las faz Word cair no default visivel).
+_TBL_BOTTOM_VISIBLE_RE = re.compile(
+    r'<w:bottom(?![^/]*w:val="(?:nil|none)")[^/]*/>'
+)
 
 
 def _remove_table_outer_bottom_borders(xml: str) -> str:
-    """Remove a borda inferior do <w:tblBorders> de cada tabela.
+    """Remove a borda inferior VISIVEL do <w:tblBorders> de cada tabela.
 
     Sem isso, a ultima linha aparenta ser mais grossa porque a borda
     inferior da CELULA (em tcBorders) e a borda inferior da TABELA
     (em tblBorders) se sobrepoem visualmente. A borda inferior das
     celulas da ultima linha continua desenhando o fim da tabela.
+
+    Tabelas com w:val="nil"/"none" (assinaturas, testemunhas) ficam
+    intactas — sem isso, Word substitui pelo default visivel.
     """
     def repl(m: re.Match[str]) -> str:
-        inner = _TBL_BOTTOM_RE.sub("", m.group(1))
+        inner = _TBL_BOTTOM_VISIBLE_RE.sub("", m.group(1))
         return f"<w:tblBorders>{inner}</w:tblBorders>"
 
     return _TBL_BORDERS_RE.sub(repl, xml)
