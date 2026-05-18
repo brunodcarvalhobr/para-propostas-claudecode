@@ -115,6 +115,8 @@ class HonorariosConsultiva(BaseModel):
     fixo_mensal_cap: str = ""
     fixo_mensal_excedente: str = ""
     valor_projeto_total: str = ""
+    valor_projeto_cap_ativo: bool = False
+    valor_projeto_cap: str = ""
     valor_projeto_forma_pagamento: str = ""
 
 

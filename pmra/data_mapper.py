@@ -145,6 +145,8 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "fixo_mensal_cap": form.honorarios_consultiva.fixo_mensal_cap,
             "fixo_mensal_excedente": _fmt_money(form.honorarios_consultiva.fixo_mensal_excedente),
             "valor_projeto_total": _fmt_money(form.honorarios_consultiva.valor_projeto_total),
+            "show_valor_projeto_cap": show_consultiva and consultiva_mod.valor_projeto and form.honorarios_consultiva.valor_projeto_cap_ativo,
+            "valor_projeto_cap": form.honorarios_consultiva.valor_projeto_cap,
             "valor_projeto_forma_pagamento": form.honorarios_consultiva.valor_projeto_forma_pagamento,
         },
         "contenciosa": {

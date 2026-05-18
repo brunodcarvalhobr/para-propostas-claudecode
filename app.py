@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.15"
+APP_VERSION = "2.0.16"
 
 
 @st.cache_data
@@ -353,6 +353,7 @@ def _init_state() -> None:
         ("cons_fm_valor",   ("honorarios_consultiva", "fixo_mensal_valor")),
         ("cons_fm_exc",     ("honorarios_consultiva", "fixo_mensal_excedente")),
         ("cons_vp_total",   ("honorarios_consultiva", "valor_projeto_total")),
+        ("cons_vp_cap",     ("honorarios_consultiva", "valor_projeto_cap")),
         ("cont_pm_valor",   ("honorarios_contenciosa", "preco_mensal_valor")),
         ("cont_vp_total",   ("honorarios_contenciosa", "valor_projeto_total")),
         ("cont_extra_valor",("honorarios_contenciosa", "horas_extra_valor")),
@@ -746,6 +747,18 @@ def _step_honorarios() -> None:
                     on_change=_on_money_change,
                     args=("cons_vp_total",),
                 )
+                form["honorarios_consultiva"]["valor_projeto_cap_ativo"] = st.toggle(
+                    "Incluir cap de horas?",
+                    value=form["honorarios_consultiva"]["valor_projeto_cap_ativo"],
+                    key="cons_vp_cap_ativo",
+                )
+                if form["honorarios_consultiva"]["valor_projeto_cap_ativo"]:
+                    form["honorarios_consultiva"]["valor_projeto_cap"] = st.text_input(
+                        "Cap de horas",
+                        value=form["honorarios_consultiva"]["valor_projeto_cap"],
+                        placeholder="Ex: 40",
+                        key="cons_vp_cap",
+                    )
                 form["honorarios_consultiva"]["valor_projeto_forma_pagamento"] = st.text_area(
                     "Forma ou prazos de pagamento",
                     value=form["honorarios_consultiva"]["valor_projeto_forma_pagamento"],
