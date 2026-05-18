@@ -421,6 +421,7 @@ def _build_consultiva_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
     sd = doc.new_subdoc()
     letra = hon.get("letra", "")
     _subdoc_append(sd, _para_xml(f"Honorários — Escopo Consultivo {letra}", bold=True, justify=False))
+    _subdoc_append(sd, _blank_para_xml())
 
     if hon.get("show_hora_senioridade"):
         _subdoc_append(sd, _para_xml(
@@ -479,6 +480,7 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
     sd = doc.new_subdoc()
     letra = hon.get("letra", "")
     _subdoc_append(sd, _para_xml(f"Honorários — Escopo Contencioso {letra}", bold=True, justify=False))
+    _subdoc_append(sd, _blank_para_xml())
 
     if hon.get("show_valor_acao"):
         _subdoc_append(sd, _para_xml(
