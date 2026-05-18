@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.18"
+APP_VERSION = "2.0.19"
 
 
 @st.cache_data
@@ -380,6 +380,7 @@ def _init_state() -> None:
         ("cont_pm",            ("honorarios_contenciosa", "modalidades", "preco_mensal_massa")),
         ("cont_vp",            ("honorarios_contenciosa", "modalidades", "valor_projeto")),
         ("cont_exito_cb",      ("honorarios_contenciosa", "exito_ativo")),
+        ("cons_vp_cap_ativo",  ("honorarios_consultiva",  "valor_projeto_cap_ativo")),
         ("desp_taxa_ativa_cb", ("despesas", "taxa_manutencao_ativa")),
         ("sla_ativo_cb",       ("escopo", "sla_ativo")),
         ("disp_ativo_cb",      ("disposicoes", "ativo")),
@@ -749,7 +750,6 @@ def _step_honorarios() -> None:
                 )
                 form["honorarios_consultiva"]["valor_projeto_cap_ativo"] = st.checkbox(
                     "Incluir cap de horas?",
-                    value=form["honorarios_consultiva"]["valor_projeto_cap_ativo"],
                     key="cons_vp_cap_ativo",
                 )
                 if form["honorarios_consultiva"]["valor_projeto_cap_ativo"]:
