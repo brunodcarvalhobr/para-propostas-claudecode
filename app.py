@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.20"
+APP_VERSION = "2.0.21"
 
 
 @st.cache_data
@@ -1310,7 +1310,10 @@ elif current == 4:
                 '<div class="pmra-success-text">'
                 '<div class="pmra-success-title">Proposta gerada com sucesso</div>'
                 '<div class="pmra-success-subtitle">'
-                'Clique em <strong>Baixar .docx</strong> para salvar no seu dispositivo.'
+                'Clique em <strong>Baixar .docx</strong> para salvar no seu dispositivo. '
+                '<strong>Lembre-se de revisar o documento gerado. Qualquer ajuste específico necessário '
+                'fora do padrão gerado deve ser feito manualmente por você no Word. Evite alterar '
+                'qualquer condição dos Termos Gerais sem aprovação da Diretoria.</strong>'
                 '</div></div></div>',
                 unsafe_allow_html=True,
             )
