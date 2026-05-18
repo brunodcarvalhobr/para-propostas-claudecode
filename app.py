@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.12"
+APP_VERSION = "2.0.13"
 
 
 @st.cache_data
@@ -771,13 +771,13 @@ def _step_honorarios() -> None:
                 st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
                 form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
                     "tbl_acoes",
-                    {"natureza": "Natureza da ação", "fase": "Fase processual", "valor": "Valor"},
+                    {"natureza": "Natureza da ação", "fase": "Instâncias de Atuação", "valor": "Valor"},
                     help_text="Ex: Trabalhista | Conhecimento | R$ 5.000,00",
                     col_widths=[3, 3, 2],
                     field_formatters={"valor": _on_money_change},
                     placeholders={
                         "natureza": "Natureza da ação",
-                        "fase": "Fase processual",
+                        "fase": "Preencher",
                         "valor": "R$ 0,00",
                     },
                 )
