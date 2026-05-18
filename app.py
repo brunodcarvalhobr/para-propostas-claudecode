@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.19"
+APP_VERSION = "2.0.20"
 
 
 @st.cache_data
@@ -366,10 +366,18 @@ def _init_state() -> None:
                 v = v[p]
             st.session_state[widget_key] = v
 
-    # Mesmo pattern para checkboxes e radios — passar `value=` + `key=` juntos
-    # ao mesmo tempo causa bug conhecido do Streamlit: precisa de 2 cliques pra
-    # alternar (segundo click é tratado como reset, não toggle). Pre-populando
-    # session_state aqui e usando apenas `key=` nos widgets, evitamos o conflito.
+    # ── REGRA OBRIGATÓRIA PARA TODO NOVO CHECKBOX ─────────────────────────────
+    # Passar `value=` + `key=` juntos num st.checkbox causa lag/duplo-render:
+    # o Streamlit trata o segundo clique como reset em vez de toggle.
+    #
+    # PADRÃO CORRETO — dois passos:
+    #   1. Adicione a entrada aqui em _BOOL_FORM_PATHS:
+    #        ("minha_key", ("caminho", "no", "form"))
+    #   2. No widget, use APENAS `key=`, SEM `value=`:
+    #        form["x"]["y"] = st.checkbox("Label", key="minha_key")
+    #
+    # NÃO FAÇA: st.checkbox("Label", value=form["x"]["y"], key="minha_key")
+    # ──────────────────────────────────────────────────────────────────────────
     _BOOL_FORM_PATHS = (
         ("cons_hs",            ("honorarios_consultiva", "modalidades", "hora_senioridade")),
         ("cons_hf",            ("honorarios_consultiva", "modalidades", "hora_fixa")),
