@@ -14,11 +14,12 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import Pt
+from html import escape as _xml_escape
+
+from docx.oxml import parse_xml
 from docxtpl import DocxTemplate
+
+_W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 
 TEMPLATE_PATH = (
     Path(__file__).resolve().parent.parent
@@ -216,97 +217,164 @@ def _post_process(docx_bytes: bytes) -> bytes:
     return dst.getvalue()
 
 
-def _add_styled_paragraph(sd, text: str, *, bold: bool = False, justify: bool = True):
-    """Adiciona parágrafo Arvo sz=10pt, opcionalmente bold e justificado."""
-    p = sd.add_paragraph()
-    if justify:
-        p.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
-    run = p.add_run(text)
-    run.font.name = "Arvo"
-    run.font.size = Pt(10)
-    if bold:
-        run.font.bold = True
-    return p
+_BORDER_COLOR = "1A3557"  # azul escuro do template
+_HEADER_FILL  = "FAE2D5"  # bege/rosa do header
+_FIRSTCOL_FILL = "FFF9F4"  # creme claro da primeira coluna
+
+_TC_BORDERS = (
+    f'<w:tcBorders>'
+    f'<w:top w:val="single" w:sz="4" w:space="0" w:color="{_BORDER_COLOR}"/>'
+    f'<w:left w:val="single" w:sz="4" w:space="0" w:color="{_BORDER_COLOR}"/>'
+    f'<w:bottom w:val="single" w:sz="4" w:space="0" w:color="{_BORDER_COLOR}"/>'
+    f'<w:right w:val="single" w:sz="4" w:space="0" w:color="{_BORDER_COLOR}"/>'
+    f'</w:tcBorders>'
+)
+_TC_MAR = (
+    '<w:tcMar>'
+    '<w:top w:w="100" w:type="dxa"/><w:left w:w="120" w:type="dxa"/>'
+    '<w:bottom w:w="100" w:type="dxa"/><w:right w:w="120" w:type="dxa"/>'
+    '</w:tcMar>'
+)
 
 
-def _add_blank_paragraph(sd):
-    """Espaçador entre blocos no subdoc."""
-    p = sd.add_paragraph()
-    run = p.add_run("")
-    run.font.name = "Arvo"
-    run.font.size = Pt(10)
-    return p
+def _subdoc_append(sd, xml_block: str) -> None:
+    """Insere bloco XML (w:p ou w:tbl) no body do subdoc, antes do sectPr."""
+    elem = parse_xml(xml_block)
+    body = sd.subdocx.element.body
+    # sectPr deve ficar SEMPRE no fim do body — inserimos antes dele
+    sectpr = body.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sectPr')
+    if sectpr is not None:
+        sectpr.addprevious(elem)
+    else:
+        body.append(elem)
 
 
-def _apply_borders(table) -> None:
-    """Aplica bordas single sz=4 em todos os lados (igual às tabelas do template)."""
-    tblPr = table._tbl.tblPr
-    tblBorders = OxmlElement("w:tblBorders")
-    for name in ("top", "left", "bottom", "right", "insideH", "insideV"):
-        b = OxmlElement(f"w:{name}")
-        b.set(qn("w:val"), "single")
-        b.set(qn("w:sz"), "4")
-        b.set(qn("w:space"), "0")
-        b.set(qn("w:color"), "auto")
-        tblBorders.append(b)
-    tblPr.append(tblBorders)
+def _para_xml(text: str, *, bold: bool = False, justify: bool = True) -> str:
+    """Parágrafo Arvo sz=10pt; bold opcional, justificado por padrão."""
+    jc = '<w:jc w:val="both"/>' if justify else ""
+    rpr_bold = "<w:b/><w:bCs/>" if bold else ""
+    return (
+        f'<w:p {_W_NS}>'
+        f'<w:pPr><w:spacing w:line="276" w:lineRule="auto"/>{jc}'
+        f'<w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/>{rpr_bold}'
+        f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr>'
+        f'<w:r><w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/>{rpr_bold}'
+        f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>'
+        f'<w:t xml:space="preserve">{_xml_escape(text)}</w:t></w:r>'
+        f'</w:p>'
+    )
 
 
-def _set_cell_text(cell, text: str, *, bold: bool = False) -> None:
-    """Substitui o texto da célula preservando estilo Arvo sz=10."""
-    cell.text = ""
-    p = cell.paragraphs[0]
-    p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    run = p.add_run(text)
-    run.font.name = "Arvo"
-    run.font.size = Pt(10)
-    if bold:
-        run.font.bold = True
+def _blank_para_xml() -> str:
+    return (
+        f'<w:p {_W_NS}>'
+        f'<w:pPr><w:spacing w:line="276" w:lineRule="auto"/>'
+        f'<w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/>'
+        f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr>'
+        f'</w:p>'
+    )
 
 
-def _add_bordered_table(sd, headers: list[str], rows: list[list[str]]):
-    """Cria tabela bordada com header em bold."""
-    table = sd.add_table(rows=len(rows) + 1, cols=len(headers))
-    _apply_borders(table)
-    for j, h in enumerate(headers):
-        _set_cell_text(table.rows[0].cells[j], h, bold=True)
-    for i, row in enumerate(rows):
-        for j, val in enumerate(row):
-            _set_cell_text(table.rows[i + 1].cells[j], str(val))
-    return table
+def _table_xml(headers: list[str], rows: list[list[str]], col_widths_dxa: list[int]) -> str:
+    """Tabela com estilo idêntico ao template (header bege, 1ª coluna creme, bordas azul-escuro)."""
+    total_w = sum(col_widths_dxa)
+
+    tbl_pr = (
+        '<w:tblPr>'
+        f'<w:tblW w:w="{total_w}" w:type="dxa"/>'
+        '<w:tblBorders>'
+        f'<w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        f'<w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        f'<w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        f'<w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        f'<w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        f'<w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
+        '</w:tblBorders>'
+        '<w:tblCellMar><w:left w:w="10" w:type="dxa"/><w:right w:w="10" w:type="dxa"/></w:tblCellMar>'
+        '<w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>'
+        '</w:tblPr>'
+    )
+    tbl_grid = '<w:tblGrid>' + ''.join(f'<w:gridCol w:w="{w}"/>' for w in col_widths_dxa) + '</w:tblGrid>'
+
+    # Header row (fundo bege, texto centralizado bold)
+    hdr_cells: list[str] = []
+    for i, h in enumerate(headers):
+        hdr_cells.append(
+            f'<w:tc>'
+            f'<w:tcPr>'
+            f'<w:tcW w:w="{col_widths_dxa[i]}" w:type="dxa"/>'
+            f'{_TC_BORDERS}'
+            f'<w:shd w:val="clear" w:color="auto" w:fill="{_HEADER_FILL}"/>'
+            f'{_TC_MAR}'
+            f'</w:tcPr>'
+            f'<w:p>'
+            f'<w:pPr><w:spacing w:line="276" w:lineRule="auto"/><w:jc w:val="center"/>'
+            f'<w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/><w:b/><w:bCs/>'
+            f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr>'
+            f'<w:r><w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/><w:b/><w:bCs/>'
+            f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>'
+            f'<w:t xml:space="preserve">{_xml_escape(h)}</w:t></w:r>'
+            f'</w:p></w:tc>'
+        )
+    header_row = f'<w:tr>{"".join(hdr_cells)}</w:tr>'
+
+    # Data rows (1ª coluna com fundo creme, demais transparentes; texto normal)
+    data_rows: list[str] = []
+    for row in rows:
+        cells: list[str] = []
+        for i, val in enumerate(row):
+            shd = f'<w:shd w:val="clear" w:color="auto" w:fill="{_FIRSTCOL_FILL}"/>' if i == 0 else ''
+            jc = '<w:jc w:val="both"/>'
+            cells.append(
+                f'<w:tc>'
+                f'<w:tcPr>'
+                f'<w:tcW w:w="{col_widths_dxa[i]}" w:type="dxa"/>'
+                f'{_TC_BORDERS}'
+                f'{shd}'
+                f'{_TC_MAR}'
+                f'</w:tcPr>'
+                f'<w:p>'
+                f'<w:pPr><w:spacing w:line="276" w:lineRule="auto"/>{jc}'
+                f'<w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/>'
+                f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:pPr>'
+                f'<w:r><w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/>'
+                f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>'
+                f'<w:t xml:space="preserve">{_xml_escape(str(val))}</w:t></w:r>'
+                f'</w:p></w:tc>'
+            )
+        data_rows.append(f'<w:tr>{"".join(cells)}</w:tr>')
+
+    return f'<w:tbl {_W_NS}>{tbl_pr}{tbl_grid}{header_row}{"".join(data_rows)}</w:tbl>'
 
 
 def _build_consultiva_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
     """Subdoc com bloco completo de honorários consultivos para um escopo."""
     sd = doc.new_subdoc()
     letra = hon.get("letra", "")
-    _add_styled_paragraph(sd, f"Honorários — Escopo Consultivo {letra}", bold=True, justify=False)
+    _subdoc_append(sd, _para_xml(f"Honorários — Escopo Consultivo {letra}", bold=True, justify=False))
 
     if hon.get("show_hora_senioridade"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             "Os honorários serão apurados conforme a tabela de senioridade abaixo, "
-            "com base em relatório mensal de horas executadas.",
-        )
+            "com base em relatório mensal de horas executadas."
+        ))
         rows = [[r.get("categoria", ""), r.get("valor", "")] for r in hon.get("tabela_senioridade", [])]
         if rows:
-            _add_bordered_table(sd, ["Categoria", "Valor por hora"], rows)
+            _subdoc_append(sd, _table_xml(["Categoria", "Valor por Hora (R$)"], rows, [3208, 6426]))
 
     if hon.get("show_hora_fixa"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             f"Os honorários serão apurados com base em valor horário único, aplicável indistintamente "
             f"a qualquer profissional alocado na prestação dos serviços consultivos, ao valor de "
-            f"{hon.get('hora_fixa_valor', '')} por hora.",
-        )
+            f"{hon.get('hora_fixa_valor', '')} por hora."
+        ))
 
     if hon.get("show_fixo_mensal"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             f"Honorários fixos mensais de {hon.get('fixo_mensal_valor', '')}, abrangendo até "
             f"{hon.get('fixo_mensal_cap', '')} de trabalho consultivo por mês. Horas excedentes "
-            f"ao cap serão cobradas a {hon.get('fixo_mensal_excedente', '')} por hora.",
-        )
+            f"ao cap serão cobradas a {hon.get('fixo_mensal_excedente', '')} por hora."
+        ))
 
     if hon.get("show_valor_projeto"):
         txt = (
@@ -316,11 +384,11 @@ def _build_consultiva_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
         if hon.get("show_valor_projeto_cap"):
             txt += f", com cap de {hon.get('valor_projeto_cap', '')} horas"
         txt += "."
-        _add_styled_paragraph(sd, txt)
+        _subdoc_append(sd, _para_xml(txt))
         if hon.get("valor_projeto_forma_pagamento"):
-            _add_styled_paragraph(sd, f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}")
+            _subdoc_append(sd, _para_xml(f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}"))
 
-    _add_blank_paragraph(sd)
+    _subdoc_append(sd, _blank_para_xml())
     return sd
 
 
@@ -328,58 +396,57 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
     """Subdoc com bloco completo de honorários contenciosos para um escopo."""
     sd = doc.new_subdoc()
     letra = hon.get("letra", "")
-    _add_styled_paragraph(sd, f"Honorários — Escopo Contencioso {letra}", bold=True, justify=False)
+    _subdoc_append(sd, _para_xml(f"Honorários — Escopo Contencioso {letra}", bold=True, justify=False))
 
     if hon.get("show_valor_acao"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             "Os honorários serão apurados em valor mensal por processo, conforme natureza e fase, "
-            "de acordo com a tabela abaixo:",
-        )
+            "de acordo com a tabela abaixo:"
+        ))
         rows = [
             [r.get("natureza", ""), r.get("fase", ""), r.get("valor", "")]
             for r in hon.get("tabela_acoes", [])
         ]
         if rows:
-            _add_bordered_table(sd, ["Natureza da ação", "Instâncias de Atuação", "Valor"], rows)
+            _subdoc_append(sd, _table_xml(
+                ["Natureza da ação", "Instâncias de Atuação", "Valor"], rows, [3400, 3400, 2834]
+            ))
 
     if hon.get("show_valor_ato"):
-        _add_styled_paragraph(
-            sd,
-            "Os honorários serão apurados por ato processual efetivamente praticado, conforme tabela:",
-        )
+        _subdoc_append(sd, _para_xml(
+            "Os honorários serão apurados por ato processual efetivamente praticado, conforme tabela:"
+        ))
         rows = [
             [r.get("ato", ""), r.get("descricao", ""), r.get("valor", "")]
             for r in hon.get("tabela_atos", [])
         ]
         if rows:
-            _add_bordered_table(sd, ["Ato processual", "Descrição", "Valor"], rows)
+            _subdoc_append(sd, _table_xml(
+                ["Ato Processual", "Descrição", "Valor"], rows, [2800, 4334, 2500]
+            ))
 
     if hon.get("show_preco_mensal"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             f"Preço mensal fixo de {hon.get('preco_mensal_valor', '')} para até "
             f"{hon.get('preco_mensal_maximo_acoes', '')} "
-            f"({hon.get('preco_mensal_maximo_acoes_extenso', '')}) ações em curso.",
-        )
+            f"({hon.get('preco_mensal_maximo_acoes_extenso', '')}) ações em curso."
+        ))
         if hon.get("preco_mensal_criterio_excedentes"):
-            _add_styled_paragraph(
-                sd,
-                f"Critério para ações excedentes: {hon.get('preco_mensal_criterio_excedentes', '')}",
-            )
+            _subdoc_append(sd, _para_xml(
+                f"Critério para ações excedentes: {hon.get('preco_mensal_criterio_excedentes', '')}"
+            ))
 
     if hon.get("show_valor_projeto"):
-        _add_styled_paragraph(
-            sd,
+        _subdoc_append(sd, _para_xml(
             f"Preço global para a condução integral do escopo delimitado: "
-            f"{hon.get('valor_projeto_total', '')}.",
-        )
+            f"{hon.get('valor_projeto_total', '')}."
+        ))
         if hon.get("valor_projeto_fases_cobertas"):
-            _add_styled_paragraph(sd, f"Ações e fases cobertas: {hon.get('valor_projeto_fases_cobertas', '')}")
+            _subdoc_append(sd, _para_xml(f"Ações e fases cobertas: {hon.get('valor_projeto_fases_cobertas', '')}"))
         if hon.get("valor_projeto_forma_pagamento"):
-            _add_styled_paragraph(sd, f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}")
+            _subdoc_append(sd, _para_xml(f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}"))
 
-    _add_blank_paragraph(sd)
+    _subdoc_append(sd, _blank_para_xml())
     return sd
 
 
