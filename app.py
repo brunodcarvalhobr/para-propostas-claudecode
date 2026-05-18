@@ -19,7 +19,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.14"
+APP_VERSION = "2.0.15"
 
 
 @st.cache_data
@@ -864,12 +864,18 @@ def _step_honorarios() -> None:
                     key="cont_exito_cb",
                 )
                 if form["honorarios_contenciosa"]["exito_ativo"]:
-                    form["honorarios_contenciosa"]["exito_percentual"] = st.text_input(
-                        "Percentual de êxito (%)",
-                        value=form["honorarios_contenciosa"]["exito_percentual"],
+                    _pct_raw = form["honorarios_contenciosa"]["exito_percentual"]
+                    _pct_val = int(_pct_raw) if str(_pct_raw).strip().rstrip("%").isdigit() else None
+                    _pct_input = st.number_input(
+                        "Percentual de êxito",
+                        min_value=1,
+                        max_value=100,
+                        value=_pct_val,
+                        step=1,
                         placeholder="Ex: 10",
                         key="cont_exito_pct",
                     )
+                    form["honorarios_contenciosa"]["exito_percentual"] = str(_pct_input) if _pct_input is not None else ""
 
                 # Taxa de manutencao processual — checkbox com a mesma logica do Exito
                 form["despesas"]["taxa_manutencao_ativa"] = st.checkbox(
