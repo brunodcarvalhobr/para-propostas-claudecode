@@ -100,6 +100,35 @@ def _collapse_empty_paragraphs(xml: str) -> str:
     return "".join(out)
 
 
+_SZ_RE = re.compile(r'<w:sz w:val="(\d+)"/>')
+_SZCS_RE = re.compile(r'<w:szCs w:val="(\d+)"/>')
+_RPR_RE = re.compile(r"<w:rPr>.*?</w:rPr>", re.DOTALL)
+
+
+def _force_font_size_10(xml: str) -> str:
+    """Normaliza todas as fontes do documento para 10pt (val=20 em half-points).
+
+    Preserva val=2 (paragrafos espacadores invisiveis de 1pt).
+    Adiciona tamanho explicito em runs que herdariam o default do estilo
+    Word (11pt), como ocorre com runs de RichText sem size declarado.
+    """
+    def _keep2(val: str) -> str:
+        return val if val == "2" else "20"
+
+    xml = _SZ_RE.sub(lambda m: f'<w:sz w:val="{_keep2(m.group(1))}"/>', xml)
+    xml = _SZCS_RE.sub(lambda m: f'<w:szCs w:val="{_keep2(m.group(1))}"/>', xml)
+
+    def _fix_rpr(m: re.Match[str]) -> str:
+        rpr = m.group(0)
+        if "<w:sz " not in rpr:
+            return rpr.replace("</w:rPr>", '<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>')
+        return rpr
+
+    xml = _RPR_RE.sub(_fix_rpr, xml)
+    xml = xml.replace("<w:rPr/>", '<w:rPr><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>')
+    return xml
+
+
 _TBL_BORDERS_RE = re.compile(r"<w:tblBorders>(.*?)</w:tblBorders>", re.DOTALL)
 # So pega <w:bottom> com w:val NAO sendo nil/none. Preserva
 # <w:bottom w:val="nil"/> e <w:bottom w:val="none"/> (declaracoes
@@ -144,6 +173,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                     xml = _split_linebreaks(xml)
                     xml = _collapse_empty_paragraphs(xml)
                     xml = _remove_table_outer_bottom_borders(xml)
+                    xml = _force_font_size_10(xml)
                     data = xml.encode("utf-8")
                 zout.writestr(item, data)
     return dst.getvalue()
