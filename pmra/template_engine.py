@@ -14,6 +14,10 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt
 from docxtpl import DocxTemplate
 
 TEMPLATE_PATH = (
@@ -179,6 +183,181 @@ def _post_process(docx_bytes: bytes) -> bytes:
     return dst.getvalue()
 
 
+def _add_styled_paragraph(sd, text: str, *, bold: bool = False, justify: bool = True):
+    """Adiciona parágrafo Arvo sz=10pt, opcionalmente bold e justificado."""
+    p = sd.add_paragraph()
+    if justify:
+        p.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+    run = p.add_run(text)
+    run.font.name = "Arvo"
+    run.font.size = Pt(10)
+    if bold:
+        run.font.bold = True
+    return p
+
+
+def _add_blank_paragraph(sd):
+    """Espaçador entre blocos no subdoc."""
+    p = sd.add_paragraph()
+    run = p.add_run("")
+    run.font.name = "Arvo"
+    run.font.size = Pt(10)
+    return p
+
+
+def _apply_borders(table) -> None:
+    """Aplica bordas single sz=4 em todos os lados (igual às tabelas do template)."""
+    tblPr = table._tbl.tblPr
+    tblBorders = OxmlElement("w:tblBorders")
+    for name in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        b = OxmlElement(f"w:{name}")
+        b.set(qn("w:val"), "single")
+        b.set(qn("w:sz"), "4")
+        b.set(qn("w:space"), "0")
+        b.set(qn("w:color"), "auto")
+        tblBorders.append(b)
+    tblPr.append(tblBorders)
+
+
+def _set_cell_text(cell, text: str, *, bold: bool = False) -> None:
+    """Substitui o texto da célula preservando estilo Arvo sz=10."""
+    cell.text = ""
+    p = cell.paragraphs[0]
+    p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    run = p.add_run(text)
+    run.font.name = "Arvo"
+    run.font.size = Pt(10)
+    if bold:
+        run.font.bold = True
+
+
+def _add_bordered_table(sd, headers: list[str], rows: list[list[str]]):
+    """Cria tabela bordada com header em bold."""
+    table = sd.add_table(rows=len(rows) + 1, cols=len(headers))
+    _apply_borders(table)
+    for j, h in enumerate(headers):
+        _set_cell_text(table.rows[0].cells[j], h, bold=True)
+    for i, row in enumerate(rows):
+        for j, val in enumerate(row):
+            _set_cell_text(table.rows[i + 1].cells[j], str(val))
+    return table
+
+
+def _build_consultiva_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
+    """Subdoc com bloco completo de honorários consultivos para um escopo."""
+    sd = doc.new_subdoc()
+    letra = hon.get("letra", "")
+    _add_styled_paragraph(sd, f"Honorários — Escopo Consultivo {letra}", bold=True, justify=False)
+
+    if hon.get("show_hora_senioridade"):
+        _add_styled_paragraph(
+            sd,
+            "Os honorários serão apurados conforme a tabela de senioridade abaixo, "
+            "com base em relatório mensal de horas executadas.",
+        )
+        rows = [[r.get("categoria", ""), r.get("valor", "")] for r in hon.get("tabela_senioridade", [])]
+        if rows:
+            _add_bordered_table(sd, ["Categoria", "Valor por hora"], rows)
+
+    if hon.get("show_hora_fixa"):
+        _add_styled_paragraph(
+            sd,
+            f"Os honorários serão apurados com base em valor horário único, aplicável indistintamente "
+            f"a qualquer profissional alocado na prestação dos serviços consultivos, ao valor de "
+            f"{hon.get('hora_fixa_valor', '')} por hora.",
+        )
+
+    if hon.get("show_fixo_mensal"):
+        _add_styled_paragraph(
+            sd,
+            f"Honorários fixos mensais de {hon.get('fixo_mensal_valor', '')}, abrangendo até "
+            f"{hon.get('fixo_mensal_cap', '')} de trabalho consultivo por mês. Horas excedentes "
+            f"ao cap serão cobradas a {hon.get('fixo_mensal_excedente', '')} por hora.",
+        )
+
+    if hon.get("show_valor_projeto"):
+        txt = (
+            "Os honorários serão fixados em valor global fechado, correspondente ao conjunto de "
+            f"entregas delimitadas no Escopo: {hon.get('valor_projeto_total', '')}"
+        )
+        if hon.get("show_valor_projeto_cap"):
+            txt += f", com cap de {hon.get('valor_projeto_cap', '')} horas"
+        txt += "."
+        _add_styled_paragraph(sd, txt)
+        if hon.get("valor_projeto_forma_pagamento"):
+            _add_styled_paragraph(sd, f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}")
+
+    _add_blank_paragraph(sd)
+    return sd
+
+
+def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
+    """Subdoc com bloco completo de honorários contenciosos para um escopo."""
+    sd = doc.new_subdoc()
+    letra = hon.get("letra", "")
+    _add_styled_paragraph(sd, f"Honorários — Escopo Contencioso {letra}", bold=True, justify=False)
+
+    if hon.get("show_valor_acao"):
+        _add_styled_paragraph(
+            sd,
+            "Os honorários serão apurados em valor mensal por processo, conforme natureza e fase, "
+            "de acordo com a tabela abaixo:",
+        )
+        rows = [
+            [r.get("natureza", ""), r.get("fase", ""), r.get("valor", "")]
+            for r in hon.get("tabela_acoes", [])
+        ]
+        if rows:
+            _add_bordered_table(sd, ["Natureza da ação", "Instâncias de Atuação", "Valor"], rows)
+
+    if hon.get("show_valor_ato"):
+        _add_styled_paragraph(
+            sd,
+            "Os honorários serão apurados por ato processual efetivamente praticado, conforme tabela:",
+        )
+        rows = [
+            [r.get("ato", ""), r.get("descricao", ""), r.get("valor", "")]
+            for r in hon.get("tabela_atos", [])
+        ]
+        if rows:
+            _add_bordered_table(sd, ["Ato processual", "Descrição", "Valor"], rows)
+
+    if hon.get("show_preco_mensal"):
+        _add_styled_paragraph(
+            sd,
+            f"Preço mensal fixo de {hon.get('preco_mensal_valor', '')} para até "
+            f"{hon.get('preco_mensal_maximo_acoes', '')} "
+            f"({hon.get('preco_mensal_maximo_acoes_extenso', '')}) ações em curso.",
+        )
+        if hon.get("preco_mensal_criterio_excedentes"):
+            _add_styled_paragraph(
+                sd,
+                f"Critério para ações excedentes: {hon.get('preco_mensal_criterio_excedentes', '')}",
+            )
+
+    if hon.get("show_valor_projeto"):
+        _add_styled_paragraph(
+            sd,
+            f"Preço global para a condução integral do escopo delimitado: "
+            f"{hon.get('valor_projeto_total', '')}.",
+        )
+        if hon.get("valor_projeto_fases_cobertas"):
+            _add_styled_paragraph(sd, f"Ações e fases cobertas: {hon.get('valor_projeto_fases_cobertas', '')}")
+        if hon.get("valor_projeto_forma_pagamento"):
+            _add_styled_paragraph(sd, f"Forma de pagamento: {hon.get('valor_projeto_forma_pagamento', '')}")
+
+    _add_blank_paragraph(sd)
+    return sd
+
+
+def _enrich_subdocs(doc: DocxTemplate, context: dict[str, Any]) -> None:
+    """Anexa subdocs (com tabelas) aos itens de honorários por escopo."""
+    for item in context.get("consultiva", {}).get("itens", []):
+        item["subdoc"] = _build_consultiva_subdoc(doc, item)
+    for item in context.get("contenciosa", {}).get("itens", []):
+        item["subdoc"] = _build_contenciosa_subdoc(doc, item)
+
+
 def render_proposal(context: dict[str, Any]) -> bytes:
     """Renderiza a proposta a partir do template Jinja2 e retorna os bytes do .docx."""
     if not TEMPLATE_PATH.exists():
@@ -187,6 +366,7 @@ def render_proposal(context: dict[str, Any]) -> bytes:
             "Rode: python scripts/build_template.py"
         )
     doc = DocxTemplate(str(TEMPLATE_PATH))
+    _enrich_subdocs(doc, context)
     doc.render(context)
     buf = BytesIO()
     doc.save(buf)
