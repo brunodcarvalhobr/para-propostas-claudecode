@@ -129,7 +129,7 @@ def update_template(xml: str) -> str:
         _make_tag_para(p_tag, '{%p if escopo.show_consultiva and consultiva.forma_por_escopo %}'),
         _make_tag_para(p_tag, '{%p for hon in consultiva.itens %}'),
         # {{r hon.subdoc}} renderiza o subdoc com conteúdo formatado + tabelas
-        _make_content_para(p_content, '{{r hon.subdoc}}'),
+        _make_content_para(p_content, '{{p hon.subdoc}}'),
         _make_tag_para(p_tag, '{%p endfor %}'),
         _make_tag_para(p_tag, '{%p endif %}'),
     ]
@@ -152,7 +152,7 @@ def update_template(xml: str) -> str:
     hon_cont_multi = [
         _make_tag_para(p_tag, '{%p if escopo.show_contenciosa and contenciosa.forma_por_escopo %}'),
         _make_tag_para(p_tag, '{%p for hon in contenciosa.itens %}'),
-        _make_content_para(p_content, '{{r hon.subdoc}}'),
+        _make_content_para(p_content, '{{p hon.subdoc}}'),
         _make_tag_para(p_tag, '{%p endfor %}'),
         _make_tag_para(p_tag, '{%p endif %}'),
     ]
@@ -223,7 +223,7 @@ def main() -> None:
         'for hon in consultiva.itens',
         'not contenciosa.forma_por_escopo',
         'for hon in contenciosa.itens',
-        '{{r hon.subdoc}}',
+        '{{p hon.subdoc}}',
         '{%p if contenciosa.show_exito %}',
     ]
     print("\nVerificações:")

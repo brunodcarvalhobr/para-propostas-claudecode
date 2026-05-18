@@ -161,6 +161,38 @@ def _remove_table_outer_bottom_borders(xml: str) -> str:
     return _TBL_BORDERS_RE.sub(repl, xml)
 
 
+_PARA_ID_RE = re.compile(r'w14:paraId="([0-9A-Fa-f]+)"')
+
+
+def _dedupe_para_ids(xml: str) -> str:
+    """Garante que cada w14:paraId é único no documento.
+
+    Loops {%p for %} no docxtpl duplicam parágrafos preservando o mesmo
+    paraId, e Subdocs inseridos via {{p }} também trazem IDs próprios que
+    podem colidir. paraIds duplicados quebram o Word ("Erro ao abrir o
+    arquivo"). Reescrevemos as ocorrências duplicadas para IDs únicos.
+    """
+    seen: set[str] = set()
+    counter = [0]
+
+    def _next_id() -> str:
+        counter[0] += 1
+        return f"{counter[0]:08X}"
+
+    def repl(m: re.Match[str]) -> str:
+        pid = m.group(1).upper()
+        if pid in seen:
+            new_pid = _next_id()
+            while new_pid in seen:
+                new_pid = _next_id()
+            seen.add(new_pid)
+            return f'w14:paraId="{new_pid}"'
+        seen.add(pid)
+        return m.group(0)
+
+    return _PARA_ID_RE.sub(repl, xml)
+
+
 def _post_process(docx_bytes: bytes) -> bytes:
     src = BytesIO(docx_bytes)
     dst = BytesIO()
@@ -178,6 +210,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                     xml = _collapse_empty_paragraphs(xml)
                     xml = _remove_table_outer_bottom_borders(xml)
                     xml = _force_font_size_10(xml)
+                    xml = _dedupe_para_ids(xml)
                     data = xml.encode("utf-8")
                 zout.writestr(item, data)
     return dst.getvalue()
