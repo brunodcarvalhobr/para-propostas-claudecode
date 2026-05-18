@@ -13,7 +13,12 @@ import streamlit.components.v1 as components
 from pmra.auth import check_password
 from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
 from pmra.defaults import proposal_form_default
-from pmra.schema import ProposalForm, UF_OPTIONS
+from pmra.schema import (
+    HonorariosConsultiva,
+    HonorariosContenciosa,
+    ProposalForm,
+    UF_OPTIONS,
+)
 from pmra.template_engine import render_proposal
 
 logger = logging.getLogger(__name__)
@@ -337,6 +342,15 @@ def _init_state() -> None:
     # sessoes pre-deploy recebam os defaults novos automaticamente.
     if not st.session_state.form["escopo"].get("sla_descricao"):
         st.session_state.form["escopo"]["sla_descricao"] = defaults["escopo"]["sla_descricao"]
+    _esc = st.session_state.form["escopo"]
+    for _field, _default in (
+        ("escopos_consultivos", []),
+        ("escopos_contenciosos", []),
+        ("forma_pagamento_por_escopo_consultiva", False),
+        ("forma_pagamento_por_escopo_contenciosa", False),
+    ):
+        if _field not in _esc:
+            _esc[_field] = _default
 
     f = st.session_state.form
 
@@ -536,6 +550,90 @@ for i, (col, name) in enumerate(zip(indicator_cols, STEPS)):
 # excessivo entre menu de etapas e conteudo)
 
 
+# ── Constantes e helpers para múltiplos escopos ───────────────────────────────
+
+_LETRAS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+
+def _hon_cons_default() -> dict:
+    return HonorariosConsultiva().model_dump()
+
+
+def _hon_cont_default() -> dict:
+    return HonorariosContenciosa().model_dump()
+
+
+def _reletrar(lst: list[dict]) -> None:
+    for i, item in enumerate(lst):
+        item["letra"] = _LETRAS[i]
+
+
+def _clear_escopo_widget_keys(prefix: str) -> None:
+    for k in list(st.session_state.keys()):
+        if k.startswith(prefix):
+            del st.session_state[k]
+
+
+def _to_multi_cons_cb() -> None:
+    form = st.session_state.form
+    texto = form["escopo"]["atuacao_consultiva"]
+    form["escopo"]["escopos_consultivos"] = [
+        {"letra": "A", "descricao": texto, "honorarios": _hon_cons_default()},
+        {"letra": "B", "descricao": "", "honorarios": _hon_cons_default()},
+    ]
+
+
+def _add_escopo_cons_cb() -> None:
+    form = st.session_state.form
+    lst = form["escopo"]["escopos_consultivos"]
+    lst.append({"letra": _LETRAS[len(lst)], "descricao": "", "honorarios": _hon_cons_default()})
+    _reletrar(lst)
+
+
+def _del_escopo_cons_cb(idx: int) -> None:
+    _clear_escopo_widget_keys("escopo_cons_desc_")
+    _clear_escopo_widget_keys("cons_")
+    form = st.session_state.form
+    lst = form["escopo"]["escopos_consultivos"]
+    lst.pop(idx)
+    if len(lst) == 1:
+        form["escopo"]["atuacao_consultiva"] = lst[0]["descricao"]
+        form["escopo"]["forma_pagamento_por_escopo_consultiva"] = False
+        lst.clear()
+    else:
+        _reletrar(lst)
+
+
+def _to_multi_cont_cb() -> None:
+    form = st.session_state.form
+    texto = form["escopo"]["atuacao_contenciosa"]
+    form["escopo"]["escopos_contenciosos"] = [
+        {"letra": "A", "descricao": texto, "honorarios": _hon_cont_default()},
+        {"letra": "B", "descricao": "", "honorarios": _hon_cont_default()},
+    ]
+
+
+def _add_escopo_cont_cb() -> None:
+    form = st.session_state.form
+    lst = form["escopo"]["escopos_contenciosos"]
+    lst.append({"letra": _LETRAS[len(lst)], "descricao": "", "honorarios": _hon_cont_default()})
+    _reletrar(lst)
+
+
+def _del_escopo_cont_cb(idx: int) -> None:
+    _clear_escopo_widget_keys("escopo_cont_desc_")
+    _clear_escopo_widget_keys("cont_")
+    form = st.session_state.form
+    lst = form["escopo"]["escopos_contenciosos"]
+    lst.pop(idx)
+    if len(lst) == 1:
+        form["escopo"]["atuacao_contenciosa"] = lst[0]["descricao"]
+        form["escopo"]["forma_pagamento_por_escopo_contenciosa"] = False
+        lst.clear()
+    else:
+        _reletrar(lst)
+
+
 # ── Helper: tabela editável row-by-row ────────────────────────────────────────
 
 def _sync_rows(ss_key: str, col_keys: list[str]) -> list[dict]:
@@ -670,6 +768,244 @@ def _render_rows(
     return _sync_rows(ss_key, col_keys)
 
 
+# ── Helpers de renderização de honorários (reutilizados em modo multi-escopo) ──
+
+def _render_honorarios_consultiva(hon: dict, prefix: str) -> None:
+    """Renderiza modalidades de honorários consultivos com widget keys prefixadas.
+
+    hon: dict no formato form["honorarios_consultiva"] ou item["honorarios"].
+    prefix: "cons" para modo único, "cons_0"/"cons_1"... para multi.
+    """
+    cm = hon["modalidades"]
+
+    # Pré-popula booleans (padrão key-only para evitar duplo-render em checkboxes)
+    for key, src, field in (
+        (f"{prefix}_hs",          cm,  "hora_senioridade"),
+        (f"{prefix}_hf",          cm,  "hora_fixa"),
+        (f"{prefix}_fm",          cm,  "fixo_mensal"),
+        (f"{prefix}_vp",          cm,  "valor_projeto"),
+        (f"{prefix}_vp_cap_ativo", hon, "valor_projeto_cap_ativo"),
+    ):
+        if key not in st.session_state:
+            st.session_state[key] = bool(src.get(field, False))
+
+    # Pré-popula inputs com on_change
+    for key, field in (
+        (f"{prefix}_hf_valor", "hora_fixa_valor"),
+        (f"{prefix}_fm_valor", "fixo_mensal_valor"),
+        (f"{prefix}_fm_exc",   "fixo_mensal_excedente"),
+        (f"{prefix}_vp_total", "valor_projeto_total"),
+    ):
+        if key not in st.session_state:
+            st.session_state[key] = hon.get(field, "")
+
+    st.markdown(
+        '<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>'
+        "Modalidades de cobrança — selecione uma ou mais</div>",
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3, c4 = st.columns(4)
+    cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", key=f"{prefix}_hs")
+    cm["hora_fixa"]        = c2.checkbox("Hora Média",           key=f"{prefix}_hf")
+    cm["fixo_mensal"]      = c3.checkbox("Fixo Mensal/Cap",      key=f"{prefix}_fm")
+    cm["valor_projeto"]    = c4.checkbox("Preço Global",         key=f"{prefix}_vp")
+
+    if cm["hora_senioridade"]:
+        st.markdown(
+            '<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>'
+            "Tabela de senioridade — consultiva</div>",
+            unsafe_allow_html=True,
+        )
+        hon["tabela_senioridade"] = _render_rows(
+            f"tbl_sen_{prefix}",
+            {"categoria": "Categoria", "valor": "Valor por hora"},
+            help_text="Ex: Sócio | R$ 1.050,00",
+            col_widths=[3, 2],
+            field_formatters={"valor": _on_money_change},
+            placeholders={"categoria": "Categoria", "valor": "R$ 0,00"},
+        )
+
+    if cm["hora_fixa"]:
+        hon["hora_fixa_valor"] = st.text_input(
+            "Valor por hora (independente do executor)",
+            placeholder="Ex: R$ 700,00",
+            key=f"{prefix}_hf_valor",
+            on_change=_on_money_change,
+            args=(f"{prefix}_hf_valor",),
+        )
+
+    if cm["fixo_mensal"]:
+        c1, c2, c3 = st.columns(3)
+        hon["fixo_mensal_valor"] = c1.text_input(
+            "Valor mensal",
+            placeholder="Ex: R$ 15.000,00",
+            key=f"{prefix}_fm_valor",
+            on_change=_on_money_change,
+            args=(f"{prefix}_fm_valor",),
+        )
+        hon["fixo_mensal_cap"] = c2.text_input(
+            "Cap de horas inclusas",
+            value=hon.get("fixo_mensal_cap", ""),
+            placeholder="Ex: 30 horas",
+            key=f"{prefix}_fm_cap",
+        )
+        hon["fixo_mensal_excedente"] = c3.text_input(
+            "Hora excedente",
+            placeholder="Ex: R$ 600,00",
+            key=f"{prefix}_fm_exc",
+            on_change=_on_money_change,
+            args=(f"{prefix}_fm_exc",),
+        )
+
+    if cm["valor_projeto"]:
+        hon["valor_projeto_total"] = st.text_input(
+            "Preço global",
+            placeholder="Ex: R$ 50.000,00",
+            key=f"{prefix}_vp_total",
+            on_change=_on_money_change,
+            args=(f"{prefix}_vp_total",),
+        )
+        hon["valor_projeto_cap_ativo"] = st.checkbox(
+            "Incluir cap de horas?",
+            key=f"{prefix}_vp_cap_ativo",
+        )
+        if hon["valor_projeto_cap_ativo"]:
+            hon["valor_projeto_cap"] = st.text_input(
+                "Cap de horas",
+                value=hon.get("valor_projeto_cap", ""),
+                placeholder="Ex: 40",
+                key=f"{prefix}_vp_cap",
+            )
+        hon["valor_projeto_forma_pagamento"] = st.text_area(
+            "Forma ou prazos de pagamento",
+            value=hon.get("valor_projeto_forma_pagamento", ""),
+            height=80,
+            key=f"{prefix}_vp_forma",
+            placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
+        )
+
+
+def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
+    """Renderiza apenas as modalidades de honorários contenciosos (sem êxito/horas extra).
+
+    hon: dict no formato form["honorarios_contenciosa"] ou item["honorarios"].
+    prefix: "cont" para modo único, "cont_0"/"cont_1"... para multi.
+    """
+    cm = hon["modalidades"]
+
+    for key, field in (
+        (f"{prefix}_va",  "valor_acao"),
+        (f"{prefix}_vap", "valor_ato_processual"),
+        (f"{prefix}_pm",  "preco_mensal_massa"),
+        (f"{prefix}_vp",  "valor_projeto"),
+    ):
+        if key not in st.session_state:
+            st.session_state[key] = bool(cm.get(field, False))
+
+    for key, field in (
+        (f"{prefix}_pm_valor",   "preco_mensal_valor"),
+        (f"{prefix}_vp_total",   "valor_projeto_total"),
+    ):
+        if key not in st.session_state:
+            st.session_state[key] = hon.get(field, "")
+
+    st.markdown(
+        '<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>'
+        "Modalidades de cobrança — selecione uma ou mais</div>",
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3, c4 = st.columns(4)
+    cm["valor_acao"]            = c1.checkbox("Valor Mensal Por Processo",  key=f"{prefix}_va")
+    cm["valor_ato_processual"]  = c2.checkbox("Valor por ato processual",   key=f"{prefix}_vap")
+    cm["preco_mensal_massa"]    = c3.checkbox("Preço mensal",               key=f"{prefix}_pm")
+    cm["valor_projeto"]         = c4.checkbox("Preço Global",               key=f"{prefix}_vp")
+
+    if cm["valor_acao"]:
+        st.markdown(
+            '<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>'
+            "Tabela — Valor Mensal Por Processo</div>",
+            unsafe_allow_html=True,
+        )
+        hon["tabela_acoes"] = _render_rows(
+            f"tbl_acoes_{prefix}",
+            {"natureza": "Natureza da ação", "fase": "Instâncias de Atuação", "valor": "Valor"},
+            help_text="Ex: Trabalhista | Conhecimento | R$ 5.000,00",
+            col_widths=[3, 3, 2],
+            field_formatters={"valor": _on_money_change},
+            placeholders={"natureza": "Natureza da ação", "fase": "Preencher", "valor": "R$ 0,00"},
+        )
+
+    if cm["valor_ato_processual"]:
+        st.markdown(
+            '<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>'
+            "Tabela — Atos Processuais</div>",
+            unsafe_allow_html=True,
+        )
+        _info_note(
+            "Preencha o valor de cada ato (Ex: R$ 1.500,00). "
+            "Linhas sem valor são ignoradas. Use o X para remover "
+            "atos não aplicáveis ou acrescente novos ao seu critério."
+        )
+        hon["tabela_atos"] = _render_rows(
+            f"tbl_atos_{prefix}",
+            {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
+            help_text="",
+            col_widths=[3, 4, 2],
+            field_formatters={"valor": _on_money_change},
+            placeholders={"ato": "Ato processual", "descricao": "Descrição", "valor": "R$ 0,00"},
+        )
+
+    if cm["preco_mensal_massa"]:
+        c1, c2 = st.columns(2)
+        hon["preco_mensal_valor"] = c1.text_input(
+            "Valor mensal fixo",
+            placeholder="Ex: R$ 8.000,00",
+            key=f"{prefix}_pm_valor",
+            on_change=_on_money_change,
+            args=(f"{prefix}_pm_valor",),
+        )
+        hon["preco_mensal_maximo_acoes"] = c2.text_input(
+            "Nº máximo de ações cobertas",
+            value=hon.get("preco_mensal_maximo_acoes", ""),
+            placeholder="Ex: 20",
+            key=f"{prefix}_pm_max",
+        )
+        hon["preco_mensal_maximo_acoes_extenso"] = st.text_input(
+            "Nº máximo por extenso",
+            value=hon.get("preco_mensal_maximo_acoes_extenso", ""),
+            placeholder="Ex: vinte",
+            key=f"{prefix}_pm_max_ext",
+        )
+        hon["preco_mensal_criterio_excedentes"] = st.text_area(
+            "Critério para ações excedentes",
+            value=hon.get("preco_mensal_criterio_excedentes", ""),
+            height=80,
+            key=f"{prefix}_pm_crit",
+        )
+
+    if cm["valor_projeto"]:
+        hon["valor_projeto_total"] = st.text_input(
+            "Preço global — contencioso",
+            placeholder="Ex: R$ 30.000,00",
+            key=f"{prefix}_vp_total",
+            on_change=_on_money_change,
+            args=(f"{prefix}_vp_total",),
+        )
+        hon["valor_projeto_fases_cobertas"] = st.text_area(
+            "Ações e fases cobertas",
+            value=hon.get("valor_projeto_fases_cobertas", ""),
+            height=80,
+            key=f"{prefix}_vp_fases",
+        )
+        hon["valor_projeto_forma_pagamento"] = st.text_area(
+            "Forma ou prazos de pagamento",
+            value=hon.get("valor_projeto_forma_pagamento", ""),
+            height=80,
+            key=f"{prefix}_vp_forma",
+            placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
+        )
+
+
 def _step_honorarios() -> None:
     """Etapa 3 — Honorarios.
 
@@ -691,192 +1027,73 @@ def _step_honorarios() -> None:
 
     # ── 3a. Consultiva
     if show_consultiva:
+        escopos_cons = form["escopo"]["escopos_consultivos"]
+        multi_cons = len(escopos_cons) >= 2
+
         _subheader("payments", "Honorários — Atuação Consultiva")
 
-        with st.container(border=True):
-            cm = form["honorarios_consultiva"]["modalidades"]
-            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
-            c1, c2, c3, c4 = st.columns(4)
-            # Checkboxes booleanos: padrao direto value= + key= (sem callback).
-            # O return value do widget e atribuido a cm[key] que ja e referencia
-            # ao form em session_state, garantindo persistencia entre etapas.
-            cm["hora_senioridade"] = c1.checkbox("Hora por senioridade", key="cons_hs")
-            cm["hora_fixa"] = c2.checkbox("Hora Média", key="cons_hf")
-            cm["fixo_mensal"] = c3.checkbox("Fixo Mensal/Cap", key="cons_fm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", key="cons_vp")
+        if multi_cons:
+            if "fpce_cons" not in st.session_state:
+                st.session_state["fpce_cons"] = form["escopo"]["forma_pagamento_por_escopo_consultiva"]
+            forma_por_escopo_cons = st.checkbox(
+                "Cada escopo consultivo terá sua própria forma de pagamento?",
+                key="fpce_cons",
+            )
+            form["escopo"]["forma_pagamento_por_escopo_consultiva"] = forma_por_escopo_cons
 
-            if cm["hora_senioridade"]:
-                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela de senioridade — consultiva</div>', unsafe_allow_html=True)
-                form["honorarios_consultiva"]["tabela_senioridade"] = _render_rows(
-                    "tbl_sen_cons",
-                    {"categoria": "Categoria", "valor": "Valor por hora"},
-                    help_text="Ex: Sócio | R$ 1.050,00",
-                    col_widths=[3, 2],
-                    field_formatters={"valor": _on_money_change},
-                    placeholders={"categoria": "Categoria", "valor": "R$ 0,00"},
-                )
-
-            if cm["hora_fixa"]:
-                form["honorarios_consultiva"]["hora_fixa_valor"] = st.text_input(
-                    "Valor por hora (independente do executor)",
-                    placeholder="Ex: R$ 700,00",
-                    key="cons_hf_valor",
-                    on_change=_on_money_change,
-                    args=("cons_hf_valor",),
-                )
-
-            if cm["fixo_mensal"]:
-                c1, c2, c3 = st.columns(3)
-                form["honorarios_consultiva"]["fixo_mensal_valor"] = c1.text_input(
-                    "Valor mensal",
-                    placeholder="Ex: R$ 15.000,00",
-                    key="cons_fm_valor",
-                    on_change=_on_money_change,
-                    args=("cons_fm_valor",),
-                )
-                form["honorarios_consultiva"]["fixo_mensal_cap"] = c2.text_input(
-                    "Cap de horas inclusas",
-                    value=form["honorarios_consultiva"]["fixo_mensal_cap"],
-                    placeholder="Ex: 30 horas",
-                    key="cons_fm_cap",
-                )
-                form["honorarios_consultiva"]["fixo_mensal_excedente"] = c3.text_input(
-                    "Hora excedente",
-                    placeholder="Ex: R$ 600,00",
-                    key="cons_fm_exc",
-                    on_change=_on_money_change,
-                    args=("cons_fm_exc",),
-                )
-
-            if cm["valor_projeto"]:
-                form["honorarios_consultiva"]["valor_projeto_total"] = st.text_input(
-                    "Preço global",
-                    placeholder="Ex: R$ 50.000,00",
-                    key="cons_vp_total",
-                    on_change=_on_money_change,
-                    args=("cons_vp_total",),
-                )
-                form["honorarios_consultiva"]["valor_projeto_cap_ativo"] = st.checkbox(
-                    "Incluir cap de horas?",
-                    key="cons_vp_cap_ativo",
-                )
-                if form["honorarios_consultiva"]["valor_projeto_cap_ativo"]:
-                    form["honorarios_consultiva"]["valor_projeto_cap"] = st.text_input(
-                        "Cap de horas",
-                        value=form["honorarios_consultiva"]["valor_projeto_cap"],
-                        placeholder="Ex: 40",
-                        key="cons_vp_cap",
-                    )
-                form["honorarios_consultiva"]["valor_projeto_forma_pagamento"] = st.text_area(
-                    "Forma ou prazos de pagamento",
-                    value=form["honorarios_consultiva"]["valor_projeto_forma_pagamento"],
-                    height=80,
-                    key="cons_vp_forma",
-                    placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
-                )
+            if forma_por_escopo_cons:
+                for i, item in enumerate(escopos_cons):
+                    _subheader("payments", f"Honorários — Escopo Consultivo {item['letra']}")
+                    with st.container(border=True):
+                        _render_honorarios_consultiva(item["honorarios"], f"cons_{i}")
+            else:
+                with st.container(border=True):
+                    _render_honorarios_consultiva(form["honorarios_consultiva"], "cons")
+        else:
+            with st.container(border=True):
+                _render_honorarios_consultiva(form["honorarios_consultiva"], "cons")
 
     # ── 3b. Contenciosa
     if show_contenciosa:
+        escopos_cont = form["escopo"]["escopos_contenciosos"]
+        multi_cont = len(escopos_cont) >= 2
+
         _subheader("gavel", "Honorários — Atuação Contenciosa")
 
-        with st.container(border=True):
+        if multi_cont:
+            if "fpce_cont" not in st.session_state:
+                st.session_state["fpce_cont"] = form["escopo"]["forma_pagamento_por_escopo_contenciosa"]
+            forma_por_escopo_cont = st.checkbox(
+                "Cada escopo contencioso terá sua própria forma de pagamento?",
+                key="fpce_cont",
+            )
+            form["escopo"]["forma_pagamento_por_escopo_contenciosa"] = forma_por_escopo_cont
+
+            if forma_por_escopo_cont:
+                for i, item in enumerate(escopos_cont):
+                    _subheader("gavel", f"Honorários — Escopo Contencioso {item['letra']}")
+                    with st.container(border=True):
+                        _render_honorarios_contenciosa_modalidades(item["honorarios"], f"cont_{i}")
+                cont_tem_modalidade = any(
+                    any(v for v in item["honorarios"]["modalidades"].values())
+                    for item in escopos_cont
+                )
+            else:
+                with st.container(border=True):
+                    _render_honorarios_contenciosa_modalidades(form["honorarios_contenciosa"], "cont")
+                cm = form["honorarios_contenciosa"]["modalidades"]
+                cont_tem_modalidade = any([
+                    cm["valor_acao"], cm["valor_ato_processual"],
+                    cm["preco_mensal_massa"], cm["valor_projeto"],
+                ])
+        else:
+            with st.container(border=True):
+                _render_honorarios_contenciosa_modalidades(form["honorarios_contenciosa"], "cont")
             cm = form["honorarios_contenciosa"]["modalidades"]
-            st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">tune</span>Modalidades de cobrança — selecione uma ou mais</div>', unsafe_allow_html=True)
-            c1, c2, c3, c4 = st.columns(4)
-            cm["valor_acao"] = c1.checkbox("Valor Mensal Por Processo", key="cont_va")
-            cm["valor_ato_processual"] = c2.checkbox("Valor por ato processual", key="cont_vap")
-            cm["preco_mensal_massa"] = c3.checkbox("Preço mensal", key="cont_pm")
-            cm["valor_projeto"] = c4.checkbox("Preço Global", key="cont_vp")
-
-            if cm["valor_acao"]:
-                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">table_chart</span>Tabela — Valor Mensal Por Processo</div>', unsafe_allow_html=True)
-                form["honorarios_contenciosa"]["tabela_acoes"] = _render_rows(
-                    "tbl_acoes",
-                    {"natureza": "Natureza da ação", "fase": "Instâncias de Atuação", "valor": "Valor"},
-                    help_text="Ex: Trabalhista | Conhecimento | R$ 5.000,00",
-                    col_widths=[3, 3, 2],
-                    field_formatters={"valor": _on_money_change},
-                    placeholders={
-                        "natureza": "Natureza da ação",
-                        "fase": "Preencher",
-                        "valor": "R$ 0,00",
-                    },
-                )
-
-            if cm["valor_ato_processual"]:
-                st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Tabela — Atos Processuais</div>', unsafe_allow_html=True)
-                _info_note(
-                    "Preencha o valor de cada ato (Ex: R$ 1.500,00). "
-                    "Linhas sem valor são ignoradas. Use o X para remover "
-                    "atos não aplicáveis ou acrescente novos ao seu critério."
-                )
-                form["honorarios_contenciosa"]["tabela_atos"] = _render_rows(
-                    "tbl_atos",
-                    {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
-                    help_text="",
-                    col_widths=[3, 4, 2],
-                    field_formatters={"valor": _on_money_change},
-                    placeholders={
-                        "ato": "Ato processual",
-                        "descricao": "Descrição",
-                        "valor": "R$ 0,00",
-                    },
-                )
-
-            if cm["preco_mensal_massa"]:
-                c1, c2 = st.columns(2)
-                form["honorarios_contenciosa"]["preco_mensal_valor"] = c1.text_input(
-                    "Valor mensal fixo",
-                    placeholder="Ex: R$ 8.000,00",
-                    key="cont_pm_valor",
-                    on_change=_on_money_change,
-                    args=("cont_pm_valor",),
-                )
-                form["honorarios_contenciosa"]["preco_mensal_maximo_acoes"] = c2.text_input(
-                    "Nº máximo de ações cobertas",
-                    value=form["honorarios_contenciosa"]["preco_mensal_maximo_acoes"],
-                    placeholder="Ex: 20",
-                    key="cont_pm_max",
-                )
-                form["honorarios_contenciosa"]["preco_mensal_maximo_acoes_extenso"] = st.text_input(
-                    "Nº máximo por extenso",
-                    value=form["honorarios_contenciosa"]["preco_mensal_maximo_acoes_extenso"],
-                    placeholder="Ex: vinte",
-                    key="cont_pm_max_ext",
-                )
-                form["honorarios_contenciosa"]["preco_mensal_criterio_excedentes"] = st.text_area(
-                    "Critério para ações excedentes",
-                    value=form["honorarios_contenciosa"]["preco_mensal_criterio_excedentes"],
-                    height=80,
-                    key="cont_pm_crit",
-                )
-
-            if cm["valor_projeto"]:
-                form["honorarios_contenciosa"]["valor_projeto_total"] = st.text_input(
-                    "Preço global — contencioso",
-                    placeholder="Ex: R$ 30.000,00",
-                    key="cont_vp_total",
-                    on_change=_on_money_change,
-                    args=("cont_vp_total",),
-                )
-                form["honorarios_contenciosa"]["valor_projeto_fases_cobertas"] = st.text_area(
-                    "Ações e fases cobertas",
-                    value=form["honorarios_contenciosa"]["valor_projeto_fases_cobertas"],
-                    height=80,
-                    key="cont_vp_fases",
-                )
-                form["honorarios_contenciosa"]["valor_projeto_forma_pagamento"] = st.text_area(
-                    "Forma ou prazos de pagamento",
-                    value=form["honorarios_contenciosa"]["valor_projeto_forma_pagamento"],
-                    height=80,
-                    key="cont_vp_forma",
-                    placeholder="Ex: 50% no ato da assinatura da proposta e 50% ao final, parcelas mensais etc.",
-                )
-
-        cont_tem_modalidade = any([
-            cm["valor_acao"], cm["valor_ato_processual"],
-            cm["preco_mensal_massa"], cm["valor_projeto"],
-        ])
+            cont_tem_modalidade = any([
+                cm["valor_acao"], cm["valor_ato_processual"],
+                cm["preco_mensal_massa"], cm["valor_projeto"],
+            ])
 
         if cont_tem_modalidade:
             with st.container(border=True):
@@ -1071,22 +1288,71 @@ elif current == 1:
 
         modal = form["escopo"]["modalidade"]
 
+        _NOTE_ESCRITA = (
+            "Escreva da forma como deverá constar na proposta. Assim, se o "
+            "objeto contiver múltiplas etapas, fases, etc., a forma como "
+            "preencher será visualizada no documento final. Você poderá "
+            "fazer alterações e editar a formatação no Word manualmente "
+            "após gerada a proposta, caso necessário."
+        )
+        _NOTE_MULTI = (
+            "Caso a proposta tenha múltiplos escopos com formas de pagamento "
+            "distintas, crie nova linha e insira a forma de pagamento adequada."
+        )
+
         if modal in ("consultiva", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">article</span>Atuação Consultiva</div>', unsafe_allow_html=True)
-            form["escopo"]["atuacao_consultiva"] = st.text_area(
-                "Áreas, matérias e entregáveis",
-                value=form["escopo"]["atuacao_consultiva"],
-                height=150,
-                key="atuacao_consultiva_ta",
-                placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
-            )
-            _info_note(
-                "Escreva da forma como deverá constar na proposta. Assim, se o "
-                "objeto contiver múltiplas etapas, fases, etc., a forma como "
-                "preencher será visualizada no documento final. Você poderá "
-                "fazer alterações e editar a formatação no Word manualmente "
-                "após gerada a proposta, caso necessário."
-            )
+            _info_note(_NOTE_MULTI)
+
+            escopos_cons = form["escopo"]["escopos_consultivos"]
+            if escopos_cons:
+                for i, item in enumerate(escopos_cons):
+                    col_hdr, col_del = st.columns([11, 1])
+                    col_hdr.markdown(
+                        f'<div class="pmra-sub-hdr" style="margin-top:8px">'
+                        f'<span class="material-symbols-outlined pmra-icon">article</span>'
+                        f'Escopo {item["letra"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    col_del.button(
+                        "✕",
+                        key=f"escopo_cons_del_{i}",
+                        on_click=_del_escopo_cons_cb,
+                        args=(i,),
+                        help="Remover escopo",
+                        use_container_width=True,
+                    )
+                    desc_key = f"escopo_cons_desc_{i}"
+                    if desc_key not in st.session_state:
+                        st.session_state[desc_key] = item["descricao"]
+                    st.text_area(
+                        "Áreas, matérias e entregáveis",
+                        height=150,
+                        key=desc_key,
+                        placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
+                        label_visibility="collapsed",
+                    )
+                    escopos_cons[i]["descricao"] = st.session_state[desc_key]
+
+                st.button(
+                    "+ Adicionar escopo consultivo",
+                    key="escopo_cons_add",
+                    on_click=_add_escopo_cons_cb,
+                )
+            else:
+                form["escopo"]["atuacao_consultiva"] = st.text_area(
+                    "Áreas, matérias e entregáveis",
+                    value=form["escopo"]["atuacao_consultiva"],
+                    height=150,
+                    key="atuacao_consultiva_ta",
+                    placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
+                )
+                _info_note(_NOTE_ESCRITA)
+                st.button(
+                    "+ Adicionar segundo escopo consultivo",
+                    key="escopo_cons_to_multi",
+                    on_click=_to_multi_cons_cb,
+                )
 
             # SLA aparece logo abaixo de Atuacao Consultiva (so faz sentido em escopo
             # consultivo ou misto). Quando contenciosa, este bloco nao renderiza e
@@ -1116,20 +1382,57 @@ elif current == 1:
 
         if modal in ("contenciosa", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Atuação Contenciosa</div>', unsafe_allow_html=True)
-            form["escopo"]["atuacao_contenciosa"] = st.text_area(
-                "Matérias, foros, instâncias e atos processuais",
-                value=form["escopo"]["atuacao_contenciosa"],
-                height=150,
-                key="atuacao_contenciosa_ta",
-                placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
-            )
-            _info_note(
-                "Escreva da forma como deverá constar na proposta. Assim, se o "
-                "objeto contiver múltiplas etapas, fases, etc., a forma como "
-                "preencher será visualizada no documento final. Você poderá "
-                "fazer alterações e editar a formatação no Word manualmente "
-                "após gerada a proposta, caso necessário."
-            )
+            _info_note(_NOTE_MULTI)
+
+            escopos_cont = form["escopo"]["escopos_contenciosos"]
+            if escopos_cont:
+                for i, item in enumerate(escopos_cont):
+                    col_hdr, col_del = st.columns([11, 1])
+                    col_hdr.markdown(
+                        f'<div class="pmra-sub-hdr" style="margin-top:8px">'
+                        f'<span class="material-symbols-outlined pmra-icon">gavel</span>'
+                        f'Escopo {item["letra"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    col_del.button(
+                        "✕",
+                        key=f"escopo_cont_del_{i}",
+                        on_click=_del_escopo_cont_cb,
+                        args=(i,),
+                        help="Remover escopo",
+                        use_container_width=True,
+                    )
+                    desc_key = f"escopo_cont_desc_{i}"
+                    if desc_key not in st.session_state:
+                        st.session_state[desc_key] = item["descricao"]
+                    st.text_area(
+                        "Matérias, foros, instâncias e atos processuais",
+                        height=150,
+                        key=desc_key,
+                        placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
+                        label_visibility="collapsed",
+                    )
+                    escopos_cont[i]["descricao"] = st.session_state[desc_key]
+
+                st.button(
+                    "+ Adicionar escopo contencioso",
+                    key="escopo_cont_add",
+                    on_click=_add_escopo_cont_cb,
+                )
+            else:
+                form["escopo"]["atuacao_contenciosa"] = st.text_area(
+                    "Matérias, foros, instâncias e atos processuais",
+                    value=form["escopo"]["atuacao_contenciosa"],
+                    height=150,
+                    key="atuacao_contenciosa_ta",
+                    placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
+                )
+                _info_note(_NOTE_ESCRITA)
+                st.button(
+                    "+ Adicionar segundo escopo contencioso",
+                    key="escopo_cont_to_multi",
+                    on_click=_to_multi_cont_cb,
+                )
 
 
 # ── ETAPA 3: HONORÁRIOS ────────────────────────────────────────────────────────

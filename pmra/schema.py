@@ -60,6 +60,20 @@ class Contratante(BaseModel):
         return self
 
 
+class EscopoConsultivoItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    letra: str = "A"
+    descricao: str = ""
+    honorarios: "HonorariosConsultiva" = Field(default_factory=lambda: HonorariosConsultiva())
+
+
+class EscopoContenciosoItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    letra: str = "A"
+    descricao: str = ""
+    honorarios: "HonorariosContenciosa" = Field(default_factory=lambda: HonorariosContenciosa())
+
+
 class Escopo(BaseModel):
     model_config = ConfigDict(extra="ignore")
     modalidade: ModalidadeEscopo = "mista"
@@ -67,6 +81,10 @@ class Escopo(BaseModel):
     atuacao_contenciosa: str = ""
     sla_ativo: bool = False
     sla_descricao: str = ""
+    escopos_consultivos: list[EscopoConsultivoItem] = Field(default_factory=list)
+    escopos_contenciosos: list[EscopoContenciosoItem] = Field(default_factory=list)
+    forma_pagamento_por_escopo_consultiva: bool = False
+    forma_pagamento_por_escopo_contenciosa: bool = False
 
     @model_validator(mode="after")
     def _sla_so_para_consultiva_ou_mista(self) -> "Escopo":
