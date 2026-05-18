@@ -50,6 +50,27 @@ def _make_title_para(template_para: str, new_text: str) -> str:
     )
 
 
+def _make_section_heading_para(template_para: str, new_text: str) -> str:
+    """Cria parágrafo de título de seção (bold + sublinhado, sz=20, Arvo)."""
+    ppr_match = re.search(r'<w:pPr>(.*?)</w:pPr>', template_para, re.DOTALL)
+    ppr_inner = ''
+    if ppr_match:
+        inner = ppr_match.group(1)
+        inner = re.sub(r'<w:jc [^/]*/>', '', inner)
+        ppr_inner = inner + '<w:jc w:val="both"/>'
+    ppr = f'<w:pPr>{ppr_inner}</w:pPr>'
+
+    p_attrs = re.match(r'<w:p([^>]*)>', template_para).group(1)
+    return (
+        f'<w:p{p_attrs}>{ppr}'
+        f'<w:r><w:rPr><w:rFonts w:ascii="Arvo" w:hAnsi="Arvo"/><w:b/><w:bCs/>'
+        f'<w:u w:val="single"/>'
+        f'<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>'
+        f'<w:t xml:space="preserve">{new_text}</w:t></w:r>'
+        f'</w:p>'
+    )
+
+
 def _make_content_para(template_para: str, new_text: str) -> str:
     """Cria parágrafo de conteúdo normal (sz=20, Arvo, justificado)."""
     ppr_inner = ''
@@ -129,9 +150,11 @@ def update_template(xml: str) -> str:
     # Bloco multi para honorários consultivos: usa subdoc (construído em template_engine.py)
     hon_cons_multi = [
         _make_tag_para(p_tag, '{%p if escopo.show_consultiva and consultiva.forma_por_escopo %}'),
+        _make_section_heading_para(p_title, 'Honorários Propostos para os Escopos Consultivos'),
+        _make_blank_para(p_content),
         _make_tag_para(p_tag, '{%p for hon in consultiva.itens %}'),
-        # {{r hon.subdoc}} renderiza o subdoc com conteúdo formatado + tabelas
-        _make_content_para(p_content, '{{p hon.subdoc}}'),
+        # {{p hon.subdoc}} renderiza o subdoc com conteúdo formatado + tabelas
+        _make_tag_para(p_tag, '{{p hon.subdoc}}'),
         _make_tag_para(p_tag, '{%p endfor %}'),
         _make_tag_para(p_tag, '{%p endif %}'),
     ]
@@ -153,8 +176,10 @@ def update_template(xml: str) -> str:
     # Bloco multi para honorários contenciosos (após para 180)
     hon_cont_multi = [
         _make_tag_para(p_tag, '{%p if escopo.show_contenciosa and contenciosa.forma_por_escopo %}'),
+        _make_section_heading_para(p_title_cont, 'Honorários Propostos para os Escopos Contenciosos'),
+        _make_blank_para(p_content_cont),
         _make_tag_para(p_tag, '{%p for hon in contenciosa.itens %}'),
-        _make_content_para(p_content, '{{p hon.subdoc}}'),
+        _make_tag_para(p_tag, '{{p hon.subdoc}}'),
         _make_tag_para(p_tag, '{%p endfor %}'),
         _make_tag_para(p_tag, '{%p endif %}'),
     ]
@@ -187,6 +212,16 @@ def update_template(xml: str) -> str:
     # 6. Inserir bloco multi honorários contenciosos após para 180
     p180 = paras[180]
     xml = xml.replace(p180, p180 + ''.join(hon_cont_multi), 1)
+
+    # 7. SLA heading: tornar dinâmico ({{escopo.sla_titulo}}) + parágrafo em branco após
+    sla_heading_para = next((p for p in paras if 'Prazos de Entrega' in p), None)
+    sla_desc_para    = next((p for p in paras if 'escopo.sla_descricao' in p), None)
+    if sla_heading_para:
+        sla_heading_new = _make_section_heading_para(sla_heading_para, '{{escopo.sla_titulo}}')
+        xml = xml.replace(sla_heading_para, sla_heading_new, 1)
+    if sla_desc_para:
+        blank_before_sla = _make_blank_para(sla_desc_para)
+        xml = xml.replace(sla_desc_para, blank_before_sla + sla_desc_para, 1)
 
     return xml
 
@@ -227,6 +262,9 @@ def main() -> None:
         'for hon in contenciosa.itens',
         '{{p hon.subdoc}}',
         '{%p if contenciosa.show_exito %}',
+        'Honorários Propostos para os Escopos Consultivos',
+        'Honorários Propostos para os Escopos Contenciosos',
+        '{{escopo.sla_titulo}}',
     ]
     print("\nVerificações:")
     for c in checks:

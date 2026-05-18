@@ -24,6 +24,7 @@ VARIAVEIS: dict[str, str] = {
 
     "{{escopo.atuacao_consultiva}}": "[ATUACAO_CONSULTIVA]",
     "{{escopo.atuacao_contenciosa}}": "[ATUACAO_CONTENCIOSA]",
+    "{{escopo.sla_titulo}}": "[SLA_TITULO]",
     "{{escopo.sla_descricao}}": "[SLA]",
 
     "{{consultiva.hora_fixa_valor}}": "[CONS_HORA_MEDIA_VALOR]",
