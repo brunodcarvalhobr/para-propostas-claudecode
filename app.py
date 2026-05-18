@@ -1297,7 +1297,9 @@ elif current == 1:
         )
         _NOTE_MULTI = (
             "Caso a proposta tenha múltiplos escopos com formas de pagamento "
-            "distintas, crie nova linha e insira a forma de pagamento adequada."
+            "distintas, crie nova linha e insira a forma de pagamento adequada "
+            "na próxima página, de forma que a forma de pagamento seja adequada "
+            "ao escopo."
         )
 
         if modal in ("consultiva", "mista"):
