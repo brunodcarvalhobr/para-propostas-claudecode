@@ -24,6 +24,7 @@ VARIAVEIS: dict[str, str] = {
 
     "{{escopo.atuacao_consultiva}}": "[ATUACAO_CONSULTIVA]",
     "{{escopo.atuacao_contenciosa}}": "[ATUACAO_CONTENCIOSA]",
+    "{{escopo.sla_titulo}}": "[SLA_TITULO]",
     "{{escopo.sla_descricao}}": "[SLA]",
 
     "{{consultiva.hora_fixa_valor}}": "[CONS_HORA_MEDIA_VALOR]",
@@ -57,6 +58,17 @@ VARIAVEIS: dict[str, str] = {
     "{{it.descricao}}": "[ATO_DESCRICAO]",
     "{{d.categoria}}": "[DESPESA_CATEGORIA]",
     "{{d.descricao}}": "[DESPESA_DESCRICAO]",
+
+    # Multi-escopo — texto descritivo dos escopos A/B/C...
+    # Validas dentro de [PARA_CADA_ESCOPO_CONSULTIVO]/[PARA_CADA_ESCOPO_CONTENCIOSO]
+    "{{item.letra}}":    "[ESCOPO_LETRA]",
+    "{{item.descricao}}": "[ESCOPO_DESCRICAO]",
+
+    # Multi-escopo — bloco completo de honorarios renderizado via Subdoc.
+    # Cada iteracao do loop PARA_CADA_HONORARIO_* expande para um bloco com
+    # titulo + paragrafos + tabelas estilizadas. O subdoc e construido em
+    # pmra/template_engine.py a partir do contexto de cada escopo.
+    "{{p hon.subdoc}}":  "[HONORARIO_BLOCO]",
 }
 
 # Condicionais paragraph-level — {%p if %}...{%p endif %}
@@ -78,6 +90,21 @@ SE_BLOCO: dict[str, str] = {
     "{%p if contenciosa.show_extra_senioridade %}": "[SE_CONT_EXTRA_SENIORIDADE]",
     "{%p if contenciosa.show_extra_hora_fixa %}": "[SE_CONT_EXTRA_HORA_MEDIA]",
     "{%p if disposicoes.show %}": "[SE_DISPOSICOES]",
+
+    # Multi-escopo — condicoes compostas geradas por scripts/update_template.py.
+    # Cada escopo (consultivo/contencioso) tem 4 modos exclusivos:
+    #   1. Escopo unico (modo legado, antes da feature)               → SE_*_ESCOPO_UNICO
+    #   2. Multiplos escopos, mesma forma de pagamento                 → SE_*_MULTI_ESCOPOS
+    #   3. Forma de pagamento unica (qualquer numero de escopos)       → SE_*_FORMA_UNICA
+    #   4. Uma forma de pagamento distinta para cada escopo            → SE_*_FORMA_POR_ESCOPO
+    "{%p if escopo.show_consultiva and not escopo.multi_consultiva %}":       "[SE_CONSULTIVA_ESCOPO_UNICO]",
+    "{%p if escopo.show_consultiva and escopo.multi_consultiva %}":           "[SE_CONSULTIVA_MULTI_ESCOPOS]",
+    "{%p if escopo.show_consultiva and not consultiva.forma_por_escopo %}":   "[SE_CONSULTIVA_FORMA_UNICA]",
+    "{%p if escopo.show_consultiva and consultiva.forma_por_escopo %}":       "[SE_CONSULTIVA_FORMA_POR_ESCOPO]",
+    "{%p if escopo.show_contenciosa and not escopo.multi_contenciosa %}":     "[SE_CONTENCIOSA_ESCOPO_UNICO]",
+    "{%p if escopo.show_contenciosa and escopo.multi_contenciosa %}":         "[SE_CONTENCIOSA_MULTI_ESCOPOS]",
+    "{%p if escopo.show_contenciosa and not contenciosa.forma_por_escopo %}": "[SE_CONTENCIOSA_FORMA_UNICA]",
+    "{%p if escopo.show_contenciosa and contenciosa.forma_por_escopo %}":     "[SE_CONTENCIOSA_FORMA_POR_ESCOPO]",
 }
 FIM_SE_BLOCO_TAG = "{%p endif %}"
 FIM_SE_BLOCO_MARKER = "[FIM_SE]"
@@ -110,6 +137,18 @@ PARA_CADA: dict[str, str] = {
 FIM_PARA_CADA_TAG = "{%tr endfor %}"
 FIM_PARA_CADA_MARKER = "[FIM_PARA_CADA]"
 
+# Loops paragraph-level — {%p for %}...{%p endfor %}
+# Usados na feature multi-escopo: repetem blocos de paragrafos/subdocs inteiros
+# (texto descritivo dos escopos A/B/C ou subdoc de honorarios por escopo).
+PARA_CADA_P: dict[str, str] = {
+    "{%p for item in escopo.itens_consultivos %}":  "[PARA_CADA_ESCOPO_CONSULTIVO]",
+    "{%p for item in escopo.itens_contenciosos %}": "[PARA_CADA_ESCOPO_CONTENCIOSO]",
+    "{%p for hon in consultiva.itens %}":           "[PARA_CADA_HONORARIO_CONSULTIVO]",
+    "{%p for hon in contenciosa.itens %}":          "[PARA_CADA_HONORARIO_CONTENCIOSO]",
+}
+FIM_PARA_CADA_P_TAG = "{%p endfor %}"
+FIM_PARA_CADA_P_MARKER = "[FIM_PARA_CADA_BLOCO]"
+
 
 def build_full_map() -> dict[str, str]:
     """Retorna mapa completo Jinja -> marker, ordenado por comprimento decrescente
@@ -119,9 +158,11 @@ def build_full_map() -> dict[str, str]:
     full.update(SE_INLINE)
     full.update(SE_LINHA)
     full.update(PARA_CADA)
+    full.update(PARA_CADA_P)
     full.update(VARIAVEIS)
     full[FIM_SE_BLOCO_TAG] = FIM_SE_BLOCO_MARKER
     full[FIM_SE_INLINE_TAG] = FIM_SE_INLINE_MARKER
     full[FIM_SE_LINHA_TAG] = FIM_SE_LINHA_MARKER
     full[FIM_PARA_CADA_TAG] = FIM_PARA_CADA_MARKER
+    full[FIM_PARA_CADA_P_TAG] = FIM_PARA_CADA_P_MARKER
     return dict(sorted(full.items(), key=lambda kv: -len(kv[0])))

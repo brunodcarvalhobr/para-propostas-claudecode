@@ -227,6 +227,17 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "atuacao_contenciosa": form.escopo.atuacao_contenciosa,
             "show_sla":      form.escopo.sla_ativo,
             "sla_descricao": form.escopo.sla_descricao,
+            "sla_titulo": (
+                "Prazos de Entrega/SLA dos Escopos Consultivos"
+                if (multi_cons and show_consultiva)
+                else "Prazos de Entrega/SLA do Escopo Consultivo"
+                if show_consultiva
+                else "Prazos de Entrega/SLA dos Escopos Contenciosos"
+                if (multi_cont and show_contenciosa)
+                else "Prazos de Entrega/SLA do Escopo Contencioso"
+                if show_contenciosa
+                else "Prazos de Entrega/SLA"
+            ),
             "multi_consultiva":   multi_cons,
             "itens_consultivos":  itens_consultivos,
             "multi_contenciosa":  multi_cont,
