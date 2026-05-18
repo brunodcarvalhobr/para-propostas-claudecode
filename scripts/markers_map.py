@@ -31,6 +31,7 @@ VARIAVEIS: dict[str, str] = {
     "{{consultiva.fixo_mensal_cap}}": "[CONS_FIXO_MENSAL_CAP]",
     "{{consultiva.fixo_mensal_excedente}}": "[CONS_FIXO_MENSAL_EXCEDENTE]",
     "{{consultiva.valor_projeto_total}}": "[CONS_PRECO_GLOBAL]",
+    "{{consultiva.valor_projeto_cap}}": "[CONS_PRECO_GLOBAL_CAP]",
     "{{consultiva.valor_projeto_forma_pagamento}}": "[CONS_PRECO_GLOBAL_PAGAMENTO]",
 
     "{{contenciosa.preco_mensal_valor}}": "[CONT_PRECO_MENSAL_VALOR]",
@@ -93,6 +94,7 @@ FIM_SE_INLINE_MARKER = "[FIM_SE_INLINE]"
 SE_LINHA: dict[str, str] = {
     "{%tr if contratante.contatos_texto %}": "[SE_LINHA_CONTATOS]",
     "{%tr if despesas.show_taxa_manutencao %}": "[SE_LINHA_TAXA_MANUTENCAO]",
+    "{%tr if consultiva.show_valor_projeto_cap %}": "[SE_LINHA_CONS_PRECO_GLOBAL_CAP]",
 }
 FIM_SE_LINHA_TAG = "{%tr endif %}"
 FIM_SE_LINHA_MARKER = "[FIM_SE_LINHA]"
