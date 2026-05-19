@@ -1590,11 +1590,11 @@ elif current == 4:
     _info_note(
         "A proposta será gerada com base no preenchimento de todos os campos "
         "do formulário. Qualquer necessidade de alteração de conteúdo ou "
-        "condição a partir deste ponto deverá ser feita manualmente no Word a partir deste ponto. "
+        "condição a partir deste ponto deverá ser feita manualmente no Word. "
         "A proposta deverá ser salva no seu dispositivo e "
         "<strong>não será arquivada</strong> neste gerador de propostas. "
-        "Após finalizada a proposta, lembre-se de iniciar o Fluxo Comercial "
-        "no Autojur e de revisar o documento gerado. "
+        "Após finalizada, revise o documento com atenção e lembre-se de "
+        "iniciar o Fluxo Comercial no Autojur. "
         "<br><br><strong>Importante: Não altere qualquer condição dos Termos "
         "Gerais sem aprovação da Diretoria.</strong>"
     )
