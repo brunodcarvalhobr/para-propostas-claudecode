@@ -102,7 +102,7 @@ def proposal_form_default() -> ProposalForm:
             tipo_pessoa="juridica",
             endereco=Endereco(),
         ),
-        escopo=Escopo(modalidade="mista", sla_descricao=SLA_DESCRICAO_DEFAULT),
+        escopo=Escopo(modalidade="consultiva", sla_descricao=SLA_DESCRICAO_DEFAULT),
         honorarios_consultiva=HonorariosConsultiva(
             modalidades=HonorariosConsultivaModalidades(),
             tabela_senioridade=[s.model_copy() for s in SENIORIDADE_DEFAULT],
