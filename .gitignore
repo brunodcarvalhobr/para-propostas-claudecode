@@ -56,8 +56,9 @@ dmypy.json
 # ── Streamlit: NUNCA versionar — contém senhas ────────────────────────────────
 .streamlit/secrets.toml
 
-# ── Outputs recriáveis (smoke_test.py) ────────────────────────────────────────
+# ── Outputs recriáveis (smoke_test.py, generate_demo*.py) ─────────────────────
 out/
+Proposta_*.docx
 
 # ── Windows ───────────────────────────────────────────────────────────────────
 Thumbs.db
