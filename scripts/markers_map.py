@@ -69,6 +69,11 @@ VARIAVEIS: dict[str, str] = {
     # titulo + paragrafos + tabelas estilizadas. O subdoc e construido em
     # pmra/template_engine.py a partir do contexto de cada escopo.
     "{{p hon.subdoc}}":  "[HONORARIO_BLOCO]",
+
+    # Multi-escopo inline — bloco de honorarios renderizado imediatamente
+    # abaixo da descricao de cada escopo quando forma_pagamento_por_escopo
+    # esta ativo. Subdoc construido em pmra/template_engine.py.
+    "{{p item.subdoc}}": "[HONORARIO_INLINE]",
 }
 
 # Condicionais paragraph-level — {%p if %}...{%p endif %}
@@ -100,11 +105,15 @@ SE_BLOCO: dict[str, str] = {
     "{%p if escopo.show_consultiva and not escopo.multi_consultiva %}":       "[SE_CONSULTIVA_ESCOPO_UNICO]",
     "{%p if escopo.show_consultiva and escopo.multi_consultiva %}":           "[SE_CONSULTIVA_MULTI_ESCOPOS]",
     "{%p if escopo.show_consultiva and not consultiva.forma_por_escopo %}":   "[SE_CONSULTIVA_FORMA_UNICA]",
-    "{%p if escopo.show_consultiva and consultiva.forma_por_escopo %}":       "[SE_CONSULTIVA_FORMA_POR_ESCOPO]",
+    "{%p if escopo.show_consultiva and consultiva.show_consolidated %}":      "[SE_CONSULTIVA_SECAO_CONSOLIDADA]",
     "{%p if escopo.show_contenciosa and not escopo.multi_contenciosa %}":     "[SE_CONTENCIOSA_ESCOPO_UNICO]",
     "{%p if escopo.show_contenciosa and escopo.multi_contenciosa %}":         "[SE_CONTENCIOSA_MULTI_ESCOPOS]",
     "{%p if escopo.show_contenciosa and not contenciosa.forma_por_escopo %}": "[SE_CONTENCIOSA_FORMA_UNICA]",
-    "{%p if escopo.show_contenciosa and contenciosa.forma_por_escopo %}":     "[SE_CONTENCIOSA_FORMA_POR_ESCOPO]",
+    "{%p if escopo.show_contenciosa and contenciosa.show_consolidated %}":    "[SE_CONTENCIOSA_SECAO_CONSOLIDADA]",
+
+    # Condicional inline para renderizar bloco de honorarios apos descricao
+    # do escopo quando forma_pagamento_por_escopo esta ativo.
+    "{%p if item.subdoc %}": "[SE_HONORARIO_INLINE]",
 }
 FIM_SE_BLOCO_TAG = "{%p endif %}"
 FIM_SE_BLOCO_MARKER = "[FIM_SE]"
