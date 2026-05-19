@@ -63,13 +63,14 @@ Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
 
 O hook `scripts/pre-commit` incrementa automaticamente `APP_VERSION` em `app.py`
 a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, incremente manualmente
-antes de abrir o PR — nunca mergear sem atualizar a versão.
+antes de commitar — nunca commitar em `main` sem atualizar a versão.
 
 ## Fluxo de contribuição
 
-- Branch a partir de `main` → PR → **squash merge** em `main`
+- Ajustes simples: commit direto em `main`
+- Mudanças maiores ou com revisão: branch → PR → **squash merge** em `main`
 - Streamlit Cloud detecta o push em `main` e faz redeploy automático
-- Todo PR deve passar em `pytest tests/` e `python scripts/smoke_test.py` antes do merge (CI verifica automaticamente)
+- Rodar `pytest tests/` e `python scripts/smoke_test.py` antes de subir alterações no template ou na lógica de renderização
 
 ## Testes
 

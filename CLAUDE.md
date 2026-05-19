@@ -133,13 +133,9 @@ O CI (`.github/workflows/ci.yml`) roda ambos em todo PR. Não mergear com CI ver
 
 ## 7. Fluxo de deploy
 
-```
-Branch de feature → PR → squash merge em main → Streamlit Cloud redeploy automático
-```
-
-- Branch de desenvolvimento: sempre a partir de `main`
-- Merge method: **squash**
-- Streamlit Cloud conectado ao GitHub; detecta push em `main` e faz redeploy
+- **Ajustes simples** (textos, estilos, correções pontuais): commit direto em `main`
+- **Mudanças maiores** (nova funcionalidade, refactor, alteração de schema): branch → PR → squash merge em `main`
+- Streamlit Cloud detecta push em `main` e faz redeploy automático
 
 ### Autenticação em produção
 
