@@ -1368,7 +1368,9 @@ elif current == 1:
                 _info_note(
                     "Abaixo a sugestão de SLA/Prazos de Atendimento pré-preenchido. "
                     "Ajuste conforme a necessidade da área ou conforme acordado com "
-                    "o Cliente."
+                    "o Cliente. Em caso de múltiplos escopos com SLA/Prazos de "
+                    "Atendimento diferentes para cada escopo, liste todos no campo "
+                    "abaixo separado por escopo."
                 )
                 form["escopo"]["sla_descricao"] = st.text_area(
                     "Descrição do SLA",

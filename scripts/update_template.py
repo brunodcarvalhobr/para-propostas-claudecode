@@ -223,6 +223,12 @@ def update_template(xml: str) -> str:
         blank_before_sla = _make_blank_para(sla_desc_para)
         xml = xml.replace(sla_desc_para, blank_before_sla + sla_desc_para, 1)
 
+    # 8. "Condições Específicas": parágrafo em branco entre título e descrição
+    disp_desc_para = next((p for p in paras if 'disposicoes.descricao' in p), None)
+    if disp_desc_para:
+        blank_before_disp = _make_blank_para(disp_desc_para)
+        xml = xml.replace(disp_desc_para, blank_before_disp + disp_desc_para, 1)
+
     return xml
 
 
