@@ -188,25 +188,32 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
     forma_por_escopo_cons = form.escopo.forma_pagamento_por_escopo_consultiva and multi_cons
     forma_por_escopo_cont = form.escopo.forma_pagamento_por_escopo_contenciosa and multi_cont
 
-    itens_consultivos = [
-        {"letra": e.letra, "descricao": e.descricao}
-        for e in form.escopo.escopos_consultivos
-    ] if multi_cons else []
+    if multi_cons and forma_por_escopo_cons:
+        itens_consultivos = [
+            {"letra": e.letra, "descricao": e.descricao,
+             **_build_consultiva_ctx(e.honorarios, True)}
+            for e in form.escopo.escopos_consultivos
+        ]
+    else:
+        itens_consultivos = [
+            {"letra": e.letra, "descricao": e.descricao}
+            for e in form.escopo.escopos_consultivos
+        ] if multi_cons else []
 
-    itens_contenciosos = [
-        {"letra": e.letra, "descricao": e.descricao}
-        for e in form.escopo.escopos_contenciosos
-    ] if multi_cont else []
+    if multi_cont and forma_por_escopo_cont:
+        itens_contenciosos = [
+            {"letra": e.letra, "descricao": e.descricao,
+             **_build_contenciosa_ctx(e.honorarios, True)}
+            for e in form.escopo.escopos_contenciosos
+        ]
+    else:
+        itens_contenciosos = [
+            {"letra": e.letra, "descricao": e.descricao}
+            for e in form.escopo.escopos_contenciosos
+        ] if multi_cont else []
 
-    itens_hon_cons = [
-        {"letra": e.letra, **_build_consultiva_ctx(e.honorarios, True)}
-        for e in form.escopo.escopos_consultivos
-    ] if forma_por_escopo_cons else []
-
-    itens_hon_cont = [
-        {"letra": e.letra, **_build_contenciosa_ctx(e.honorarios, True)}
-        for e in form.escopo.escopos_contenciosos
-    ] if forma_por_escopo_cont else []
+    itens_hon_cons = []
+    itens_hon_cont = []
 
     return {
         "contratante": {
@@ -246,6 +253,7 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
         "consultiva": {
             **_build_consultiva_ctx(form.honorarios_consultiva, show_consultiva),
             "forma_por_escopo": forma_por_escopo_cons,
+            "show_consolidated": False,
             "itens":            itens_hon_cons,
         },
         "contenciosa": {
@@ -263,6 +271,7 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             ])),
             "horas_extra_valor": _fmt_money(form.honorarios_contenciosa.horas_extra_valor),
             "forma_por_escopo": forma_por_escopo_cont,
+            "show_consolidated": False,
             "itens":            itens_hon_cont,
         },
         "despesas": {

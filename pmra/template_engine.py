@@ -544,12 +544,26 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
     return sd
 
 
+_CONS_HON_KEYS = ("show_hora_senioridade", "show_hora_fixa", "show_fixo_mensal", "show_valor_projeto")
+_CONT_HON_KEYS = ("show_valor_acao", "show_valor_ato", "show_preco_mensal", "show_valor_projeto")
+
+
 def _enrich_subdocs(doc: DocxTemplate, context: dict[str, Any]) -> None:
     """Anexa subdocs (com tabelas) aos itens de honorários por escopo."""
     for item in context.get("consultiva", {}).get("itens", []):
         item["subdoc"] = _build_consultiva_subdoc(doc, item)
     for item in context.get("contenciosa", {}).get("itens", []):
         item["subdoc"] = _build_contenciosa_subdoc(doc, item)
+    for item in context.get("escopo", {}).get("itens_consultivos", []):
+        if any(item.get(k) for k in _CONS_HON_KEYS):
+            item["subdoc"] = _build_consultiva_subdoc(doc, item)
+        else:
+            item["subdoc"] = None
+    for item in context.get("escopo", {}).get("itens_contenciosos", []):
+        if any(item.get(k) for k in _CONT_HON_KEYS):
+            item["subdoc"] = _build_contenciosa_subdoc(doc, item)
+        else:
+            item["subdoc"] = None
 
 
 def render_proposal(context: dict[str, Any]) -> bytes:

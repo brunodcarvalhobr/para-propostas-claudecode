@@ -12,7 +12,12 @@ import streamlit.components.v1 as components
 
 from pmra.auth import check_password
 from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
-from pmra.defaults import proposal_form_default
+from pmra.defaults import (
+    ACAO_LINHA_VAZIA,
+    ATOS_PROCESSUAIS_DEFAULT,
+    proposal_form_default,
+    SENIORIDADE_DEFAULT,
+)
 from pmra.schema import (
     HonorariosConsultiva,
     HonorariosContenciosa,
@@ -24,7 +29,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.23"
+APP_VERSION = "2.0.24"
 
 
 @st.cache_data
@@ -556,11 +561,16 @@ _LETRAS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 
 def _hon_cons_default() -> dict:
-    return HonorariosConsultiva().model_dump()
+    return HonorariosConsultiva(
+        tabela_senioridade=[s.model_copy() for s in SENIORIDADE_DEFAULT]
+    ).model_dump()
 
 
 def _hon_cont_default() -> dict:
-    return HonorariosContenciosa().model_dump()
+    return HonorariosContenciosa(
+        tabela_acoes=[ACAO_LINHA_VAZIA.model_copy()],
+        tabela_atos=[a.model_copy() for a in ATOS_PROCESSUAIS_DEFAULT],
+    ).model_dump()
 
 
 def _reletrar(lst: list[dict]) -> None:
@@ -816,6 +826,9 @@ def _render_honorarios_consultiva(hon: dict, prefix: str) -> None:
             "Tabela de senioridade — consultiva</div>",
             unsafe_allow_html=True,
         )
+        _ss = f"tbl_sen_{prefix}"
+        if _ss not in st.session_state and hon.get("tabela_senioridade"):
+            st.session_state[_ss] = hon["tabela_senioridade"]
         hon["tabela_senioridade"] = _render_rows(
             f"tbl_sen_{prefix}",
             {"categoria": "Categoria", "valor": "Valor por hora"},
@@ -926,6 +939,9 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
             "Tabela — Valor Mensal Por Processo</div>",
             unsafe_allow_html=True,
         )
+        _ss = f"tbl_acoes_{prefix}"
+        if _ss not in st.session_state and hon.get("tabela_acoes"):
+            st.session_state[_ss] = hon["tabela_acoes"]
         hon["tabela_acoes"] = _render_rows(
             f"tbl_acoes_{prefix}",
             {"natureza": "Natureza da ação", "fase": "Instâncias de Atuação", "valor": "Valor"},
@@ -946,6 +962,9 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
             "Linhas sem valor são ignoradas. Use o X para remover "
             "atos não aplicáveis ou acrescente novos ao seu critério."
         )
+        _ss = f"tbl_atos_{prefix}"
+        if _ss not in st.session_state and hon.get("tabela_atos"):
+            st.session_state[_ss] = hon["tabela_atos"]
         hon["tabela_atos"] = _render_rows(
             f"tbl_atos_{prefix}",
             {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
