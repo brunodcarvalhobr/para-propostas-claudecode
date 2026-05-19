@@ -133,8 +133,13 @@ O CI (`.github/workflows/ci.yml`) roda ambos em todo PR. Não mergear com CI ver
 
 ## 7. Fluxo de deploy
 
-- **Ajustes simples** (textos, estilos, correções pontuais): commit direto em `main`
-- **Mudanças maiores** (nova funcionalidade, refactor, alteração de schema): branch → PR → squash merge em `main`
+A regra é definida pelo arquivo tocado — sem julgamento subjetivo:
+
+| Arquivos alterados | Fluxo |
+|---|---|
+| `pmra/schema.py`, `pmra/data_mapper.py`, `pmra/template_engine.py`, `resources/templates/*.docx` | Branch → PR → squash merge em `main` |
+| Qualquer outro arquivo | Commit direto em `main` |
+
 - Streamlit Cloud detecta push em `main` e faz redeploy automático
 
 ### Autenticação em produção

@@ -67,9 +67,14 @@ antes de commitar — nunca commitar em `main` sem atualizar a versão.
 
 ## Fluxo de contribuição
 
-- Ajustes simples: commit direto em `main`
-- Mudanças maiores ou com revisão: branch → PR → **squash merge** em `main`
-- Streamlit Cloud detecta o push em `main` e faz redeploy automático
+A regra é definida pelo arquivo tocado:
+
+| Arquivos alterados | Fluxo |
+|---|---|
+| `pmra/schema.py`, `pmra/data_mapper.py`, `pmra/template_engine.py`, `resources/templates/*.docx` | Branch → PR → squash merge em `main` |
+| Qualquer outro arquivo | Commit direto em `main` |
+
+- Streamlit Cloud detecta push em `main` e faz redeploy automático
 - Rodar `pytest tests/` e `python scripts/smoke_test.py` antes de subir alterações no template ou na lógica de renderização
 
 ## Testes
