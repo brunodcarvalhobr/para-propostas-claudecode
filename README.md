@@ -61,9 +61,13 @@ streamlit run app.py
 
 Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
 
-O hook `scripts/pre-commit` incrementa automaticamente `APP_VERSION` em `app.py`
-a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, incremente manualmente
-antes de commitar — nunca commitar em `main` sem atualizar a versão.
+O hook `scripts/pre-commit` incrementa automaticamente o PATCH de `APP_VERSION`
+em `app.py` a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, incremente
+manualmente — nunca commitar em `main` sem atualizar a versão.
+
+**MINOR e MAJOR** são decisão do dono do projeto, sem critério automático.
+Subir MINOR ao adicionar funcionalidade nova relevante; MAJOR para viradas grandes.
+Ao subir qualquer dígito, resetar os à direita para zero (ex: `2.0.99 → 2.1.0`).
 
 ## Fluxo de contribuição
 

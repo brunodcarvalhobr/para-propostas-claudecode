@@ -7,12 +7,20 @@
 
 ## 1. Regra obrigatória: versionamento
 
-**A cada PR mergeado, incremente `APP_VERSION` em `app.py` (linha ~27).**
+**A cada commit em `main`, incremente `APP_VERSION` em `app.py` (linha ~27).**
 
-- Formato: `MAJOR.MINOR.PATCH` — ex.: `2.0.26`
-- Incremente o PATCH em +1 por PR de correção ou ajuste
+- Formato: `MAJOR.MINOR.PATCH` — ex.: `2.0.29`
 - A versão aparece no rodapé: `PMRA · v{APP_VERSION}`
-- Inclua o bump no mesmo PR das alterações — nunca mergear sem atualizar
+
+### Qual dígito incrementar?
+
+| Dígito | Regra |
+|---|---|
+| **PATCH** `2.0.X` | Todo commit do dia a dia — correções, textos, estilos, ajustes |
+| **MINOR** `2.X.0` | Decisão do dono do projeto. Exemplos: nova seção no documento, nova modalidade de escopo, nova forma de honorários |
+| **MAJOR** `X.0.0` | Decisão do dono do projeto. Reservar para viradas grandes: reformulação do formulário, troca de stack, mudança incompatível |
+
+MINOR e MAJOR não têm critério automático — são chamadas deliberadas do dono do projeto, não do agente. Ao subir MINOR ou MAJOR, resetar os dígitos à direita para zero (ex: `2.0.99` → `2.1.0`).
 
 ---
 
