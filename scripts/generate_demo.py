@@ -1,12 +1,19 @@
-"""Gera proposta demo com 3 escopos distintos (A/B/C) por modalidade.
+"""Gera proposta demo preenchida com todos os campos possíveis.
 
-Cada escopo recebe uma forma de pagamento independente:
-- Consultivo A: Hora por senioridade
-- Consultivo B: Hora Média
-- Consultivo C: Fixo Mensal/Cap
-- Contencioso A: Valor Mensal Por Processo
-- Contencioso B: Valor por ato processual
-- Contencioso C: Preço Global
+Estrutura mista com 3 escopos consultivos (A/B/C) e 3 contenciosos (A/B/C),
+cada um com forma de pagamento distinta. Tabelas com linhas extras de teste.
+
+Cobertura por modalidade:
+- Consultivo A: Hora por Senioridade (tabela)
+- Consultivo B: Fixo Mensal com Cap (valor + cap + excedente)
+- Consultivo C: Preço Global (total + cap_ativo + cap + forma_pagamento)
+- Contencioso A: Valor por Ato Processual (tabela rica)
+- Contencioso B: Preço Fixo Mensal com Cap (valor + máximo + extenso + critério)
+- Contencioso C: Preço Global (total + fases + forma_pagamento)
+
+Top-level: SLA ativo, Êxito ativo, Horas Extra por Senioridade, Taxa de
+manutenção processual, Disposições Específicas, todos os contatos e
+endereço completo.
 """
 from __future__ import annotations
 
@@ -37,9 +44,11 @@ from pmra.template_engine import render_proposal
 
 SENIORIDADE_DEMO = [
     SenioridadeRow(categoria="Sócio",                  valor="R$ 1.200,00"),
+    SenioridadeRow(categoria="Of Counsel",             valor="R$ 1.050,00"),
     SenioridadeRow(categoria="Associado Sênior",       valor="R$ 950,00"),
     SenioridadeRow(categoria="Associado Pleno",        valor="R$ 750,00"),
     SenioridadeRow(categoria="Associado Júnior",       valor="R$ 500,00"),
+    SenioridadeRow(categoria="Consultor Especialista", valor="R$ 850,00"),
     SenioridadeRow(categoria="Estagiário/Paralegal",   valor="R$ 280,00"),
 ]
 
@@ -48,13 +57,6 @@ def _hon_cons_senioridade() -> HonorariosConsultiva:
     return HonorariosConsultiva(
         modalidades=HonorariosConsultivaModalidades(hora_senioridade=True),
         tabela_senioridade=[s.model_copy() for s in SENIORIDADE_DEMO],
-    )
-
-
-def _hon_cons_hora_media() -> HonorariosConsultiva:
-    return HonorariosConsultiva(
-        modalidades=HonorariosConsultivaModalidades(hora_fixa=True),
-        hora_fixa_valor="R$ 700,00",
     )
 
 
@@ -67,15 +69,17 @@ def _hon_cons_fixo_mensal() -> HonorariosConsultiva:
     )
 
 
-def _hon_cont_valor_acao() -> HonorariosContenciosa:
-    return HonorariosContenciosa(
-        modalidades=HonorariosContenciosaModalidades(valor_acao=True),
-        tabela_acoes=[
-            AcaoRow(natureza="Trabalhista",     fase="Conhecimento", valor="R$ 5.500,00"),
-            AcaoRow(natureza="Trabalhista",     fase="Execução",     valor="R$ 3.800,00"),
-            AcaoRow(natureza="Cível",           fase="Conhecimento", valor="R$ 7.200,00"),
-            AcaoRow(natureza="Tributária",      fase="Conhecimento", valor="R$ 9.500,00"),
-        ],
+def _hon_cons_valor_projeto() -> HonorariosConsultiva:
+    return HonorariosConsultiva(
+        modalidades=HonorariosConsultivaModalidades(valor_projeto=True),
+        valor_projeto_total="R$ 120.000,00",
+        valor_projeto_cap_ativo=True,
+        valor_projeto_cap="180 horas",
+        valor_projeto_forma_pagamento=(
+            "30% no ato da assinatura da proposta; 40% após entrega do parecer "
+            "consolidado; 30% após validação final pelo Contratante. Pagamento "
+            "via boleto bancário, vencimento em 15 dias após emissão da NF."
+        ),
     )
 
 
@@ -83,24 +87,52 @@ def _hon_cont_valor_ato() -> HonorariosContenciosa:
     return HonorariosContenciosa(
         modalidades=HonorariosContenciosaModalidades(valor_ato_processual=True),
         tabela_atos=[
-            AtoProcessualRow(ato="Petição Inicial",         descricao="Elaboração e protocolo da peça inaugural.",                                                                       valor="R$ 2.500,00"),
-            AtoProcessualRow(ato="Contestação",             descricao="Elaboração e protocolo de defesa em processo judicial.",                                                          valor="R$ 2.200,00"),
-            AtoProcessualRow(ato="Recurso Ordinário",       descricao="Elaboração e protocolo de recurso ordinário na Justiça do Trabalho.",                                             valor="R$ 3.000,00"),
-            AtoProcessualRow(ato="Agravo",                  descricao="Elaboração e protocolo de agravo de instrumento ou agravo interno.",                                              valor="R$ 1.800,00"),
-            AtoProcessualRow(ato="Apelação",                descricao="Elaboração e protocolo de apelação cível em 1º grau de jurisdição.",                                              valor="R$ 3.500,00"),
-            AtoProcessualRow(ato="Recurso Especial / Extraordinário", descricao="Elaboração e protocolo de recursos excepcionais ao STJ e STF, inclusive agravos correlatos.",            valor="R$ 6.500,00"),
-            AtoProcessualRow(ato="Audiência",               descricao="Comparecimento, acompanhamento e atuação em audiência.",                                                          valor="R$ 1.500,00"),
-            AtoProcessualRow(ato="Diligência Externa",      descricao="Realização de diligência presencial em cartório, órgão público ou unidade do Contratante.",                       valor="R$ 850,00"),
+            AtoProcessualRow(ato="Petição Inicial",                     descricao="Elaboração e protocolo da peça inaugural.",                                                                       valor="R$ 2.500,00"),
+            AtoProcessualRow(ato="Contestação",                         descricao="Elaboração e protocolo de defesa em processo judicial.",                                                          valor="R$ 2.200,00"),
+            AtoProcessualRow(ato="Réplica",                             descricao="Elaboração e protocolo de réplica à contestação, com impugnação a documentos juntados pelo réu.",                  valor="R$ 1.400,00"),
+            AtoProcessualRow(ato="Recurso Ordinário",                   descricao="Elaboração e protocolo de recurso ordinário na Justiça do Trabalho.",                                             valor="R$ 3.000,00"),
+            AtoProcessualRow(ato="Agravo",                              descricao="Elaboração e protocolo de agravo de instrumento ou agravo interno.",                                              valor="R$ 1.800,00"),
+            AtoProcessualRow(ato="Apelação",                            descricao="Elaboração e protocolo de apelação cível em 1º grau de jurisdição.",                                              valor="R$ 3.500,00"),
+            AtoProcessualRow(ato="Embargos de Declaração",              descricao="Elaboração e protocolo de embargos de declaração contra decisões interlocutórias e sentenças.",                   valor="R$ 1.200,00"),
+            AtoProcessualRow(ato="Recurso Especial / Extraordinário",   descricao="Elaboração e protocolo de recursos excepcionais ao STJ e STF, inclusive agravos correlatos.",                     valor="R$ 6.500,00"),
+            AtoProcessualRow(ato="Memoriais",                           descricao="Elaboração de memoriais para juízes e desembargadores em casos de maior complexidade ou em véspera de julgamento.", valor="R$ 2.800,00"),
+            AtoProcessualRow(ato="Audiência",                           descricao="Comparecimento, acompanhamento e atuação em audiência.",                                                          valor="R$ 1.500,00"),
+            AtoProcessualRow(ato="Sustentação Oral",                    descricao="Sustentação oral em sessão de julgamento em tribunal de 2ª instância ou superior.",                                valor="R$ 4.500,00"),
+            AtoProcessualRow(ato="Diligência Externa",                  descricao="Realização de diligência presencial em cartório, órgão público ou unidade do Contratante.",                       valor="R$ 850,00"),
         ],
     )
 
 
-def _hon_cont_preco_global() -> HonorariosContenciosa:
+def _hon_cont_preco_mensal() -> HonorariosContenciosa:
+    return HonorariosContenciosa(
+        modalidades=HonorariosContenciosaModalidades(preco_mensal_massa=True),
+        preco_mensal_valor="R$ 28.500,00",
+        preco_mensal_maximo_acoes="40",
+        preco_mensal_maximo_acoes_extenso="quarenta",
+        preco_mensal_criterio_excedentes=(
+            "Processos excedentes ao número máximo coberto serão cobrados à parte, "
+            "no valor de R$ 750,00 por processo/mês, com cobrança proporcional a "
+            "partir da data de distribuição. Em caso de redução do volume abaixo "
+            "do mínimo de 25 processos ativos, o valor mensal será revisto entre "
+            "as Partes no início do trimestre subsequente."
+        ),
+    )
+
+
+def _hon_cont_valor_projeto() -> HonorariosContenciosa:
     return HonorariosContenciosa(
         modalidades=HonorariosContenciosaModalidades(valor_projeto=True),
-        valor_projeto_total="R$ 85.000,00",
-        valor_projeto_fases_cobertas="Conhecimento e Execução em primeira e segunda instâncias (TRT/TRF), incluindo embargos de declaração e demais incidentes.",
-        valor_projeto_forma_pagamento="40% no ato da assinatura da proposta; 30% após sentença de primeiro grau; 30% após trânsito em julgado.",
+        valor_projeto_total="R$ 95.000,00",
+        valor_projeto_fases_cobertas=(
+            "Conhecimento e Execução em primeira e segunda instâncias (TRT/TRF), "
+            "incluindo embargos de declaração, agravos internos e demais incidentes "
+            "processuais, com sustentação oral em sessão de julgamento."
+        ),
+        valor_projeto_forma_pagamento=(
+            "40% no ato da assinatura da proposta; 30% após sentença de primeiro grau; "
+            "30% após trânsito em julgado. Pagamento via TED até o 5º dia útil após "
+            "emissão da NF. Em caso de êxito antecipado, antecipa-se a última parcela."
+        ),
     )
 
 
@@ -122,6 +154,7 @@ def build_demo_form() -> ProposalForm:
             contatos=[
                 Contato(telefone="(11) 98765-4321", email="maria.carvalho@empresademo.com.br"),
                 Contato(telefone="(11) 3456-7890",  email="juridico@empresademo.com.br"),
+                Contato(telefone="(11) 91234-5678", email="contratos@empresademo.com.br"),
             ],
         ),
         escopo=Escopo(
@@ -149,40 +182,42 @@ def build_demo_form() -> ProposalForm:
                 EscopoConsultivoItem(
                     letra="B",
                     descricao=(
-                        "Consultoria contratual: revisão, elaboração e negociação de contratos comerciais "
-                        "(prestação de serviços, fornecimento, distribuição, franquia, licenciamento), "
-                        "termos de uso, políticas de privacidade e adequação à LGPD."
+                        "Consultoria contratual recorrente: revisão, elaboração e negociação de contratos "
+                        "comerciais (prestação de serviços, fornecimento, distribuição, franquia, "
+                        "licenciamento), termos de uso, políticas de privacidade e adequação à LGPD, "
+                        "com SLA de resposta jurídica para a operação."
                     ),
-                    honorarios=_hon_cons_hora_media(),
+                    honorarios=_hon_cons_fixo_mensal(),
                 ),
                 EscopoConsultivoItem(
                     letra="C",
                     descricao=(
-                        "Consultoria trabalhista e regulatória: orientações em rotinas de RH, elaboração de "
-                        "políticas internas, programas de integridade, treinamentos in company, pareceres "
-                        "regulatórios (ANATEL, ANEEL, CVM) e acompanhamento de obrigações acessórias."
+                        "Projeto de reestruturação societária e adequação à LGPD: condução integral do "
+                        "redesenho societário do grupo econômico, incluindo elaboração de novos atos, "
+                        "aprovações regulatórias, mapeamento de dados pessoais, programa de governança "
+                        "e treinamentos para áreas-chave."
                     ),
-                    honorarios=_hon_cons_fixo_mensal(),
+                    honorarios=_hon_cons_valor_projeto(),
                 ),
             ],
             escopos_contenciosos=[
                 EscopoContenciosoItem(
                     letra="A",
                     descricao=(
-                        "Contencioso trabalhista de massa: defesa em reclamações trabalhistas em primeira "
-                        "e segunda instâncias, fase de conhecimento e execução, em todos os TRTs do território "
-                        "nacional, incluindo audiências e recursos."
+                        "Contencioso cível estratégico por ato processual: defesa em ações cíveis de alta "
+                        "complexidade — cobrança, indenizatórias, ações coletivas — perante juízos cíveis "
+                        "estaduais e federais, com cobrança individualizada por ato processual praticado."
                     ),
-                    honorarios=_hon_cont_valor_acao(),
+                    honorarios=_hon_cont_valor_ato(),
                 ),
                 EscopoContenciosoItem(
                     letra="B",
                     descricao=(
-                        "Contencioso cível estratégico: defesa em ações cíveis de alta complexidade — "
-                        "ações de cobrança, indenizatórias, ações coletivas — perante juízos cíveis estaduais "
-                        "e federais, com atuação por ato processual."
+                        "Contencioso trabalhista de massa: defesa em reclamações trabalhistas em primeira "
+                        "e segunda instâncias, fase de conhecimento e execução, em todos os TRTs do "
+                        "território nacional, com modelo de honorários por massa processual coberta."
                     ),
-                    honorarios=_hon_cont_valor_ato(),
+                    honorarios=_hon_cont_preco_mensal(),
                 ),
                 EscopoContenciosoItem(
                     letra="C",
@@ -191,7 +226,7 @@ def build_demo_form() -> ProposalForm:
                         "subsequente ação ordinária visando recuperação de créditos de PIS/COFINS sobre "
                         "ICMS, com acompanhamento em todas as instâncias até o STF."
                     ),
-                    honorarios=_hon_cont_preco_global(),
+                    honorarios=_hon_cont_valor_projeto(),
                 ),
             ],
             forma_pagamento_por_escopo_consultiva=True,
@@ -218,6 +253,14 @@ def build_demo_form() -> ProposalForm:
                     categoria="Despesas Periciais",
                     descricao="Honorários periciais e custos de assistente técnico, suportados conforme determinação judicial e prévia ciência ao Contratante.",
                 ),
+                DespesaItem(
+                    categoria="Despesas Cartorárias",
+                    descricao="Certidões, autenticações, reconhecimentos de firma, apostilamentos e demais atos notariais necessários à condução dos serviços.",
+                ),
+                DespesaItem(
+                    categoria="Despesas de Tradução",
+                    descricao="Tradução juramentada de documentos em língua estrangeira para uso processual ou consultivo, conforme tabela vigente do tradutor habilitado.",
+                ),
             ],
             taxa_manutencao_ativa=True,
             taxa_manutencao_processual="R$ 75,00 por processo/mês",
@@ -231,7 +274,9 @@ def build_demo_form() -> ProposalForm:
                 "2. Confidencialidade reforçada: aplicar-se-á NDA específico para informações classificadas "
                 "como estratégicas pelo Contratante, com prazo de confidencialidade de 5 (cinco) anos.\n\n"
                 "3. Reajuste anual: os honorários previstos nesta proposta serão reajustados anualmente "
-                "pelo IPCA-IBGE acumulado nos 12 meses anteriores, aplicado na data-base da assinatura."
+                "pelo IPCA-IBGE acumulado nos 12 meses anteriores, aplicado na data-base da assinatura.\n\n"
+                "4. Comitê jurídico mensal: realização de reunião mensal de status entre o Contratado e o "
+                "Departamento Jurídico do Contratante, com pauta consolidada e ata circulada em até 48 horas."
             ),
         ),
     )
