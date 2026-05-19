@@ -62,7 +62,14 @@ streamlit run app.py
 Sem `APP_PASSWORD` configurado, o app abre sem gate de senha.
 
 O hook `scripts/pre-commit` incrementa automaticamente `APP_VERSION` em `app.py`
-a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, a versão não muda.
+a cada commit (ex: `2.0.5 → 2.0.6`). Sem ele instalado, incremente manualmente
+antes de abrir o PR — nunca mergear sem atualizar a versão.
+
+## Fluxo de contribuição
+
+- Branch a partir de `main` → PR → **squash merge** em `main`
+- Streamlit Cloud detecta o push em `main` e faz redeploy automático
+- Todo PR deve passar em `pytest tests/` e `python scripts/smoke_test.py` antes do merge (CI verifica automaticamente)
 
 ## Testes
 
@@ -140,7 +147,7 @@ python scripts/smoke_test.py
 O smoke test detecta tags Jinja não processadas (fragmentação por Word),
 mas **não** detecta layout quebrado — sempre faça a conferência visual.
 
-## O que NÃO mudar (sem aprovação dos sócios)
+## O que NÃO mudar (sem aprovação da Diretoria)
 
 - Cláusulas dos Termos e Condições são texto jurídico revisado.
 - Valores pré-preenchidos da tabela de senioridade refletem a política

@@ -28,6 +28,7 @@ Formulário em etapas → valida com Pydantic → renderiza `.docx` via docxtpl 
 | UI | Streamlit 1.40.1 |
 | Validação | Pydantic v2 |
 | Template Word | docxtpl 0.19.0 (Jinja2) + docxcompose 1.4.0 |
+| Tabelas dinâmicas | pandas (back-end do `st.data_editor`) |
 | Python | 3.11 (runtime.txt) |
 | CSS | Antigravity Design System (`resources/static/styles.css`) |
 
