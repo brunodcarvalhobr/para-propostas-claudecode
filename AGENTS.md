@@ -1,7 +1,7 @@
-# CLAUDE.md — Regras e diretrizes do projeto
+# AGENTS.md — Regras e diretrizes do projeto
 
-> Lido automaticamente pelo Claude Code a cada sessão.  
-> Para outros agentes: OpenAI Codex lê `AGENTS.md` (mantido em sincronia com este arquivo).
+> Lido automaticamente pelo OpenAI Codex a cada sessão.  
+> Para outros agentes: Claude Code lê `CLAUDE.md` (mantido em sincronia com este arquivo).
 
 ---
 
