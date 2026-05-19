@@ -1288,23 +1288,20 @@ elif current == 1:
 
         modal = form["escopo"]["modalidade"]
 
-        _NOTE_ESCRITA = (
+        _NOTE_COMBINED = (
             "Escreva da forma como deverá constar na proposta. Assim, se o "
             "objeto contiver múltiplas etapas, fases, etc., a forma como "
             "preencher será visualizada no documento final. Você poderá "
             "fazer alterações e editar a formatação no Word manualmente "
-            "após gerada a proposta, caso necessário."
-        )
-        _NOTE_MULTI = (
-            "Caso a proposta tenha múltiplos escopos com formas de pagamento "
-            "distintas, crie nova linha e insira a forma de pagamento adequada "
-            "na próxima página, de forma que a forma de pagamento seja adequada "
-            "ao escopo."
+            "após gerada a proposta, caso necessário. Caso a proposta tenha "
+            "múltiplos escopos com formas de pagamento distintas, crie nova "
+            "linha e insira a forma de pagamento adequada na próxima página, "
+            "de forma que a forma de pagamento seja adequada ao escopo."
         )
 
         if modal in ("consultiva", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">article</span>Atuação Consultiva</div>', unsafe_allow_html=True)
-            _info_note(_NOTE_MULTI)
+            _info_note(_NOTE_COMBINED)
 
             escopos_cons = form["escopo"]["escopos_consultivos"]
             if escopos_cons:
@@ -1349,7 +1346,6 @@ elif current == 1:
                     key="atuacao_consultiva_ta",
                     placeholder="Ex: Consultoria societária, revisão de contratos, pareceres jurídicos.",
                 )
-                _info_note(_NOTE_ESCRITA)
                 st.button(
                     "+ Adicionar segundo escopo consultivo",
                     key="escopo_cons_to_multi",
@@ -1386,7 +1382,7 @@ elif current == 1:
 
         if modal in ("contenciosa", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Atuação Contenciosa</div>', unsafe_allow_html=True)
-            _info_note(_NOTE_MULTI)
+            _info_note(_NOTE_COMBINED)
 
             escopos_cont = form["escopo"]["escopos_contenciosos"]
             if escopos_cont:
@@ -1431,7 +1427,6 @@ elif current == 1:
                     key="atuacao_contenciosa_ta",
                     placeholder="Ex: Defesa em processos trabalhistas — 1ª e 2ª instância — TRT MG.",
                 )
-                _info_note(_NOTE_ESCRITA)
                 st.button(
                     "+ Adicionar segundo escopo contencioso",
                     key="escopo_cont_to_multi",
@@ -1596,11 +1591,13 @@ elif current == 4:
     _info_note(
         "A proposta será gerada com base no preenchimento de todos os campos "
         "do formulário. Qualquer necessidade de alteração de conteúdo ou "
-        "condição a partir deste ponto deverá ser feita manualmente no Word. "
-        "Esta proposta deverá ser salva no seu dispositivo e "
+        "condição a partir deste ponto deverá ser feita manualmente no Word a partir deste ponto. "
+        "A proposta deverá ser salva no seu dispositivo e "
         "<strong>não será arquivada</strong> neste gerador de propostas. "
         "Após finalizada a proposta, lembre-se de iniciar o Fluxo Comercial "
-        "no Autojur."
+        "no Autojur e de revisar o documento gerado. "
+        "<br><br><strong>Importante: Não altere qualquer condição dos Termos "
+        "Gerais sem aprovação da Diretoria.</strong>"
     )
 
     gen_col, dl_col = st.columns([1, 2])
@@ -1615,12 +1612,9 @@ elif current == 4:
                 '<div class="pmra-success-card">'
                 '<span class="material-symbols-outlined pmra-success-icon">task_alt</span>'
                 '<div class="pmra-success-text">'
-                '<div class="pmra-success-title">Proposta gerada com sucesso</div>'
+                '<div class="pmra-success-title">Proposta gerada com sucesso!</div>'
                 '<div class="pmra-success-subtitle">'
-                'Clique em <strong>Baixar .docx</strong> para salvar no seu dispositivo. '
-                '<strong>Lembre-se de revisar o documento gerado. Qualquer ajuste específico necessário '
-                'fora do padrão gerado deve ser feito manualmente por você no Word. Evite alterar '
-                'qualquer condição dos Termos Gerais sem aprovação da Diretoria.</strong>'
+                'Clique em <strong>Baixar .docx</strong> para salvar no seu dispositivo.'
                 '</div></div></div>',
                 unsafe_allow_html=True,
             )
