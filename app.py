@@ -1298,10 +1298,10 @@ elif current == 1:
             "linha e insira a forma de pagamento adequada na próxima página, "
             "de forma que a forma de pagamento seja adequada ao escopo."
         )
+        _info_note(_NOTE_COMBINED)
 
         if modal in ("consultiva", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">article</span>Atuação Consultiva</div>', unsafe_allow_html=True)
-            _info_note(_NOTE_COMBINED)
 
             escopos_cons = form["escopo"]["escopos_consultivos"]
             if escopos_cons:
@@ -1382,7 +1382,6 @@ elif current == 1:
 
         if modal in ("contenciosa", "mista"):
             st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">gavel</span>Atuação Contenciosa</div>', unsafe_allow_html=True)
-            _info_note(_NOTE_COMBINED)
 
             escopos_cont = form["escopo"]["escopos_contenciosos"]
             if escopos_cont:
