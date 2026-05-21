@@ -196,3 +196,30 @@ O `template_engine.py` aplica 5 transformações no XML após renderizar:
 - Não mergear sem bump de versão em `APP_VERSION`
 - Não mergear com CI falhando
 - Não remover `enableXsrfProtection = true` do `config.toml`
+
+---
+
+## 11. Regras de ouro para operações git — lição aprendida em produção
+
+> Estas regras existem porque um agente causou regressão em produção ao executar operações git desnecessariamente destrutivas. Nunca repita.
+
+### Nunca use `git filter-repo` sem autorização explícita do dono do projeto
+
+`git filter-repo` reescreve **todo o histórico** do repositório, muda todos os hashes e força um `push --force` que quebra deploys ativos (Streamlit Cloud, CI, branches abertos). Para remover dados sensíveis de um arquivo de exemplo, basta um **commit normal** corrigindo o conteúdo — não é necessário reescrever história.
+
+### Nunca faça `git push --force` em `main` sem autorização explícita
+
+Force push em `main` substitui o histórico remoto. O Streamlit Cloud redetecta a branch como modificada e pode redeployar do commit errado ou falhar silenciosamente, causando regressão em produção.
+
+### Antes de aplicar código de um branch em outro, confirme que são o mesmo codebase
+
+Este repositório já teve dois codebases distintos no mesmo remote (histórias sem ancestral comum). Aplicar `auth.py` de um codebase em outro sem verificar compatibilidade quebra o app. Sempre confirme com `git merge-base` e inspecione os arquivos críticos antes de qualquer operação cross-branch.
+
+### Para remover dado sensível de arquivo rastreado
+
+O procedimento correto é, **nesta ordem**:
+1. Corrigir o arquivo (trocar valor real por placeholder)
+2. Commitar normalmente
+3. Trocar a credencial exposta no serviço (Streamlit Cloud Secrets, etc.)
+
+Reescrever histórico só se justifica se o dado estiver em um repositório **privado** e o dono autorizar explicitamente — e mesmo assim, depois de confirmar que nenhum deploy ativo será afetado.
