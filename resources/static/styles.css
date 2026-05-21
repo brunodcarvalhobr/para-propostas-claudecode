@@ -1,0 +1,1600 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --color-ink: #0a0a0a;
+  --color-ink-600: #404040;
+  --color-ink-400: #737373;
+  --color-ink-200: #d4d4d4;
+  --color-ink-100: #e5e5e5;
+  --color-paper: #faf9f7;
+  --color-paper-50: #fdfcfa;
+  --color-paper-100: #f5f3ee;
+  --color-paper-200: #ebe7df;
+  --color-ember-200: #fde68a;
+  --color-ember-300: #fbbf24;
+  --color-ember-400: #fb923c;
+  --color-ember-500: #f97316;
+  --color-ember-600: #ea580c;
+  --color-ember-700: #c2410c;
+  --color-glass-white: rgba(255,255,255,0.55);
+  --color-glass-strong: rgba(255,255,255,0.78);
+  --color-glass-border: rgba(255,255,255,0.7);
+
+  --shadow-glass:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 14px 40px -16px rgba(15,15,20,0.18),
+    0 4px 14px -8px rgba(249,115,22,0.08);
+
+  --shadow-input:
+    0 1px 0 0 rgba(255,255,255,0.9) inset,
+    0 0 0 0.5px rgba(0,0,0,0.06);
+
+  --shadow-button:
+    0 1px 0 0 rgba(255,255,255,0.4) inset,
+    0 6px 18px -6px rgba(249,115,22,0.5),
+    0 2px 6px -2px rgba(234,88,12,0.4);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);          /* Material Design standard */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);     /* Overshoot leve para "pop" */
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);             /* Aceleração rápida → desaceleração */
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MATERIAL SYMBOLS OUTLINED — ícones via font ligature
+   .pmra-icon       : ícone inline nos pmra-sub-hdr (10.5px → 14px visual)
+   .pmra-section-icon: ícone nos section headers gerados por _subheader()
+   ────────────────────────────────────────────────────────────────────────────*/
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+    user-select: none;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.pmra-icon {
+    font-size: 14px;
+    color: var(--color-ember-600);
+    opacity: 0.80;
+    margin-right: 6px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+.pmra-section-icon {
+    font-size: 20px;
+    color: var(--color-ember-600);
+    opacity: 0.85;
+    margin-right: 8px;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
+}
+
+/* Base text */
+html, body, [class*="css"] {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    color: var(--color-ink);
+}
+
+/* Ambient Background Blobs (for Streamlit app container) — opacity sutilmente
+   maior (0.18 vs 0.15) para reforcar a identidade visual sem dominar */
+.stApp {
+    background-color: var(--color-paper) !important;
+    background-image:
+        radial-gradient(circle at 80% 20%, rgba(249,115,22,0.18) 0%, transparent 42%),
+        radial-gradient(circle at 20% 80%, rgba(251,191,36,0.18) 0%, transparent 42%),
+        radial-gradient(ellipse at 50% 50%, rgba(199,210,254,0.14) 0%, transparent 60%);
+    background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT-MODE LOCK
+   Forca o app a renderizar sempre em light mode, mesmo que o usuario tenha
+   o navegador em dark mode OU tenha escolhido "Dark" no theme picker do
+   Streamlit (Settings > Theme). Sem isso, o texto digitado nos inputs fica
+   light-on-light (invisivel) e labels somem.
+   ────────────────────────────────────────────────────────────────────────────*/
+
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    color-scheme: light !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HIDE STREAMLIT HEADER/TOOLBAR
+   Esconde toda a barra superior nativa do Streamlit (toolbar com Deploy/Star,
+   header, badge "Fork + GitHub" do Streamlit Cloud, marca d'agua "Made with
+   Streamlit" no footer). Usuario final ve so o conteudo do app.
+   Para esconder tambem o badge "Fork" do Cloud especificamente, desativar
+   "Show app in the Streamlit Community Cloud toolbar" em share.streamlit.io
+   > seu app > Settings.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+header[data-testid="stHeader"],
+footer,
+#MainMenu {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+}
+
+/* Compensa o espaco que o header ocupava (puxa o conteudo para cima) */
+/* Zera padding-top em TODOS os wrappers da cadeia ancestral. Streamlit
+   aplica padding-top: 6rem (~96px) no .block-container por padrao para deixar
+   espaco para o header nativo — como o header esta escondido, esse padding
+   vira espaco vazio orfao no topo. Cobertura ultra-ampla para garantir que
+   pega TODAS as variantes em qualquer versao do Streamlit. */
+html,
+body,
+#root,
+.stApp,
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > section,
+[data-testid="stAppViewContainer"] > .main,
+[data-testid="stMain"],
+[data-testid="stMain"] > div,
+[data-testid="stMain"] > .block-container,
+section[data-testid="stMain"],
+section[data-testid="stMain"] > div,
+.main,
+.main > div,
+.block-container,
+section.main,
+section.main > .block-container,
+div.block-container,
+div[data-testid="stMainBlockContainer"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Colapsa wrappers dos iframes JS injetados no fim da página (height=0) */
+div[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:last-child > [data-testid="stElementContainer"]:last-child,
+div[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 0 !important;
+}
+
+/* (Tentamos várias soluções para tirar os iframes do fluxo — todas mataram
+   o JS dentro deles ou criaram efeitos colaterais piores. Mantemos os
+   iframes no fluxo natural. O pequeno offset extra que a etapa Contratante
+   tem por causa do iframe de input masks é aceitável.) */
+
+/* Primeiro filho do container principal nao deve ter margin-top — limita
+   APENAS ao primeiro filho direto, sem zerar o `gap` natural do Streamlit
+   no resto da árvore (isso colava todos os elementos verticais). */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div > [data-testid="stVerticalBlock"],
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child > div > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:first-child,
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > div:first-child > [data-testid="stMarkdown"],
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stMarkdown"]:first-child,
+[data-testid="stMainBlockContainer"] [data-testid="stElementContainer"]:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Inputs e textareas: texto sempre escuro sobre fundo claro */
+.stApp input,
+.stApp textarea,
+.stApp [data-baseweb="input"] input,
+.stApp [data-baseweb="textarea"] textarea,
+.stApp [data-baseweb="base-input"] input {
+    color: var(--color-ink) !important;
+    background-color: rgba(255,255,255,0.92) !important;
+    -webkit-text-fill-color: var(--color-ink) !important;
+    caret-color: var(--color-ember-500) !important;
+}
+.stApp input::placeholder,
+.stApp textarea::placeholder {
+    color: var(--color-ink-400) !important;
+    -webkit-text-fill-color: var(--color-ink-400) !important;
+    opacity: 0.7;
+}
+
+/* Selects */
+.stApp [data-baseweb="select"] *,
+.stApp [data-baseweb="select"] [role="combobox"] {
+    color: var(--color-ink) !important;
+}
+
+/* Labels: titulos acima de cada campo (TIPO DE PESSOA, RAZAO SOCIAL, etc.).
+   Tambem zera border/background herdado para nao aparecer "caixinha" em
+   volta do texto em dark mode. */
+.stApp [data-testid="stWidgetLabel"],
+.stApp [data-testid="stWidgetLabel"] *,
+.stApp [data-baseweb="form-control"] label,
+.stApp [data-baseweb="form-control"] label * {
+    color: var(--color-ink-600) !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Labels das opcoes de checkbox e radio (HORA POR SENIORIDADE, etc.) */
+.stApp [data-baseweb="checkbox"] label,
+.stApp [data-baseweb="checkbox"] label *,
+.stApp [data-baseweb="radio"] label,
+.stApp [data-baseweb="radio"] label * {
+    color: var(--color-ink) !important;
+    background: transparent !important;
+}
+
+/* Texto geral em markdown nativo (st.write, st.text, st.caption) */
+.stApp [data-testid="stMarkdownContainer"] > p,
+.stApp [data-testid="stMarkdownContainer"] > ul li,
+.stApp [data-testid="stMarkdownContainer"] > ol li,
+.stApp [data-testid="stCaption"] {
+    color: var(--color-ink) !important;
+}
+
+/* Subheader/title texts dentro de containers nao dependem do tema */
+.stApp [data-testid="stSubheader"],
+.stApp [data-testid="stSubheader"] * {
+    color: var(--color-ink) !important;
+}
+
+/* Botoes secundarios (stepper passado, Anterior, Adicionar linha, X de excluir):
+   light bg + texto escuro mesmo se Streamlit tentar aplicar dark.
+   Usa :not([kind="primary"]) para nao quebrar o botao primario (ember). */
+.stApp button[kind="secondary"],
+.stApp button[kind="secondaryFormSubmit"],
+.stApp button[kind="tertiary"],
+.stApp [data-testid="stBaseButton-secondary"] > button,
+.stApp [data-testid="baseButton-secondary"] {
+    background: rgba(255,255,255,0.85) !important;
+    color: var(--color-ink) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
+    box-shadow: var(--shadow-input) !important;
+}
+.stApp button[kind="secondary"]:hover:not(:disabled),
+.stApp button[kind="secondaryFormSubmit"]:hover:not(:disabled),
+.stApp button[kind="tertiary"]:hover:not(:disabled),
+.stApp [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled),
+.stApp [data-testid="baseButton-secondary"]:hover:not(:disabled) {
+    background: rgba(255,255,255,1) !important;
+    color: var(--color-ink) !important;
+    border-color: rgba(0,0,0,0.20) !important;
+}
+
+/* Botoes desabilitados (etapas futuras se o disabled voltar a ser usado) */
+.stApp button:disabled,
+.stApp button[disabled] {
+    color: var(--color-ink-400) !important;
+    background: rgba(255,255,255,0.5) !important;
+    opacity: 0.6;
+}
+
+/* Checkbox/radio: usa accent-color nativo (CSS3) para inputs nativos. */
+.stApp input[type="checkbox"],
+.stApp input[type="radio"] {
+    accent-color: var(--color-ember-500) !important;
+    color-scheme: light !important;
+}
+
+/* Radio visual de Baseweb: o circulo aparente e um <div>/<span> filho do
+   <label> dentro do [role="radiogroup"]. So pegamos labels que sao FILHOS
+   DIRETOS de radiogroup — assim NAO pegamos o label do grupo (TIPO DE PESSOA,
+   MODALIDADE, etc.) que fica FORA do radiogroup. */
+.stApp [role="radiogroup"] > label > div:first-child,
+.stApp [role="radiogroup"] > label > span:first-child {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+/* Estado SELECIONADO: ember. Usa :has(input:checked) (moderno, Chrome 105+,
+   Safari 15.4+, Firefox 121+) que cobre todas as variantes de DOM Baseweb
+   independente de onde o aria-checked esta. Fallback antigo via aria-checked
+   no label para browsers sem :has. */
+.stApp [role="radiogroup"] > label:has(input:checked) > div:first-child,
+.stApp [role="radiogroup"] > label:has(input:checked) > span:first-child,
+.stApp [role="radiogroup"] > label[aria-checked="true"] > div:first-child,
+.stApp [role="radiogroup"] > label[aria-checked="true"] > span:first-child {
+    background-color: var(--color-ember-500) !important;
+    border-color: var(--color-ember-600) !important;
+}
+
+/* Checkbox visual de Baseweb */
+.stApp [data-testid="stCheckbox"] > label > span:first-child {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.30) !important;
+}
+.stApp [data-testid="stCheckbox"] > label:has(input:checked) > span:first-child,
+.stApp [data-testid="stCheckbox"] > label[aria-checked="true"] > span:first-child {
+    background-color: var(--color-ember-500) !important;
+    border-color: var(--color-ember-600) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DROPDOWN POPUP (UF selectbox e demais popups)
+   IMPORTANTE: o popup do Streamlit/Baseweb e renderizado em PORTAL no body,
+   FORA de .stApp. Os seletores aqui NAO sao prefixados com .stApp e usam
+   cores hardcoded (nao var(--...)) porque o portal pode estar fora do escopo
+   onde as variaveis CSS sao definidas.
+
+   Rede ampla: cobre todas as variantes conhecidas de popover/menu/list.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-baseweb="popover"],
+[data-baseweb="popover-content"],
+[data-baseweb="menu"],
+[data-baseweb="list"],
+[data-baseweb="select-listbox"],
+[data-baseweb="select-dropdown"],
+[role="listbox"],
+[role="menu"],
+ul[role="listbox"],
+div[role="listbox"] {
+    background-color: #ffffff !important;
+    color: #0a0a0a !important;
+    border: 1px solid rgba(0,0,0,0.10) !important;
+    box-shadow: 0 8px 24px -4px rgba(15,15,20,0.15) !important;
+}
+/* Forca cor escura em TODO descendente — pega li, span, div, etc. */
+[data-baseweb="popover"] *,
+[data-baseweb="popover-content"] *,
+[data-baseweb="menu"] *,
+[data-baseweb="list"] *,
+[data-baseweb="select-listbox"] *,
+[data-baseweb="select-dropdown"] *,
+[role="listbox"] *,
+[role="menu"] *,
+[role="option"],
+[role="option"] *,
+[role="menuitem"],
+[role="menuitem"] * {
+    color: #0a0a0a !important;
+    background-color: transparent !important;
+}
+/* Estado hover/selecionado: ember claro */
+[role="option"]:hover,
+[role="option"][aria-selected="true"],
+[role="menuitem"]:hover {
+    background-color: rgba(249,115,22,0.12) !important;
+}
+
+/* Header — todas as bordas arredondadas (16px) para consistencia.
+   margin-top: -2rem absorve qualquer padding residual que Streamlit/Cloud
+   adicionam acima do conteudo. Sem isso continua sobrando ~30px no topo. */
+.pmra-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(253, 252, 250, 0.80);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
+    border: 0.5px solid rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+    margin-top: 0 !important;
+    border-radius: 16px;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.pmra-header:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 16px 36px -14px rgba(15,15,20,0.18),
+        0 4px 12px -6px rgba(249,115,22,0.10);
+}
+.pmra-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.pmra-header-left svg { height: 36px; width: auto; border-radius: 8px; }
+.pmra-header-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(0,0,0,0.08);
+}
+.pmra-header-text h1 {
+    font-family: var(--font-display) !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--color-ink) !important;
+}
+
+/* Container override for glassmorphism — margin-bottom para gap entre cards */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
+    background: var(--color-glass-white) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border) !important;
+    border-left: 3px solid var(--color-ember-500) !important;
+    box-shadow: var(--shadow-glass) !important;
+    border-radius: 18px !important;
+    padding: 28px !important;
+    margin-bottom: 16px !important;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+/* Gap entre elementos verticais DENTRO de um card glass — Streamlit usa
+   gap padrão pequeno; aumentamos para respirar. */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) > div > [data-testid="stVerticalBlock"] {
+    gap: 14px !important;
+}
+/* (hover dos cards consolidado mais abaixo em "16. CARD HOVER" e em
+   "26. ANIMAÇÕES VISÍVEIS (e)" — a última definição vence) */
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LAYOUT MOBILE
+   ────────────────────────────────────────────────────────────────────────────*/
+@media (max-width: 720px) {
+    [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
+        padding: 16px !important;
+    }
+    div[data-testid="stMainBlockContainer"] {
+        padding: 16px 12px !important;
+    }
+    .pmra-header {
+        padding: 12px 16px;
+    }
+
+    /* (a) STEPPER MOBILE — empilha botões (1 por linha) E remove sticky:
+       em mobile, header fixo atrapalha porque ocupa muito espaço vertical
+       (5 botões empilhados ~250px) e impede o usuário de ver o conteúdo
+       enquanto preenche. Rola junto com a página. */
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
+        position: static !important;
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
+      > [data-testid="stColumn"] {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* (b) TABELAS row-by-row MOBILE — labels individuais visíveis sob cada
+       input. No desktop o header compartilhado (.pmra-tbl-hdr) fica em cima
+       e cada input usa label_visibility="collapsed". Quando colunas empilham
+       em mobile, o header compartilhado fica órfão (TELEFONE / E-MAIL ambos
+       em cima dos 2 inputs). Solução: esconde o header e mostra o label de
+       cada input (sobrescreve o `display: none` que Streamlit aplica). */
+    .pmra-tbl-hdr {
+        display: none !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) [data-testid="stWidgetLabel"] {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        padding: 0 0 4px !important;
+        margin: 6px 0 0 !important;
+        opacity: 1 !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) [data-testid="stWidgetLabel"] * {
+        height: auto !important;
+        visibility: visible !important;
+    }
+
+    /* (c) Mobile: checkboxes de modalidade ficam no fluxo normal do
+       Streamlit (sem visual de card). Layout responsivo padrão. */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   STEPPER BUTTON SIZE — regras agressivas (desktop + mobile) para garantir
+   que NUNCA cresça em altura por causa de texto longo ("Gerar Proposta").
+   Aplica nowrap em TODOS os descendentes, não apenas no button.
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row [data-testid="stColumn"] button,
+.pmra-stepper-row [data-testid="stColumn"] button p,
+.pmra-stepper-row [data-testid="stColumn"] button div,
+.pmra-stepper-row [data-testid="stColumn"] button [data-testid="stMarkdownContainer"],
+.pmra-stepper-row [data-testid="stColumn"] button [data-testid="stMarkdownContainer"] * {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-height: 40px !important;
+    line-height: 1.1 !important;
+}
+
+/* Primary button — gradient ember + texto BRANCO consistente em TODAS as
+   variantes que o Streamlit pode usar (kind="primary", "primaryFormSubmit",
+   stBaseButton-primary, baseButton-primary). O seletor * descendente forca
+   branco em qualquer span/div interno que o Streamlit envolva no texto. */
+.stApp button[kind="primary"],
+.stApp button[kind="primaryFormSubmit"],
+.stApp [data-testid="stBaseButton-primary"] > button,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button,
+.stApp [data-testid="baseButton-primary"],
+.stApp [data-testid="baseButton-primaryFormSubmit"] {
+    background: linear-gradient(to bottom, #fb923c, #ea580c) !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-button) !important;
+    transition: transform 220ms var(--ease-out-soft),
+                filter 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft) !important;
+}
+/* Forca branco em qualquer descendente (span/div) que o Streamlit insira
+   dentro do botao primario — caso contrario o texto vira preto se Streamlit
+   tiver regra inline que sobrescreve o color do <button>. */
+.stApp button[kind="primary"] *,
+.stApp button[kind="primaryFormSubmit"] *,
+.stApp [data-testid="stBaseButton-primary"] > button *,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button *,
+.stApp [data-testid="baseButton-primary"] *,
+.stApp [data-testid="baseButton-primaryFormSubmit"] * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+.stApp button[kind="primary"]:hover,
+.stApp button[kind="primaryFormSubmit"]:hover,
+.stApp [data-testid="stBaseButton-primary"] > button:hover,
+.stApp [data-testid="stBaseButton-primaryFormSubmit"] > button:hover,
+.stApp [data-testid="baseButton-primary"]:hover,
+.stApp [data-testid="baseButton-primaryFormSubmit"]:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px) !important;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.5) inset,
+        0 10px 26px -6px rgba(249,115,22,0.55),
+        0 3px 8px -2px rgba(234,88,12,0.40) !important;
+}
+
+/* Step Buttons — pill mais slim (36px vs 40px) e fonte 12.5px para conjunto
+   mais leve. White-space nowrap + ellipsis impede quebra de linha em viewports
+   intermediarios. */
+[data-testid="stBaseButton-secondary"] > button,
+[data-testid="stBaseButton-primary"] > button {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 999px !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.01em;
+}
+
+/* Sticky stepper compacto: bg paper translucido + padding reduzido para
+   ocupar pouca altura quando fixo no topo. Identifica o stepper como o
+   primeiro stHorizontalBlock dentro do main container — funciona em qualquer
+   hierarquia (Streamlit adiciona stVerticalBlockBorderWrapper em algumas
+   versões). */
+[data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
+    position: sticky;
+    top: 4px;
+    z-index: 25;
+    background-color: rgba(250, 249, 247, 0.92);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    padding: 8px 14px;
+    margin-top: -4px;
+    margin-bottom: 12px;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border-radius: 18px;
+    transition: box-shadow 220ms var(--ease-out-soft),
+                background-color 220ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft);
+}
+.pmra-stepper-row.pmra-stepper-scrolled {
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.05),
+        0 12px 32px -14px rgba(15, 15, 20, 0.22),
+        0 4px 12px -6px rgba(249, 115, 22, 0.10);
+    background-color: rgba(250, 249, 247, 0.97) !important;
+}
+
+/* Input fields */
+[data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"], [data-baseweb="base-input"] {
+    background: rgba(255,255,255,0.7) !important;
+    backdrop-filter: blur(12px) saturate(160%) !important;
+    border: 0.5px solid rgba(0,0,0,0.08) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-input) !important;
+    transition: all 220ms var(--ease-out-soft) !important;
+}
+[data-baseweb="input"]:focus-within, [data-baseweb="textarea"]:focus-within, [data-baseweb="select"]:focus-within {
+    border-color: rgba(249,115,22,0.55) !important;
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.9) inset, 0 0 0 3px rgba(249,115,22,0.16) !important;
+}
+
+/* Headings — Fraunces serif. .pmra-sub-hdr é tratado separadamente abaixo
+   (sans-serif + ember). NÃO agrupar aqui senão herda fonte/cor errada. */
+h1, h2, h3 {
+    font-family: var(--font-display) !important;
+    color: var(--color-ink) !important;
+}
+h2 {
+    font-size: 24px !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.01em !important;
+    margin-bottom: 14px !important;
+    margin-top: 4px !important;
+}
+h3 {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.005em !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
+}
+.pmra-section-hdr {
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Labels — TIPO DE PESSOA, MATÉRIAS, etc. Mesma tipografia que .pmra-sub-hdr
+   (tamanho e letter-spacing idênticos) — única diferença é a cor (cinza
+   neutro vs ember). Garante coesão visual entre rótulos de seção e de campo.
+   Padding-bottom cria respiro entre label e input. */
+label {
+    font-family: var(--font-sans) !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.14em !important;
+    color: var(--color-ink-600) !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    padding-bottom: 6px !important;
+}
+/* Garante espaço entre o sub-header de uma seção e o widget que vem logo
+   abaixo (label do input ou um checkbox standalone). */
+.pmra-sub-hdr + [data-testid="stElementContainer"],
+[data-testid="stMarkdown"]:has(.pmra-sub-hdr) + [data-testid="stElementContainer"] {
+    margin-top: 4px !important;
+}
+
+/* Selection */
+::selection {
+    background: rgba(249,115,22,0.18);
+    color: var(--color-ink);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(64,64,64,0.18);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(64,64,64,0.32); background-clip: content-box; }
+
+/* Subheaders within cards — tipografia idêntica aos labels (mesmo size,
+   letter-spacing, weight). Apenas a cor difere: ember para hierarquia
+   visual de "marcador de seção". Margens generosas pra criar respiro
+   entre seções e seu conteúdo. */
+.pmra-sub-hdr {
+    font-family: var(--font-sans) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: var(--color-ember-600) !important;
+    line-height: 1.4 !important;
+    margin-top: 32px !important;
+    margin-bottom: 18px !important;
+    padding-top: 8px !important;
+}
+/* Quando o sub-hdr vem logo após uma nota informativa (caso comum: nota
+   explicativa + sub-section abaixo), aumenta ainda mais o respiro. */
+[data-testid="stMarkdown"]:has(.pmra-info-note) + [data-testid="stElementContainer"] .pmra-sub-hdr,
+[data-testid="stMarkdown"]:has(.pmra-info-note) + [data-testid="stElementContainer"] [data-testid="stMarkdown"] .pmra-sub-hdr {
+    margin-top: 16px !important;
+}
+/* Primeiro subheader dentro de um container nao precisa de margin-top */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) .pmra-sub-hdr:first-child,
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) > div:first-child .pmra-sub-hdr {
+    margin-top: 0 !important;
+}
+
+/* Caixa de nota explicativa (substitui st.caption para mensagens importantes) */
+.pmra-info-note {
+    background: rgba(59, 130, 246, 0.08);
+    border-left: 3px solid #3b82f6;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #1e3a8a;
+    text-align: left;
+    margin: 18px 0 28px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+.pmra-info-note strong { color: #1e3a8a; }
+.pmra-note-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    line-height: 1.6;
+    opacity: 0.80;
+}
+
+/* Progress Bar container override */
+[data-testid="stProgressBar"] > div > div {
+    background-color: var(--color-ember-500) !important;
+}
+
+/* Width constraint */
+div[data-testid="stMainBlockContainer"] {
+    max-width: 896px !important;
+    margin: 0 auto !important;
+    padding: 4px 28px 32px !important;
+}
+
+/* Table Headers compartilhados (renderizados em _render_rows) */
+.pmra-tbl-hdr {
+    font-family: var(--font-sans) !important;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-ink-400);
+    margin-bottom: 8px;
+}
+
+/* Divider — margem reduzida para evitar buracos verticais entre stepper/conteudo */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.10), transparent) !important;
+    margin: 12px 0 !important;
+}
+
+/* Compact clear row buttons — identificados ESTRUTURALMENTE pelo wrapper
+   `[data-testid="stTooltipHoverTarget"]` que Streamlit cria em volta de
+   buttons com `help=`. No app, apenas o ✕ delete usa help, então o seletor
+   é exclusivo. NÃO depende de JS adicionando classe (Streamlit recria o
+   button periodicamente e remove classes JS). */
+.stApp [data-testid="stTooltipHoverTarget"] > button {
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
+    font-size: 0.8rem !important;
+    color: var(--color-ink-400) !important;
+    border-color: rgba(0,0,0,0.08) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    opacity: 0.65 !important;
+    transition: all 180ms var(--ease-out-soft) !important;
+}
+.stApp [data-testid="stTooltipHoverTarget"] > button:hover:not(:disabled) {
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.35) !important;
+    background: rgba(254, 226, 226, 0.5) !important;
+    opacity: 1 !important;
+}
+
+/* "+ Adicionar linha" buttons — dashed outline, ember accent */
+.stApp button.pmra-row-add {
+    border: 1.5px dashed rgba(249,115,22,0.40) !important;
+    background: transparent !important;
+    color: var(--color-ember-600) !important;
+    box-shadow: none !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.03em !important;
+    transition: all 200ms var(--ease-out-soft) !important;
+}
+.stApp button.pmra-row-add:hover:not(:disabled) {
+    border-color: var(--color-ember-500) !important;
+    background: rgba(249,115,22,0.06) !important;
+    color: var(--color-ember-700) !important;
+    transform: translateY(-1px) !important;
+}
+.stApp button.pmra-row-add *,
+.stApp button.pmra-row-add:hover * {
+    color: inherit !important;
+}
+
+/* Review Cards — grid 2x2 (1 coluna em mobile) */
+.review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+@media (max-width: 720px) {
+    .review-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.review-card {
+    background: var(--color-glass-white);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: 18px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.review-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 22px 50px -16px rgba(15,15,20,0.22),
+        0 6px 18px -8px rgba(249,115,22,0.12);
+}
+.review-label {
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ember-600);
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.07);
+}
+.review-value {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--color-ink);
+}
+.review-summary {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-ink-600);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.review-row {
+    /* Cada item do resumo (1 por linha) — sem bullets, espacamento vertical */
+}
+
+/* Login screen — spacing hierarquico (gap menor titulo/subtitulo, maior
+   subtitulo/mensagem). Logo levemente maior (72px). */
+.pmra-login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 44px 36px 36px;
+    margin: 32px auto 24px;
+    max-width: 480px;
+    background: var(--color-glass-strong);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: 24px;
+    text-align: center;
+}
+.pmra-login-logo {
+    margin-bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: var(--color-glass-white);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-glass);
+    transition: transform 260ms var(--ease-out-soft),
+                box-shadow 260ms var(--ease-out-soft);
+}
+.pmra-login-logo:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.24),
+        0 6px 18px -8px rgba(249, 115, 22, 0.18);
+}
+.pmra-login-logo svg {
+    height: 72px;
+    width: auto;
+    border-radius: 14px;
+    display: block;
+}
+.pmra-login-title,
+.pmra-login-subtitle,
+.pmra-login-message {
+    display: block !important;
+    width: 100% !important;
+    align-self: stretch !important;
+    text-align: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+.pmra-login-title {
+    font-family: var(--font-display) !important;
+    font-size: 28px !important;
+    font-weight: 400 !important;
+    margin: 0 0 4px !important;
+    color: var(--color-ink) !important;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+.pmra-login-subtitle {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    color: var(--color-ink-400);
+    margin: 0 0 22px !important;
+    letter-spacing: 0.01em;
+    font-style: italic;
+}
+.pmra-login-message {
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    color: var(--color-ink-600);
+    line-height: 1.55;
+    max-width: 380px;
+    margin: 0 auto !important;
+}
+
+/* Footer style */
+.pmra-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 28px;
+    background: rgba(253, 252, 250, 0.80);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
+    border: 0.5px solid rgba(0,0,0,0.06);
+    font-size: 11px;
+    color: var(--color-ink-400);
+    margin-top: 40px;
+    margin-bottom: 0;
+    border-radius: 16px;
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 8px 24px -10px rgba(15,15,20,0.12);
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+.pmra-footer:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255,255,255,0.9) inset,
+        0 0 0 0.5px rgba(0,0,0,0.06),
+        0 16px 36px -14px rgba(15,15,20,0.18),
+        0 4px 12px -6px rgba(249,115,22,0.10);
+}
+.pmra-footer-left,
+.pmra-footer-right {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 2 — 8 melhorias visuais sem mexer em funcionalidade
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. (removido) SEGMENTED CONTROL — radio horizontal voltou ao visual padrão
+   do Streamlit (bolinha + label). O efeito pill-tab custava lag perceptível
+   ao alternar e bloqueava o click em alguns viewports.
+
+   2. (removido) CARDS SELECIONÁVEIS — checkboxes de modalidade voltaram
+   ao visual padrão do Streamlit. As tentativas de igualar altura via min/max
+   height + reduzir font sacrificavam legibilidade ou criavam inconsistências
+   visuais em viewports diferentes. Visual padrão é estável e legível.
+   ────────────────────────────────────────────────────────────────────────────*/
+
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. HOVER STATE EM LINHAS DE TABELA — row destacada quando user edita.
+   Identifica linha de tabela como stHorizontalBlock que contém stTooltipIcon
+   (do ✕ delete com tooltip "Remover linha"). Funciona independente do
+   data-testid do button (que Streamlit deixou de expor).
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]) {
+    border-radius: 10px;
+    margin: 2px 0;
+    padding: 4px 6px;
+    transition: background 180ms var(--ease-out-soft);
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipIcon"]):hover {
+    background: rgba(249, 115, 22, 0.04);
+}
+
+/* 4. (sticky stepper scrolled shadow consolidado com .pmra-stepper-row) */
+/* 5. (fade-up dos containers consolidado em "26. ANIMAÇÕES VISÍVEIS (b)"
+   via @keyframes pmra-content-in) */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. SUCCESS CARD — substituiu st.success() na geração da proposta
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.04));
+    border-left: 3px solid #16a34a;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 480ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(34, 197, 94, 0.25);
+}
+@keyframes pmra-success-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    60% { opacity: 1; transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+.pmra-success-icon {
+    font-size: 32px !important;
+    color: #16a34a !important;
+    flex-shrink: 0;
+    animation: pmra-check-pop 600ms var(--ease-out-soft) 120ms both;
+}
+@keyframes pmra-check-pop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+.pmra-success-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.pmra-success-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #14532d;
+    letter-spacing: -0.01em;
+}
+.pmra-success-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #166534;
+    line-height: 1.5;
+}
+.pmra-success-subtitle strong { color: #14532d; font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. EMPTY STATE EM TABELAS — quando há só 1 linha, o ✕ fica disabled.
+   Identifica via [data-testid="stTooltipHoverTarget"] > button[disabled].
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]):not(:hover) {
+    background: rgba(0, 0, 0, 0.015);
+    border: 1px dashed rgba(0, 0, 0, 0.08);
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]) input,
+[data-testid="stHorizontalBlock"]:has([data-testid="stTooltipHoverTarget"] > button[disabled]) textarea {
+    background: transparent !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. FOCUS RINGS CONSISTENTES — keyboard navigation com ember accent
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button:focus-visible,
+.stApp [role="radio"]:focus-visible,
+.stApp label:focus-visible,
+.stApp [data-baseweb="checkbox"]:focus-within {
+    outline: 2.5px solid rgba(249, 115, 22, 0.42) !important;
+    outline-offset: 2px !important;
+}
+.stApp input:focus-visible,
+.stApp textarea:focus-visible,
+.stApp [role="combobox"]:focus-visible {
+    outline: none !important;
+    /* O focus-within do parent já aplica o ring laranja nos inputs */
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 3 — round corners completos + extras
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. ERROR CARD — pareado com .pmra-success-card para mensagem de falha
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-error-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04));
+    border-left: 3px solid #dc2626;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    animation: pmra-success-in 360ms var(--ease-out-soft);
+    box-shadow: 0 4px 14px -8px rgba(239, 68, 68, 0.25);
+}
+.pmra-error-icon {
+    font-size: 32px !important;
+    color: #dc2626 !important;
+    flex-shrink: 0;
+}
+.pmra-error-text { display: flex; flex-direction: column; gap: 2px; }
+.pmra-error-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    color: #7f1d1d;
+    letter-spacing: -0.01em;
+}
+.pmra-error-subtitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: #991b1b;
+    line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. BOTÕES SECUNDÁRIOS — hover lift consistente (Anterior, etc)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-testid="stBaseButton-secondary"] > button,
+.stApp button[kind="secondary"] {
+    transition: background 200ms var(--ease-out-soft),
+                color 200ms var(--ease-out-soft),
+                border-color 200ms var(--ease-out-soft),
+                transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled),
+.stApp button[kind="secondary"]:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.6) inset,
+        0 4px 12px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   11. SUB-HEADERS — barra decorativa ember à esquerda do texto
+   Adicionado ao pseudo-element ::before do .pmra-sub-hdr (em complemento ao
+   ícone Material Symbols que já está no HTML).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-sub-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   12. LOGIN FORM — container glassmorphism em torno do campo de senha
+   Streamlit gera um <div data-testid="stForm"> em volta de st.form().
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stForm"] {
+    background: var(--color-glass-strong) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid var(--color-glass-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-glass) !important;
+    padding: 22px 24px !important;
+    transition: transform 220ms var(--ease-out-soft),
+                box-shadow 220ms var(--ease-out-soft);
+}
+[data-testid="stForm"]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+        0 0 0 0.5px rgba(0, 0, 0, 0.06),
+        0 22px 50px -16px rgba(15, 15, 20, 0.22),
+        0 6px 18px -8px rgba(249, 115, 22, 0.12) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   13. ROUND CORNERS GLOBAIS — todo elemento com border-radius < 8 sobe pra 8
+   Garante consistência visual em pequenos elementos que ficaram com radius
+   muito baixo (alguns botões nativos do Baseweb).
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp [data-baseweb="popover"],
+.stApp [data-baseweb="popover-content"],
+.stApp [data-baseweb="menu"],
+.stApp [data-baseweb="list"],
+.stApp [data-baseweb="select-dropdown"] {
+    border-radius: 14px !important;
+}
+.stApp [role="option"] {
+    border-radius: 8px !important;
+    margin: 2px 4px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   14. STEPPER BUTTONS — hover lift individual (cada pill)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row [data-testid="stBaseButton-secondary"] > button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 1) !important;
+    border-color: rgba(249, 115, 22, 0.35) !important;
+    color: var(--color-ember-700) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 4 — step icons Material Symbols + animações refinadas
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   15. STEP INDICATORS — substitui Unicode ✓/○ por Material Symbols via JS
+   O JS marca cada button do stepper com .pmra-step-done / .pmra-step-pending /
+   .pmra-step-current, e remove o caractere unicode do textContent (movido pra
+   atributo data-step-label como fallback de leitura por screen reader não é
+   afetado porque o <p> com o nome continua existindo).
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row button.pmra-step-done,
+.pmra-stepper-row button.pmra-step-pending,
+.pmra-stepper-row button.pmra-step-current {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+.pmra-stepper-row button.pmra-step-done::before,
+.pmra-stepper-row button.pmra-step-pending::before,
+.pmra-stepper-row button.pmra-step-current::before {
+    font-family: 'Material Symbols Outlined' !important;
+    font-feature-settings: 'liga' !important;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    font-size: 18px;
+    flex-shrink: 0;
+    display: inline-block;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    transition: transform 280ms var(--ease-spring),
+                color 220ms var(--ease-smooth);
+}
+.pmra-stepper-row button.pmra-step-done::before {
+    content: "check_circle";
+    color: var(--color-ember-600);
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    animation: pmra-check-pop-stepper 420ms var(--ease-spring) both;
+}
+.pmra-stepper-row button.pmra-step-pending::before {
+    content: "radio_button_unchecked";
+    color: var(--color-ink-400);
+    opacity: 0.55;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.pmra-stepper-row button.pmra-step-pending:hover::before {
+    color: var(--color-ember-500);
+    opacity: 0.85;
+    transform: scale(1.08);
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    content: "circle";
+    color: #ffffff;
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 12px;
+    transform: scale(0.85);
+    animation: pmra-current-pulse 2400ms var(--ease-smooth) infinite;
+}
+
+@keyframes pmra-check-pop-stepper {
+    0% { opacity: 0; transform: scale(0) rotate(-30deg); }
+    55% { opacity: 1; transform: scale(1.25) rotate(0deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes pmra-current-pulse {
+    0%, 100% { opacity: 0.9; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   16. CARD HOVER — refinamento com escala muito leve (1.002) + translate
+   Sensação tátil "elevado e crescendo" sem distorcer texto/inputs internos.
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
+    transition: transform 280ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth) !important;
+}
+/* (hover dos cards consolidado mais abaixo em "26 (e)") */
+.review-card {
+    transition: transform 320ms var(--ease-smooth),
+                box-shadow 320ms var(--ease-smooth) !important;
+}
+.review-card:hover {
+    transform: translateY(-2px) scale(1.0025) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   17. INPUTS — micro-interaction no focus com easing smooth
+   ────────────────────────────────────────────────────────────────────────────*/
+[data-baseweb="input"],
+[data-baseweb="textarea"],
+[data-baseweb="select"],
+[data-baseweb="base-input"] {
+    transition: border-color 220ms var(--ease-smooth),
+                box-shadow 280ms var(--ease-smooth),
+                background-color 220ms var(--ease-smooth) !important;
+}
+
+/* (18. e 19. removidos — checkbox cards e segmented control voltaram ao
+   visual padrão do Streamlit. Custavam lag e/ou problemas de altura.) */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   20. SUCCESS / ERROR CARDS — refinamento da animação de entrada (mais polida)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-success-card,
+.pmra-error-card {
+    animation: pmra-card-in 520ms var(--ease-spring);
+    will-change: transform, opacity;
+}
+@keyframes pmra-card-in {
+    0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+    60% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   21. PRIMARY BUTTONS — micro-press feedback ao clicar (active)
+   ────────────────────────────────────────────────────────────────────────────*/
+.stApp button[kind="primary"]:active,
+.stApp [data-testid="stBaseButton-primary"] > button:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+.stApp [data-testid="stBaseButton-secondary"] > button:active:not(:disabled) {
+    transform: translateY(0) scale(0.99) !important;
+    transition: transform 80ms var(--ease-smooth) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   22. ICONES PMRA — pequena animação ao aparecer (subheaders das seções)
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-section-icon,
+.pmra-icon {
+    animation: pmra-icon-in 360ms var(--ease-smooth) both;
+}
+@keyframes pmra-icon-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 0.85; transform: scale(1); }
+}
+.pmra-section-icon {
+    transition: transform 280ms var(--ease-spring);
+}
+h2:hover .pmra-section-icon {
+    transform: scale(1.08) rotate(-3deg);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   23. REDUÇÃO DE MOVIMENTO — respeita prefers-reduced-motion
+   ────────────────────────────────────────────────────────────────────────────*/
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   POLISH ROUND 5 — fix de alinhamento e visibilidade de animações
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   24. STEPPER BUTTONS — altura e font-size uniformes em TODOS os 5 botões
+   Streamlit aplica font-size: 16px no <p> interno que sobrescreve a regra do
+   button. Forço o tamanho/nowrap em toda a árvore descendente.
+   ────────────────────────────────────────────────────────────────────────────*/
+.pmra-stepper-row button {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 14px !important;
+    letter-spacing: 0 !important;
+    line-height: 1 !important;
+    overflow: hidden !important;
+}
+.pmra-stepper-row button,
+.pmra-stepper-row button p,
+.pmra-stepper-row button [data-testid="stMarkdownContainer"],
+.pmra-stepper-row button [data-testid="stMarkdownContainer"] * {
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.1 !important;
+    text-overflow: ellipsis !important;
+}
+/* Para o ícone Material Symbols ::before continuar com seu tamanho próprio */
+.pmra-stepper-row button.pmra-step-done::before,
+.pmra-stepper-row button.pmra-step-pending::before,
+.pmra-stepper-row button.pmra-step-current::before {
+    font-size: 17px !important;
+    line-height: 1 !important;
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    font-size: 11px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   25. (removido) CHECKBOX CARDS — voltaram ao visual padrão do Streamlit. */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   26. ANIMAÇÕES VISÍVEIS — entrada da página + ênfase em interações
+   As animations do round 4 ficaram sutis demais. Aumento amplitude e duração
+   nos pontos críticos: aparecimento de conteúdo + pulse da etapa atual.
+   ────────────────────────────────────────────────────────────────────────────*/
+
+/* (a) Pulse mais visível na etapa atual — escala 0.75 → 1.05, amplitude maior */
+@keyframes pmra-current-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(0.75); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+.pmra-stepper-row button.pmra-step-current::before {
+    animation: pmra-current-pulse 1800ms var(--ease-smooth) infinite !important;
+}
+
+/* (b) Entrada de conteúdo na troca de etapa — fade-up sequencial.
+   NÃO aplicada ao h2 (header da etapa) para evitar percepção de header
+   "saltando" entre etapas. Apenas containers ganham fade-up. */
+@keyframes pmra-content-in {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0) {
+    animation: pmra-content-in 360ms var(--ease-decel) both;
+}
+/* Stagger: cada container subsequente entra 60ms depois do anterior */
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(1) { animation-delay: 0ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(2) { animation-delay: 60ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(3) { animation-delay: 120ms; }
+[data-testid="stMainBlockContainer"] [data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):nth-of-type(4) { animation-delay: 180ms; }
+
+/* (c) Primary button — sutil shimmer ember no hover (luz passando) */
+.stApp button[kind="primary"],
+.stApp [data-testid="stBaseButton-primary"] > button {
+    position: relative;
+    overflow: hidden !important;
+}
+.stApp button[kind="primary"]::after,
+.stApp [data-testid="stBaseButton-primary"] > button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.28) 50%,
+        transparent 100%
+    );
+    transform: skewX(-22deg);
+    pointer-events: none;
+    transition: left 600ms var(--ease-smooth);
+}
+.stApp button[kind="primary"]:hover::after,
+.stApp [data-testid="stBaseButton-primary"] > button:hover::after {
+    left: 130%;
+}
+
+/* (d) Checkbox card selection — animação mais perceptível */
+@keyframes pmra-card-select {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.05); }
+    70% { transform: scale(0.985); }
+    100% { transform: scale(1); }
+}
+[data-testid="stColumn"] [data-testid="stCheckbox"]:has(input:checked) {
+    animation: pmra-card-select 420ms var(--ease-spring);
+}
+
+/* (e) Container hover — lift ligeiramente mais visível */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
+    transform: translateY(-2px) scale(1.003) !important;
+}
+
+/* (f) Step button hover — leve scale + transição clara */
+.pmra-stepper-row button:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.02) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   27. UNIFORMIZAÇÃO FINAL — alinhamentos sutis em outros pontos
+   ────────────────────────────────────────────────────────────────────────────*/
+
+/* Stepper row: centraliza alturas dos columns + gap consistente */
+.pmra-stepper-row {
+    align-items: center !important;
+    gap: 8px !important;
+}
+.pmra-stepper-row > [data-testid="stColumn"] {
+    align-self: center !important;
+}
+
+/* Stepper buttons: garante texto centralizado verticalmente */
+.pmra-stepper-row button [data-testid="stMarkdownContainer"] {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   KILL SWITCH — desliga TODAS as animações e transitions pesadas.
+   Causavam lag perceptível ao alternar entre seletores (cada interação do
+   Streamlit dispara rerun completo, e re-executar @keyframes + transforms
+   em massa cria latência cumulativa). Mantemos transitions simples e curtas
+   apenas em hover de cor/bg/border — visualmente suficientes.
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* Cancela TODAS as animations no app — sem exceções. */
+.stApp *,
+.stApp *::before,
+.stApp *::after {
+    animation: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+}
+
+/* Cancela transitions com transform/scale/spring — mantém só cor/bg/border. */
+.stApp *,
+.stApp *::before,
+.stApp *::after {
+    transition-property: background-color, border-color, color, box-shadow, opacity !important;
+    transition-duration: 100ms !important;
+    transition-timing-function: ease-out !important;
+}
+
+/* Hover dos containers sem `transform: scale/translate` — só shadow. */
+[data-testid="stVerticalBlockBorderWrapper"]:not(.st-emotion-cache-0):hover {
+    transform: none !important;
+}
+.review-card:hover {
+    transform: none !important;
+}
+.pmra-stepper-row button:hover:not(:disabled) {
+    transform: none !important;
+}
+.pmra-header:hover,
+.pmra-login-logo:hover,
+[data-testid="stForm"]:hover {
+    transform: none !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   ALTURA UNIFORME — qualquer linha de botões/checkboxes em `st.columns`
+   tem todas as células forçadas ao mesmo tamanho (align-items: stretch +
+   conteúdo h 100%). Aplica universalmente a `stHorizontalBlock`.
+   ════════════════════════════════════════════════════════════════════════════*/
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] > div {
+    flex: 1 1 auto !important;
+    height: 100% !important;
+}
