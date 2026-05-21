@@ -76,13 +76,21 @@ ATOS_PROCESSUAIS_DEFAULT: list[AtoProcessualRow] = [
 
 ACAO_LINHA_VAZIA = AcaoRow(natureza="", fase="", valor="")
 
+SLA_DESCRICAO_DEFAULT = (
+    "Demandas de baixa complexidade: até 3 dias úteis;\n"
+    "Demandas de média complexidade: até 5 dias úteis;\n"
+    "Demandas de alta complexidade (ou em língua estrangeira): entre 5 e 10 dias úteis.\n"
+    "Projetos de altíssima complexidade ou alto volume: prazo a definir em conjunto com o Contratante.\n"
+    "Solicitações de urgência fora do SLA acima poderão ser atendidas mediante alinhamento entre as Partes e disponibilidade."
+)
+
 DESPESAS_DEFAULT: list[DespesaItem] = [
     DespesaItem(
-        categoria="Despesas Gerais",
+        categoria="Despesas Logísticas",
         descricao="Deslocamento em veículo próprio: R$ 2,50 por km e estacionamento, táxi, transporte por aplicativo, hospedagem e alimentação;"
     ),
     DespesaItem(
-        categoria="Despesas Específicas",
+        categoria="Despesas Gerais",
         descricao="Custas e emolumentos judiciais e administrativos, depósitos recursais, diligências externas simples (R$ 150,00 por diligência), serviços de correspondentes e demais despesas correlatas, apurados conforme necessidade."
     )
 ]
@@ -94,7 +102,7 @@ def proposal_form_default() -> ProposalForm:
             tipo_pessoa="juridica",
             endereco=Endereco(),
         ),
-        escopo=Escopo(modalidade="mista"),
+        escopo=Escopo(modalidade="consultiva", sla_descricao=SLA_DESCRICAO_DEFAULT),
         honorarios_consultiva=HonorariosConsultiva(
             modalidades=HonorariosConsultivaModalidades(),
             tabela_senioridade=[s.model_copy() for s in SENIORIDADE_DEFAULT],

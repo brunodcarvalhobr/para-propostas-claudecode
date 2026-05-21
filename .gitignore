@@ -24,6 +24,12 @@ nosetests.xml
 coverage.xml
 *.cover
 
+# ── Linters / type checkers ───────────────────────────────────────────────────
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
 # ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
@@ -50,5 +56,24 @@ coverage.xml
 # ── Streamlit: NUNCA versionar — contém senhas ────────────────────────────────
 .streamlit/secrets.toml
 
-# ── Outputs recriáveis (smoke_test.py) ────────────────────────────────────────
+# ── Outputs recriáveis (smoke_test.py, generate_demo*.py) ─────────────────────
 out/
+Proposta_*.docx
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Outros editores ───────────────────────────────────────────────────────────
+*.kate-swp
+Session.vim
+.netrwhist
+
+# ── Ambiente local (proteção contra secrets) ─────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Cache pip ─────────────────────────────────────────────────────────────────
+pip-wheel-metadata/

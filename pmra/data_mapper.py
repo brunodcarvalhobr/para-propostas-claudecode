@@ -9,7 +9,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .schema import Contato, Endereco, ProposalForm
+from docxtpl import RichText
+
+from .schema import Contato, Endereco, HonorariosConsultiva, HonorariosContenciosa, ProposalForm
 
 
 def _non_empty(*parts: str) -> str:
@@ -62,6 +64,23 @@ def _fmt_rows(rows: list[dict], money_cols: tuple[str, ...] = ("valor",)) -> lis
     ]
 
 
+def _filter_rows_by(rows: list[dict], required_field: str) -> list[dict]:
+    """Remove linhas onde o campo obrigatorio (ex.: 'valor') esta vazio.
+
+    Usado para acoes/atos onde o help_text diz "Linhas sem valor sao ignoradas".
+    """
+    return [r for r in rows if str(r.get(required_field, "")).strip()]
+
+
+def _filter_non_empty_rows(rows: list[dict]) -> list[dict]:
+    """Remove linhas onde TODOS os campos estao vazios.
+
+    Usado para tabelas onde qualquer combinacao de campo preenchido conta
+    (senioridade, despesas).
+    """
+    return [r for r in rows if any(str(v).strip() for v in r.values())]
+
+
 def montar_endereco(end: Endereco) -> str:
     linha1 = _non_empty(
         ", ".join(p for p in [end.logradouro, end.numero] if p),
@@ -85,6 +104,74 @@ def montar_contatos(contatos: list[Contato]) -> str:
     return "\n".join(linhas)
 
 
+def _tabela_senioridade_texto(rows: list[dict]) -> str:
+    return ", ".join(
+        f"{r['categoria']}: {r['valor']}"
+        for r in rows
+        if r.get('categoria') or r.get('valor')
+    )
+
+
+def _tabela_acoes_texto(rows: list[dict]) -> str:
+    return "; ".join(
+        " | ".join(v for v in [r.get('natureza'), r.get('fase'), r.get('valor')] if v)
+        for r in rows if r.get('valor')
+    )
+
+
+def _tabela_atos_texto(rows: list[dict]) -> str:
+    return "; ".join(
+        f"{r.get('ato', '')}: {r.get('valor', '')}"
+        for r in rows if r.get('valor')
+    )
+
+
+def _build_consultiva_ctx(hon: HonorariosConsultiva, show: bool) -> dict[str, Any]:
+    """Constrói sub-contexto de uma instância HonorariosConsultiva."""
+    mod = hon.modalidades
+    tbl_sen = _filter_non_empty_rows(_fmt_rows([s.model_dump() for s in hon.tabela_senioridade]))
+    return {
+        "show_hora_senioridade": show and mod.hora_senioridade,
+        "show_hora_fixa":        show and mod.hora_fixa,
+        "show_fixo_mensal":      show and mod.fixo_mensal,
+        "show_valor_projeto":    show and mod.valor_projeto,
+        "tabela_senioridade":    tbl_sen,
+        "tabela_senioridade_texto": _tabela_senioridade_texto(tbl_sen),
+        "hora_fixa_valor":       _fmt_money(hon.hora_fixa_valor),
+        "fixo_mensal_valor":     _fmt_money(hon.fixo_mensal_valor),
+        "fixo_mensal_cap":       hon.fixo_mensal_cap,
+        "fixo_mensal_excedente": _fmt_money(hon.fixo_mensal_excedente),
+        "valor_projeto_total":   _fmt_money(hon.valor_projeto_total),
+        "show_valor_projeto_cap": show and mod.valor_projeto and hon.valor_projeto_cap_ativo,
+        "valor_projeto_cap":      hon.valor_projeto_cap,
+        "valor_projeto_forma_pagamento": hon.valor_projeto_forma_pagamento,
+    }
+
+
+def _build_contenciosa_ctx(hon: HonorariosContenciosa, show: bool) -> dict[str, Any]:
+    """Constrói sub-contexto das modalidades de uma instância HonorariosContenciosa."""
+    mod = hon.modalidades
+    tbl_acoes = _filter_rows_by(_fmt_rows([a.model_dump() for a in hon.tabela_acoes]), "valor")
+    tbl_atos  = _filter_rows_by(_fmt_rows([a.model_dump() for a in hon.tabela_atos]),  "valor")
+    return {
+        "show_valor_acao":    show and mod.valor_acao,
+        "show_valor_ato":     show and mod.valor_ato_processual,
+        "show_preco_mensal":  show and mod.preco_mensal_massa,
+        "show_valor_projeto": show and mod.valor_projeto,
+        "tabela_acoes": tbl_acoes,
+        "tabela_acoes_texto": _tabela_acoes_texto(tbl_acoes),
+        "tabela_atos":  tbl_atos,
+        "tabela_atos_texto": _tabela_atos_texto(tbl_atos),
+        "preco_mensal_valor":                _fmt_money(hon.preco_mensal_valor),
+        "preco_mensal_maximo_acoes":         hon.preco_mensal_maximo_acoes,
+        "preco_mensal_maximo_acoes_extenso": hon.preco_mensal_maximo_acoes_extenso,
+        "preco_mensal_criterio_excedentes":  hon.preco_mensal_criterio_excedentes,
+        "valor_projeto_total":          _fmt_money(hon.valor_projeto_total),
+        "valor_projeto_fases_cobertas": hon.valor_projeto_fases_cobertas,
+        "valor_projeto_forma_pagamento": hon.valor_projeto_forma_pagamento,
+    }
+
+
 def form_to_context(form: ProposalForm) -> dict[str, Any]:
     pf = form.contratante.tipo_pessoa == "fisica"
     pj = not pf
@@ -94,6 +181,32 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
 
     consultiva_mod = form.honorarios_consultiva.modalidades
     contenciosa_mod = form.honorarios_contenciosa.modalidades
+
+    # Múltiplos escopos
+    multi_cons = len(form.escopo.escopos_consultivos) >= 2
+    multi_cont = len(form.escopo.escopos_contenciosos) >= 2
+    forma_por_escopo_cons = form.escopo.forma_pagamento_por_escopo_consultiva and multi_cons
+    forma_por_escopo_cont = form.escopo.forma_pagamento_por_escopo_contenciosa and multi_cont
+
+    itens_consultivos = [
+        {"letra": e.letra, "descricao": e.descricao}
+        for e in form.escopo.escopos_consultivos
+    ] if multi_cons else []
+
+    itens_contenciosos = [
+        {"letra": e.letra, "descricao": e.descricao}
+        for e in form.escopo.escopos_contenciosos
+    ] if multi_cont else []
+
+    itens_hon_cons = [
+        {"letra": e.letra, **_build_consultiva_ctx(e.honorarios, True)}
+        for e in form.escopo.escopos_consultivos
+    ] if forma_por_escopo_cons else []
+
+    itens_hon_cont = [
+        {"letra": e.letra, **_build_contenciosa_ctx(e.honorarios, True)}
+        for e in form.escopo.escopos_contenciosos
+    ] if forma_por_escopo_cont else []
 
     return {
         "contratante": {
@@ -108,40 +221,35 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "contatos_texto": montar_contatos(form.contratante.contatos),
         },
         "escopo": {
-            "show_consultiva": show_consultiva,
-            "show_contenciosa": show_contenciosa,
+            "show_consultiva":    show_consultiva,
+            "show_contenciosa":   show_contenciosa,
             "atuacao_consultiva": form.escopo.atuacao_consultiva,
             "atuacao_contenciosa": form.escopo.atuacao_contenciosa,
-            "show_sla": form.escopo.sla_ativo,
+            "show_sla":      form.escopo.sla_ativo,
             "sla_descricao": form.escopo.sla_descricao,
+            "sla_titulo": (
+                "Prazos de Entrega/SLA dos Escopos Consultivos"
+                if (multi_cons and show_consultiva)
+                else "Prazos de Entrega/SLA do Escopo Consultivo"
+                if show_consultiva
+                else "Prazos de Entrega/SLA dos Escopos Contenciosos"
+                if (multi_cont and show_contenciosa)
+                else "Prazos de Entrega/SLA do Escopo Contencioso"
+                if show_contenciosa
+                else "Prazos de Entrega/SLA"
+            ),
+            "multi_consultiva":   multi_cons,
+            "itens_consultivos":  itens_consultivos,
+            "multi_contenciosa":  multi_cont,
+            "itens_contenciosos": itens_contenciosos,
         },
         "consultiva": {
-            "show_hora_senioridade": show_consultiva and consultiva_mod.hora_senioridade,
-            "show_hora_fixa": show_consultiva and consultiva_mod.hora_fixa,
-            "show_fixo_mensal": show_consultiva and consultiva_mod.fixo_mensal,
-            "show_valor_projeto": show_consultiva and consultiva_mod.valor_projeto,
-            "tabela_senioridade": _fmt_rows([s.model_dump() for s in form.honorarios_consultiva.tabela_senioridade]),
-            "hora_fixa_valor": _fmt_money(form.honorarios_consultiva.hora_fixa_valor),
-            "fixo_mensal_valor": _fmt_money(form.honorarios_consultiva.fixo_mensal_valor),
-            "fixo_mensal_cap": form.honorarios_consultiva.fixo_mensal_cap,
-            "fixo_mensal_excedente": _fmt_money(form.honorarios_consultiva.fixo_mensal_excedente),
-            "valor_projeto_total": _fmt_money(form.honorarios_consultiva.valor_projeto_total),
-            "valor_projeto_forma_pagamento": form.honorarios_consultiva.valor_projeto_forma_pagamento,
+            **_build_consultiva_ctx(form.honorarios_consultiva, show_consultiva),
+            "forma_por_escopo": forma_por_escopo_cons,
+            "itens":            itens_hon_cons,
         },
         "contenciosa": {
-            "show_valor_acao": show_contenciosa and contenciosa_mod.valor_acao,
-            "show_valor_ato": show_contenciosa and contenciosa_mod.valor_ato_processual,
-            "show_preco_mensal": show_contenciosa and contenciosa_mod.preco_mensal_massa,
-            "show_valor_projeto": show_contenciosa and contenciosa_mod.valor_projeto,
-            "tabela_acoes": _fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_acoes]),
-            "tabela_atos": _fmt_rows([a.model_dump() for a in form.honorarios_contenciosa.tabela_atos]),
-            "preco_mensal_valor": _fmt_money(form.honorarios_contenciosa.preco_mensal_valor),
-            "preco_mensal_maximo_acoes": form.honorarios_contenciosa.preco_mensal_maximo_acoes,
-            "preco_mensal_maximo_acoes_extenso": form.honorarios_contenciosa.preco_mensal_maximo_acoes_extenso,
-            "preco_mensal_criterio_excedentes": form.honorarios_contenciosa.preco_mensal_criterio_excedentes,
-            "valor_projeto_total": _fmt_money(form.honorarios_contenciosa.valor_projeto_total),
-            "valor_projeto_fases_cobertas": form.honorarios_contenciosa.valor_projeto_fases_cobertas,
-            "valor_projeto_forma_pagamento": form.honorarios_contenciosa.valor_projeto_forma_pagamento,
+            **_build_contenciosa_ctx(form.honorarios_contenciosa, show_contenciosa),
             "show_exito": show_contenciosa and form.honorarios_contenciosa.exito_ativo,
             "exito_percentual": form.honorarios_contenciosa.exito_percentual,
             "show_extra_senioridade": (
@@ -150,21 +258,30 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "show_extra_hora_fixa": (
                 show_contenciosa and form.honorarios_contenciosa.horas_extra_escopo_modo == "horaFixa"
             ),
-            "horas_extra_senioridade": _fmt_rows([
+            "horas_extra_senioridade": _filter_non_empty_rows(_fmt_rows([
                 s.model_dump() for s in form.honorarios_contenciosa.horas_extra_senioridade
-            ]),
+            ])),
             "horas_extra_valor": _fmt_money(form.honorarios_contenciosa.horas_extra_valor),
+            "forma_por_escopo": forma_por_escopo_cont,
+            "itens":            itens_hon_cont,
         },
         "despesas": {
-            "tabela_despesas": _fmt_rows([d.model_dump() for d in form.despesas.tabela_despesas]),
+            "tabela_despesas": _filter_non_empty_rows(_fmt_rows([d.model_dump() for d in form.despesas.tabela_despesas])),
             "taxa_manutencao_processual": _fmt_money(form.despesas.taxa_manutencao_processual),
-            "show_taxa_manutencao": bool(form.despesas.taxa_manutencao_processual.strip()),
+            "show_taxa_manutencao": form.despesas.taxa_manutencao_ativa,
         },
         "disposicoes": {
             "show": form.disposicoes.ativo,
             "descricao": form.disposicoes.descricao,
         },
         "meta": {
-            "nome_ou_razao_social": form.contratante.nome if pf else form.contratante.razao_social,
+            # RichText: negrito + caixa alta aplicados em runtime, independente
+            # da formatacao do template. Renderizado via tag {{r ...}} no .docx.
+            "nome_ou_razao_social": RichText(
+                (form.contratante.nome if pf else form.contratante.razao_social).upper(),
+                bold=True,
+                font="Arvo",
+                size=20,
+            ),
         },
     }
