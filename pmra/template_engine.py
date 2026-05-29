@@ -50,6 +50,29 @@ _DOCS_TO_PROCESS = (
 )
 
 
+_JC_BOTH = '<w:jc w:val="both"/>'
+
+
+def _left_align_multiline(xml: str) -> str:
+    """Remove a justificacao de paragrafos com quebra de linha do usuario.
+
+    Justificar so faz sentido em texto corrido. Quando o usuario aperta Enter no
+    formulario, o docxtpl insere <w:br/> no run; ao justificar, o Word estica
+    horrivelmente a linha que termina na quebra (SLA em lista, contatos, itens de
+    Disposicoes). Um paragrafo justificado (w:jc=both) que contenha <w:br/> e,
+    portanto, texto de campo com Enter — removemos o w:jc=both para que volte a
+    alinhar a esquerda. O unico <w:br/> estatico do template ("Escopo de
+    Trabalho") nao e justificado, logo nao e afetado.
+    """
+    def repl(m: re.Match[str]) -> str:
+        p = m.group(0)
+        if _JC_BOTH in p and "<w:br/>" in p:
+            return p.replace(_JC_BOTH, "", 1)
+        return p
+
+    return _P_RE.sub(repl, xml)
+
+
 def _split_linebreaks(xml: str) -> str:
     def repl(m: re.Match[str]) -> str:
         attrs = m.group(1)
@@ -211,6 +234,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                         zout.writestr(item, data)
                         continue
                     xml = _split_linebreaks(xml)
+                    xml = _left_align_multiline(xml)
                     xml = _collapse_empty_paragraphs(xml)
                     xml = _remove_table_outer_bottom_borders(xml)
                     xml = _force_font_size_10(xml)

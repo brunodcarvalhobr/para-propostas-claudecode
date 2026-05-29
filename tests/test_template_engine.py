@@ -1,10 +1,13 @@
-"""Testes do template_engine — foco na regra de justificacao do texto do formulario.
+"""Testes do template_engine — regra de justificacao do texto do formulario.
 
-Regressao: campos de texto livre digitados no formulario (Escopo Consultivo,
-Escopo Contencioso, SLA, Disposicoes, criterio de excedentes, forma de
-pagamento, endereco e contatos) saiam alinhados a esquerda porque o template
-nao definia <w:jc> nesses paragrafos. `_justify_form_paragraphs` passou a
-forcar alinhamento justificado antes do render.
+Regra: texto livre do formulario sai justificado QUANDO e texto corrido (sem
+quebras). Se o usuario aperta Enter (gera '\\n'), o paragrafo volta a alinhar a
+esquerda — caso contrario o Word estica horrivelmente a linha antes da quebra.
+
+- `_justify_form_paragraphs` (pre-render) forca w:jc=both nos paragrafos de
+  texto do formulario.
+- `_left_align_multiline` (pos-render) remove o w:jc=both dos paragrafos cujo
+  texto contem '\\n'.
 """
 from __future__ import annotations
 
@@ -82,6 +85,35 @@ def _render_mista() -> str:
     return _document_xml(render_proposal(form_to_context(form)))
 
 
+def _render_multilinha() -> str:
+    """Mesma proposta, mas com texto MULTILINHA (Enter) nos campos livres."""
+    form = proposal_form_default()
+    form.contratante.tipo_pessoa = "juridica"
+    form.contratante.razao_social = "Acme Industria S.A."
+    form.contratante.cnpj = "11.222.333/0001-81"
+    form.contratante.endereco = Endereco(
+        logradouro="Av. Paulista", numero="1000", bairro="Bela Vista",
+        cep="01310-100", cidade="Sao Paulo", uf="SP",
+    )
+    # Dois contatos => contatos_texto recebe '\n' (multilinha).
+    form.contratante.contatos = [
+        Contato(telefone="(11) 3000-1000", email="MARCA_CONTATO_A@acme.com"),
+        Contato(telefone="(11) 3000-1001", email="MARCA_CONTATO_B@acme.com"),
+    ]
+    form.escopo.modalidade = "mista"
+    form.escopo.atuacao_consultiva = "MARCA_CONSULTIVO_ML primeiro paragrafo.\nSegundo paragrafo apos Enter."
+    form.escopo.atuacao_contenciosa = "MARCA_CONTENCIOSO_ML defesa.\nOutra linha."
+    form.escopo.sla_ativo = True
+    form.escopo.sla_descricao = "MARCA_SLA_ML baixa: 3 dias;\nmedia: 5 dias;\nalta: 10 dias."
+    form.honorarios_consultiva.modalidades.hora_fixa = True
+    form.honorarios_consultiva.hora_fixa_valor = "R$ 700,00"
+    form.honorarios_contenciosa.modalidades.preco_mensal_massa = True
+    form.honorarios_contenciosa.preco_mensal_valor = "R$ 8.000,00"
+    form.disposicoes.ativo = True
+    form.disposicoes.descricao = "MARCA_DISP_ML clausula um.\n\nMARCA_DISP_ML2 clausula dois."
+    return _document_xml(render_proposal(form_to_context(form)))
+
+
 class TestJustificacaoTextoFormulario:
     @pytest.fixture(scope="class")
     def xml(self) -> str:
@@ -135,3 +167,33 @@ class TestJustificacaoTextoFormulario:
         xml = _document_xml(render_proposal(form_to_context(form)))
         assert _jc_of_paragraph_containing(xml, "MARCA_ESCOPO_A") == "both"
         assert _jc_of_paragraph_containing(xml, "MARCA_ESCOPO_B") == "both"
+
+
+class TestTextoMultilinhaAlinhadoEsquerda:
+    """Texto com quebra de linha (Enter) NAO deve ser justificado."""
+
+    @pytest.fixture(scope="class")
+    def xml(self) -> str:
+        return _render_multilinha()
+
+    @pytest.mark.parametrize(
+        "marker",
+        [
+            "MARCA_CONSULTIVO_ML",   # Escopo Consultivo com 2 paragrafos
+            "MARCA_CONTENCIOSO_ML",
+            "MARCA_SLA_ML",          # SLA em lista (caso do print do usuario)
+            "MARCA_DISP_ML",         # Disposicoes com paragrafos separados
+            "MARCA_CONTATO_A",       # contatos_texto com 2 contatos => multilinha
+        ],
+    )
+    def test_texto_multilinha_nao_justificado(self, xml, marker):
+        jc = _jc_of_paragraph_containing(xml, marker)
+        assert jc != "both", (
+            f"texto multilinha {marker!r} foi justificado (w:jc={jc}); "
+            f"deveria ficar alinhado a esquerda para nao esticar as linhas"
+        )
+
+    def test_consultivo_continuo_ainda_justifica(self, xml):
+        """Sanidade: o caso multilinha nao deve afetar o caminho de texto corrido."""
+        cont_xml = _render_mista()
+        assert _jc_of_paragraph_containing(cont_xml, "MARCA_CONSULTIVO") == "both"
