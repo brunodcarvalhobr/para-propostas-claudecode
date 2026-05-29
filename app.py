@@ -1,7 +1,9 @@
 """Gerador de Propostas PMRA (Streamlit) — formulário em etapas."""
 from __future__ import annotations
 
+import hashlib
 import html
+import json
 import logging
 import re
 from datetime import datetime
@@ -24,7 +26,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.35"
+APP_VERSION = "2.0.36"
 
 
 @st.cache_data
@@ -53,6 +55,14 @@ def _info_note(text: str) -> None:
     """
     st.markdown(
         f'<div class="pmra-info-note"><span class="pmra-note-icon">ℹ</span><span>{text}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _warn_note(text: str) -> None:
+    """Nota de atenção (âmbar) — usada para avisos não-bloqueantes de campos vazios."""
+    st.markdown(
+        f'<div class="pmra-warn-note"><span class="pmra-warn-icon">⚠</span><span>{text}</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -325,6 +335,73 @@ def _on_money_change(wk: str) -> None:
     st.session_state[wk] = _money_fmt(st.session_state.get(wk, ""))
 
 
+# ── Assinatura do formulário e validação suave ─────────────────────────────────
+
+def _form_signature(form: dict) -> str:
+    """Hash estável do formulário — detecta se mudou desde a última geração."""
+    return hashlib.md5(
+        json.dumps(form, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+
+
+def _tem_modalidade_cons(form: dict) -> bool:
+    esc = form["escopo"]
+    multi = len(esc.get("escopos_consultivos", [])) >= 2
+    if esc.get("forma_pagamento_por_escopo_consultiva") and multi:
+        return any(any(e["honorarios"]["modalidades"].values()) for e in esc["escopos_consultivos"])
+    return any(form["honorarios_consultiva"]["modalidades"].values())
+
+
+def _tem_modalidade_cont(form: dict) -> bool:
+    esc = form["escopo"]
+    multi = len(esc.get("escopos_contenciosos", [])) >= 2
+    if esc.get("forma_pagamento_por_escopo_contenciosa") and multi:
+        return any(any(e["honorarios"]["modalidades"].values()) for e in esc["escopos_contenciosos"])
+    return any(form["honorarios_contenciosa"]["modalidades"].values())
+
+
+def _collect_warnings(form: dict) -> dict[int, list[str]]:
+    """Avisos não-bloqueantes por etapa: campos importantes vazios que gerariam
+    seções vazias ou prejudicariam o Fluxo Comercial/Cadastro. Não impede gerar."""
+    w: dict[int, list[str]] = {}
+
+    def add(step: int, msg: str) -> None:
+        w.setdefault(step, []).append(msg)
+
+    c = form["contratante"]
+    if c["tipo_pessoa"] == "fisica":
+        if not (c.get("nome") or "").strip():
+            add(0, "Cliente (pessoa física) sem nome")
+        if not (c.get("cpf") or "").strip():
+            add(0, "Cliente sem CPF")
+    else:
+        if not (c.get("razao_social") or "").strip():
+            add(0, "Cliente (pessoa jurídica) sem razão social")
+        if not (c.get("cnpj") or "").strip():
+            add(0, "Cliente sem CNPJ")
+
+    esc = form["escopo"]
+    modal = esc["modalidade"]
+    if modal in ("consultiva", "mista"):
+        tem = bool((esc.get("atuacao_consultiva") or "").strip()) or any(
+            (e.get("descricao") or "").strip() for e in esc.get("escopos_consultivos", [])
+        )
+        if not tem:
+            add(1, "Escopo consultivo sem descrição")
+        if not _tem_modalidade_cons(form):
+            add(2, "Nenhuma modalidade de honorários consultiva selecionada")
+    if modal in ("contenciosa", "mista"):
+        tem = bool((esc.get("atuacao_contenciosa") or "").strip()) or any(
+            (e.get("descricao") or "").strip() for e in esc.get("escopos_contenciosos", [])
+        )
+        if not tem:
+            add(1, "Escopo contencioso sem descrição")
+        if not _tem_modalidade_cont(form):
+            add(2, "Nenhuma modalidade de honorários contenciosa selecionada")
+
+    return w
+
+
 # ── Inicialização de estado ────────────────────────────────────────────────────
 
 def _init_state() -> None:
@@ -335,6 +412,12 @@ def _init_state() -> None:
         st.session_state.step = 0
     if "generated_doc" not in st.session_state:
         st.session_state.generated_doc = None
+    if "generated_sig" not in st.session_state:
+        st.session_state.generated_sig = None
+    if "visited" not in st.session_state:
+        st.session_state.visited = set()
+    if "confirm_reset" not in st.session_state:
+        st.session_state.confirm_reset = False
 
     # Migracao para sessoes legadas: se form existe mas algum default novo
     # foi adicionado posteriormente (como sla_descricao), preenche com o
@@ -493,7 +576,37 @@ def _go_to(n: int) -> None:
     st.session_state.scroll_to_top = True
 
 
+# ── Reset ("Nova proposta") ────────────────────────────────────────────────────
+
+# Chaves preservadas ao limpar o formulário (não deslogar o usuário).
+_PRESERVE_ON_RESET = ("authenticated", "login_attempts")
+
+
+def _ask_reset_cb() -> None:
+    st.session_state.confirm_reset = True
+
+
+def _cancel_reset_cb() -> None:
+    st.session_state.confirm_reset = False
+
+
+def _reset_form_cb() -> None:
+    """Limpa todo o estado (campos, etapa, doc gerado) e recomeça do zero.
+
+    Roda como on_click (antes do rerun), então limpar a session_state é seguro —
+    os widgets ainda não foram instanciados. _init_state() recria os defaults.
+    """
+    preserved = {k: st.session_state[k] for k in _PRESERVE_ON_RESET if k in st.session_state}
+    st.session_state.clear()
+    st.session_state.update(preserved)
+
+
 current: int = st.session_state.step
+
+# Avisos suaves por etapa (campos importantes vazios) + rastreio de etapas vistas
+# para sinalizar com ⚠ apenas as que o usuário já visitou (evita ruído inicial).
+warnings_by_step = _collect_warnings(form)
+st.session_state.visited.add(current)
 
 # (As injeções de iframe — input masks, scroll-to-top, sticky stepper —
 # foram movidas para o FINAL deste arquivo, depois do footer. Cada iframe
@@ -522,32 +635,25 @@ st.markdown(_logo_html, unsafe_allow_html=True)
 # Indicador de progresso clicável
 indicator_cols = st.columns(len(STEPS))
 for i, (col, name) in enumerate(zip(indicator_cols, STEPS)):
+    # ⚠ apenas em etapas já visitadas com pendências (evita marcar tudo no início).
+    has_warn = bool(warnings_by_step.get(i)) and i in st.session_state.visited
     if i == current:
-        col.button(
-            f"{i + 1}. {name}",
-            key=f"step_btn_{i}",
-            use_container_width=True,
-            type="primary",
-            on_click=_go_to,
-            args=(i,),
-        )
+        label = f"{i + 1}. {name}"
+    elif has_warn:
+        label = f"⚠ {name}"
     elif i < current:
-        col.button(
-            f"✓ {name}",
-            key=f"step_btn_{i}",
-            use_container_width=True,
-            on_click=_go_to,
-            args=(i,),
-        )
+        label = f"✓ {name}"
     else:
         # Etapas futuras tambem clicaveis — usuario pode pular livre entre secoes.
-        col.button(
-            f"○ {name}",
-            key=f"step_btn_{i}",
-            use_container_width=True,
-            on_click=_go_to,
-            args=(i,),
-        )
+        label = f"○ {name}"
+    col.button(
+        label,
+        key=f"step_btn_{i}",
+        use_container_width=True,
+        type="primary" if i == current else "secondary",
+        on_click=_go_to,
+        args=(i,),
+    )
 
 # (divider removido: sticky stepper ja tem border-bottom; evita gap vertical
 # excessivo entre menu de etapas e conteudo)
@@ -1592,6 +1698,27 @@ elif current == 4:
     )
     st.markdown(f'<div class="review-grid">{cards_html}</div>', unsafe_allow_html=True)
 
+    # Avisos suaves: campos importantes vazios (não bloqueia a geração).
+    if warnings_by_step:
+        linhas = "<br>".join(
+            f"• <strong>{html.escape(STEPS[s])}:</strong> {html.escape(m)}"
+            for s in sorted(warnings_by_step)
+            for m in warnings_by_step[s]
+        )
+        _warn_note(
+            "<strong>Pontos de atenção</strong> — campos importantes em branco podem "
+            "gerar seções vazias na proposta:<br>" + linhas
+        )
+        fix_cols = st.columns(len(warnings_by_step))
+        for col, s in zip(fix_cols, sorted(warnings_by_step)):
+            col.button(
+                f"Revisar: {STEPS[s]}",
+                key=f"fix_step_{s}",
+                on_click=_go_to,
+                args=(s,),
+                use_container_width=True,
+            )
+
     _info_note(
         "A proposta será gerada com base no preenchimento de todos os campos "
         "do formulário. Qualquer necessidade de alteração de conteúdo ou "
@@ -1612,6 +1739,7 @@ elif current == 4:
             context = form_to_context(proposal)
             with st.spinner("Gerando proposta…"):
                 st.session_state.generated_doc = render_proposal(context)
+                st.session_state.generated_sig = _form_signature(form)
             st.markdown(
                 '<div class="pmra-success-card">'
                 '<span class="material-symbols-outlined pmra-success-icon">task_alt</span>'
@@ -1636,7 +1764,13 @@ elif current == 4:
                 unsafe_allow_html=True,
             )
 
-    if st.session_state.generated_doc:
+    # O .docx gerado fica obsoleto se o formulário mudou depois da geração — não
+    # oferecer download desatualizado; pedir nova geração.
+    _stale = (
+        st.session_state.generated_doc is not None
+        and st.session_state.get("generated_sig") != _form_signature(form)
+    )
+    if st.session_state.generated_doc and not _stale:
         safe_name = (
             "".join(c if c.isalnum() else "_" for c in (nome_cliente or "")).strip("_")
             or "PMRA_Proposta"
@@ -1648,6 +1782,41 @@ elif current == 4:
             data=st.session_state.generated_doc,
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True,
+        )
+    elif _stale:
+        _warn_note(
+            "O formulário foi alterado desde a última geração. Clique em "
+            "<strong>Gerar proposta</strong> novamente para atualizar o arquivo antes de baixar."
+        )
+
+    # ── Nova proposta (limpa tudo, com confirmação) ───────────────────────────
+    if not st.session_state.get("confirm_reset"):
+        _, _rc, _ = st.columns([2, 1.4, 2])
+        _rc.button(
+            "Nova proposta",
+            key="reset_btn",
+            on_click=_ask_reset_cb,
+            use_container_width=True,
+            help="Limpa todos os campos e começa uma proposta do zero.",
+        )
+    else:
+        _warn_note(
+            "Isso vai <strong>limpar todos os campos</strong> e começar uma proposta do "
+            "zero — inclusive a proposta já gerada. Esta ação não pode ser desfeita."
+        )
+        _, _yc, _nc, _ = st.columns([2, 1.3, 1.3, 2])
+        _yc.button(
+            "Sim, limpar tudo",
+            key="reset_yes",
+            type="primary",
+            on_click=_reset_form_cb,
+            use_container_width=True,
+        )
+        _nc.button(
+            "Cancelar",
+            key="reset_no",
+            on_click=_cancel_reset_cb,
             use_container_width=True,
         )
 
