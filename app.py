@@ -26,7 +26,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.36"
+APP_VERSION = "2.0.37"
 
 
 @st.cache_data
@@ -531,30 +531,61 @@ def _init_state() -> None:
 _init_state()
 form: dict = st.session_state.form
 
+# Persistência entre etapas: o Streamlit descarta o estado dos widgets que NÃO são
+# renderizados no rerun atual. Ao clicar "Próximo", o callback troca de etapa e o
+# corpo da etapa anterior não re-renderiza — então o último campo digitado (ainda
+# não copiado para `form`) seria perdido e sua chave coletada. Reatribuir cada
+# chave a si mesma "promove" as chaves de widget a estado do usuário, impedindo o
+# descarte. Feito ANTES de qualquer widget ser instanciado.
+#
+# Exceção: botões/ações. O Streamlit PROÍBE escrever o estado de st.button via
+# session_state (StreamlitValueAssignmentNotAllowedError). Botões são efêmeros e
+# não precisam persistir, então são pulados.
+# REGRA: todo BOTÃO novo deve casar com um dos padrões de `_is_acao_key` abaixo.
+def _is_acao_key(k: str) -> bool:
+    return (
+        k.startswith(("step_btn_", "nav_", "reset_", "fix_step_"))
+        or "__del__" in k
+        or k.endswith("__add")
+        or (k.startswith(("escopo_cons_", "escopo_cont_")) and "_desc_" not in k)
+    )
+
+for _k in list(st.session_state.keys()):
+    if _is_acao_key(_k):
+        continue
+    try:
+        st.session_state[_k] = st.session_state[_k]
+    except Exception:
+        pass
+
 
 # ── Navegação ──────────────────────────────────────────────────────────────────
 
 def _apply_formats() -> None:
     """Aplica formatação de documentos ao sair da etapa Contratante.
 
-    Também atualiza os keys do session_state dos widgets para que o valor
-    formatado seja exibido quando o usuário retornar à etapa 1.
+    Lê o valor da CHAVE do widget (fonte da verdade no momento do callback — o
+    `form` pode estar defasado quando o usuário digita e clica "Próximo" no mesmo
+    rerun, pois o corpo da etapa não re-renderizou), formata, e grava de volta na
+    chave e no `form` para exibição ao retornar.
     """
     c = form["contratante"]
+    ss = st.session_state
     if c["tipo_pessoa"] == "fisica":
-        c["cpf"] = _fmt_cpf(c["cpf"])
-        st.session_state["cpf_input"] = c["cpf"]
+        c["cpf"] = _fmt_cpf(ss.get("cpf_input", c["cpf"]))
+        ss["cpf_input"] = c["cpf"]
     else:
-        c["cnpj"] = _fmt_cnpj(c["cnpj"])
-        st.session_state["cnpj_input"] = c["cnpj"]
-    c["endereco"]["cep"] = _fmt_cep(c["endereco"]["cep"])
-    st.session_state["cep_input"] = c["endereco"]["cep"]
-    # Formata telefones da tabela de contatos e atualiza os widget keys
-    for i, row in enumerate(st.session_state.tbl_contatos):
-        row["telefone"] = _fmt_tel(row["telefone"])
+        c["cnpj"] = _fmt_cnpj(ss.get("cnpj_input", c["cnpj"]))
+        ss["cnpj_input"] = c["cnpj"]
+    c["endereco"]["cep"] = _fmt_cep(ss.get("cep_input", c["endereco"]["cep"]))
+    ss["cep_input"] = c["endereco"]["cep"]
+    # Formata telefones da tabela de contatos a partir da célula do widget.
+    for i, row in enumerate(ss.get("tbl_contatos", [])):
         wk = f"tbl_contatos__telefone__{i}"
-        if wk in st.session_state:
-            st.session_state[wk] = row["telefone"]
+        fmt = _fmt_tel(ss.get(wk, row.get("telefone", "")))
+        row["telefone"] = fmt
+        if wk in ss:
+            ss[wk] = fmt
 
 
 def _go_next() -> None:
