@@ -197,3 +197,51 @@ class TestTextoMultilinhaAlinhadoEsquerda:
         """Sanidade: o caso multilinha nao deve afetar o caminho de texto corrido."""
         cont_xml = _render_mista()
         assert _jc_of_paragraph_containing(cont_xml, "MARCA_CONSULTIVO") == "both"
+
+
+class TestHonorarioInlinePorEscopo:
+    """Multi-escopo c/ forma por escopo: honorário fica logo ABAIXO do seu escopo."""
+
+    def _render(self) -> str:
+        form = proposal_form_default()
+        form.contratante.tipo_pessoa = "juridica"
+        form.contratante.razao_social = "Acme S.A."
+        form.contratante.cnpj = "11.222.333/0001-81"
+        form.escopo.modalidade = "consultiva"
+        form.escopo.escopos_consultivos = [
+            EscopoConsultivoItem(
+                letra="A",
+                descricao="INLINE_A_DESC descricao do escopo A.",
+                honorarios=HonorariosConsultiva(
+                    modalidades=HonorariosConsultivaModalidades(valor_projeto=True),
+                    valor_projeto_total="R$ 10.000,00",
+                    valor_projeto_forma_pagamento="INLINE_A_HON parcela unica.",
+                ),
+            ),
+            EscopoConsultivoItem(
+                letra="B",
+                descricao="INLINE_B_DESC descricao do escopo B.",
+                honorarios=HonorariosConsultiva(
+                    modalidades=HonorariosConsultivaModalidades(valor_projeto=True),
+                    valor_projeto_total="R$ 20.000,00",
+                    valor_projeto_forma_pagamento="INLINE_B_HON em duas parcelas.",
+                ),
+            ),
+        ]
+        form.escopo.forma_pagamento_por_escopo_consultiva = True
+        return _document_xml(render_proposal(form_to_context(form)))
+
+    def test_ordem_descricao_seguida_do_honorario(self):
+        xml = self._render()
+        pos = {k: xml.index(k) for k in ("INLINE_A_DESC", "INLINE_A_HON", "INLINE_B_DESC", "INLINE_B_HON")}
+        assert pos["INLINE_A_DESC"] < pos["INLINE_A_HON"] < pos["INLINE_B_DESC"] < pos["INLINE_B_HON"], (
+            f"ordem incorreta: {pos}; esperado descA < honA < descB < honB"
+        )
+
+    def test_secao_renomeada_e_sem_secao_separada_de_honorarios(self):
+        xml = self._render()
+        assert "Escopo de Trabalho e Honorários" in xml
+        assert "Honorários Propostos para os Escopos Consultivos" not in xml
+        # subtítulo por escopo permanece
+        assert "Honorários — Escopo Consultivo A" in xml
+        assert "Honorários — Escopo Consultivo B" in xml

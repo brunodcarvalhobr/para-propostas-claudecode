@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **`scripts/generate_demo.py`** (multi) e **`scripts/generate_demo_simples.py`** (legado): geram demos completos para conferência visual. Saídas em `Proposta_*.docx` (gitignored).
 
 ### Changed
+- **Honorários intercalados por escopo** (multi-escopo com forma de pagamento por escopo): o honorário de cada escopo agora é renderizado logo abaixo da descrição dele (Escopo A → Honorários A → Escopo B → Honorários B…), em vez de numa seção separada e distante. A seção passa a se chamar "Escopo de Trabalho e Honorários" (`{{escopo.titulo_secao}}`); SLA fica após os escopos consultivos e Êxito/Horas Extra após os contenciosos. Escopo único e multi com pagamento compartilhado seguem inalterados. Migração do template via `scripts/restructure_inline_honorarios.py`; ordenação coberta por `tests/test_template_engine.py`.
 - `requirements.txt`: `setuptools<81` adicionado para preservar `pkg_resources` no Python 3.14 (Streamlit Cloud) — `docxcompose==1.4.0` ainda depende do módulo em runtime.
 - Parágrafo em branco inserido entre título e conteúdo em "SLA/Prazos de Entrega" e "Condições Específicas".
 - Nota azul do SLA estendida para orientar uso em múltiplos escopos com prazos distintos.

@@ -572,11 +572,26 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
 
 
 def _enrich_subdocs(doc: DocxTemplate, context: dict[str, Any]) -> None:
-    """Anexa subdocs (com tabelas) aos itens de honorários por escopo."""
-    for item in context.get("consultiva", {}).get("itens", []):
-        item["subdoc"] = _build_consultiva_subdoc(doc, item)
-    for item in context.get("contenciosa", {}).get("itens", []):
-        item["subdoc"] = _build_contenciosa_subdoc(doc, item)
+    """Anexa o subdoc de honorários (com tabelas) ao item de escopo correspondente.
+
+    O honorário de cada escopo é renderizado logo abaixo da sua descrição, dentro
+    do loop de escopos do template (`{{p item.subdoc}}`). Por isso o subdoc é
+    anexado ao item de `escopo.itens_*` (descrições), não ao de `*.itens`. As duas
+    listas são paralelas (mesma ordem, vindas de `escopos_*`), então casam por
+    índice. `*.itens` só é populado quando há forma de pagamento por escopo.
+    """
+    escopo = context.get("escopo", {})
+    pares = (
+        (context.get("consultiva", {}).get("itens", []),
+         escopo.get("itens_consultivos", []), _build_consultiva_subdoc),
+        (context.get("contenciosa", {}).get("itens", []),
+         escopo.get("itens_contenciosos", []), _build_contenciosa_subdoc),
+    )
+    for hon_itens, desc_itens, build in pares:
+        for i, hon in enumerate(hon_itens):
+            sd = build(doc, hon)
+            if i < len(desc_itens):
+                desc_itens[i]["subdoc"] = sd
 
 
 # Folhas (nomes de campo) das tags Jinja de texto LIVRE digitado no formulario.
