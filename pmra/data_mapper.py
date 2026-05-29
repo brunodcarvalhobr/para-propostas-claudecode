@@ -225,6 +225,11 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             "show_contenciosa":   show_contenciosa,
             "atuacao_consultiva": form.escopo.atuacao_consultiva,
             "atuacao_contenciosa": form.escopo.atuacao_contenciosa,
+            "titulo_secao": (
+                "Escopo de Trabalho e Honorários"
+                if (forma_por_escopo_cons or forma_por_escopo_cont)
+                else "Escopo de Trabalho"
+            ),
             "show_sla":      form.escopo.sla_ativo,
             "sla_descricao": form.escopo.sla_descricao,
             "sla_titulo": (

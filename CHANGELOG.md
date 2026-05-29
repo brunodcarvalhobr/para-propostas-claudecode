@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - **`scripts/generate_demo.py`** (multi) e **`scripts/generate_demo_simples.py`** (legado): geram demos completos para conferência visual. Saídas em `Proposta_*.docx` (gitignored).
 
 ### Changed
+- **Cláusula de proteção de dados (LGPD) atualizada** no template, editada via markers (`PMRA_Template_Markers.docx` → `build_from_markers.py`). Apenas o texto da cláusula mudou; o conjunto de tags Jinja e a estrutura permanecem idênticos (round-trip lossless verificado).
+- **Honorários intercalados por escopo** (multi-escopo com forma de pagamento por escopo): o honorário de cada escopo agora é renderizado logo abaixo da descrição dele (Escopo A → Honorários A → Escopo B → Honorários B…), em vez de numa seção separada e distante. A seção passa a se chamar "Escopo de Trabalho e Honorários" (`{{escopo.titulo_secao}}`); SLA fica após os escopos consultivos e Êxito/Horas Extra após os contenciosos. Escopo único e multi com pagamento compartilhado seguem inalterados. Migração do template via `scripts/restructure_inline_honorarios.py`; ordenação coberta por `tests/test_template_engine.py`.
 - `requirements.txt`: `setuptools<81` adicionado para preservar `pkg_resources` no Python 3.14 (Streamlit Cloud) — `docxcompose==1.4.0` ainda depende do módulo em runtime.
 - Parágrafo em branco inserido entre título e conteúdo em "SLA/Prazos de Entrega" e "Condições Específicas".
 - Nota azul do SLA estendida para orientar uso em múltiplos escopos com prazos distintos.
@@ -18,6 +20,13 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - `Proposta_Teste_Simples.docx`, `Proposta_Demo_*.docx` (geráveis via scripts; agora gitignored).
 - `scripts/demo_mista_completa.py` (substituído por `generate_demo.py` + `generate_demo_simples.py`).
+
+### Fixed
+- **Texto do formulário sai justificado no `.docx` — apenas quando é texto corrido.** Vários parágrafos de texto livre (Escopo Consultivo, Escopo Contencioso, SLA, Disposições, critério de excedentes, fases cobertas, forma de pagamento, endereço e contatos) não tinham `<w:jc>` no template e herdavam alinhamento à esquerda. `template_engine._justify_form_paragraphs` força `w:jc=both` nesses parágrafos antes do render. Como justificar texto com quebra manual (Enter → `<w:br/>`) faz o Word esticar a linha antes da quebra, `_left_align_multiline` remove a justificação de parágrafos que contenham `<w:br/>` — assim texto corrido fica justificado e texto com Enter (SLA em lista, contatos, itens) volta a alinhar à esquerda. Coberto por `tests/test_template_engine.py`.
+- **Atos Processuais pré-preenchidos voltam a aparecer.** `_init_state` semeava `tbl_acoes`/`tbl_atos`, mas o render do modo único lê `tbl_acoes_cont`/`tbl_atos_cont` (prefixo `cont`) — chaves órfãs faziam os 8 atos padrão sumirem (1 linha vazia). Chaves do seed alinhadas ao prefixo.
+- **Última edição preservada ao criar o 2º escopo.** `_to_multi_cons_cb`/`_to_multi_cont_cb` liam o dict (defasado 1 ciclo no `on_click`); passam a ler a chave do widget (`atuacao_*_ta`), evitando perder o texto recém-digitado.
+- **`exito_percentual` robusto a valores com `%`.** O `int()` agora opera sobre o valor já sem `%`/espaços, evitando `ValueError` com dados legados/importados.
+- **`scripts/generate_minuta_completa.py`** (QA): gera duas minutas de cobertura máxima (escopo único PJ e multi-escopo PF, todas as modalidades) e valida integridade do `.docx` (zip, sem tags Jinja residuais, abre no python-docx, paraIds únicos).
 
 ---
 

@@ -16,7 +16,10 @@ from typing import Any
 
 from html import escape as _xml_escape
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 from docxtpl import DocxTemplate
 
 _W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
@@ -45,6 +48,29 @@ _DOCS_TO_PROCESS = (
     "word/footer2.xml",
     "word/footer3.xml",
 )
+
+
+_JC_BOTH = '<w:jc w:val="both"/>'
+
+
+def _left_align_multiline(xml: str) -> str:
+    """Remove a justificacao de paragrafos com quebra de linha do usuario.
+
+    Justificar so faz sentido em texto corrido. Quando o usuario aperta Enter no
+    formulario, o docxtpl insere <w:br/> no run; ao justificar, o Word estica
+    horrivelmente a linha que termina na quebra (SLA em lista, contatos, itens de
+    Disposicoes). Um paragrafo justificado (w:jc=both) que contenha <w:br/> e,
+    portanto, texto de campo com Enter — removemos o w:jc=both para que volte a
+    alinhar a esquerda. O unico <w:br/> estatico do template ("Escopo de
+    Trabalho") nao e justificado, logo nao e afetado.
+    """
+    def repl(m: re.Match[str]) -> str:
+        p = m.group(0)
+        if _JC_BOTH in p and "<w:br/>" in p:
+            return p.replace(_JC_BOTH, "", 1)
+        return p
+
+    return _P_RE.sub(repl, xml)
 
 
 def _split_linebreaks(xml: str) -> str:
@@ -208,6 +234,7 @@ def _post_process(docx_bytes: bytes) -> bytes:
                         zout.writestr(item, data)
                         continue
                     xml = _split_linebreaks(xml)
+                    xml = _left_align_multiline(xml)
                     xml = _collapse_empty_paragraphs(xml)
                     xml = _remove_table_outer_bottom_borders(xml)
                     xml = _force_font_size_10(xml)
@@ -545,11 +572,64 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
 
 
 def _enrich_subdocs(doc: DocxTemplate, context: dict[str, Any]) -> None:
-    """Anexa subdocs (com tabelas) aos itens de honorários por escopo."""
-    for item in context.get("consultiva", {}).get("itens", []):
-        item["subdoc"] = _build_consultiva_subdoc(doc, item)
-    for item in context.get("contenciosa", {}).get("itens", []):
-        item["subdoc"] = _build_contenciosa_subdoc(doc, item)
+    """Anexa o subdoc de honorários (com tabelas) ao item de escopo correspondente.
+
+    O honorário de cada escopo é renderizado logo abaixo da sua descrição, dentro
+    do loop de escopos do template (`{{p item.subdoc}}`). Por isso o subdoc é
+    anexado ao item de `escopo.itens_*` (descrições), não ao de `*.itens`. As duas
+    listas são paralelas (mesma ordem, vindas de `escopos_*`), então casam por
+    índice. `*.itens` só é populado quando há forma de pagamento por escopo.
+    """
+    escopo = context.get("escopo", {})
+    pares = (
+        (context.get("consultiva", {}).get("itens", []),
+         escopo.get("itens_consultivos", []), _build_consultiva_subdoc),
+        (context.get("contenciosa", {}).get("itens", []),
+         escopo.get("itens_contenciosos", []), _build_contenciosa_subdoc),
+    )
+    for hon_itens, desc_itens, build in pares:
+        for i, hon in enumerate(hon_itens):
+            sd = build(doc, hon)
+            if i < len(desc_itens):
+                desc_itens[i]["subdoc"] = sd
+
+
+# Folhas (nomes de campo) das tags Jinja de texto LIVRE digitado no formulario.
+# Sao os unicos campos cujo conteudo e prosa do usuario e deve sair justificado.
+# Valores monetarios, nomes e demais dados curtos ficam de fora de proposito.
+_FORM_TEXT_LEAVES = (
+    "atuacao_consultiva",
+    "atuacao_contenciosa",
+    "sla_descricao",
+    "descricao",                        # disposicoes + itens de escopo/despesas (loops)
+    "endereco_completo",
+    "contatos_texto",
+    "valor_projeto_forma_pagamento",    # consultiva + contenciosa
+    "valor_projeto_fases_cobertas",
+    "preco_mensal_criterio_excedentes",
+)
+# Casa uma tag de saida {{ ... <folha> ... }} (com ou sem caminho/pontos/espacos).
+_FORM_TEXT_TAG_RE = re.compile(
+    r"\{\{[^{}]*\b(?:" + "|".join(_FORM_TEXT_LEAVES) + r")\b[^{}]*\}\}"
+)
+
+
+def _justify_form_paragraphs(doc: DocxTemplate) -> None:
+    """Forca alinhamento justificado nos paragrafos do template que carregam
+    tags de texto livre do formulario.
+
+    O template define <w:jc w:val="both"/> em alguns desses paragrafos, mas
+    nao em todos — Escopo Consultivo/Contencioso, SLA, Disposicoes, endereco e
+    contatos herdavam o alinhamento a esquerda. Aplicado ANTES do render porque
+    docxtpl serializa o estado atual de doc.docx (get_xml -> body); o jc inserido
+    aqui persiste no documento final. Idempotente para paragrafos ja justificados.
+    """
+    body = doc.get_docx().element.body
+    for p in body.iter(qn("w:p")):
+        text = "".join(t.text or "" for t in p.iter(qn("w:t")))
+        if "{{" not in text or not _FORM_TEXT_TAG_RE.search(text):
+            continue
+        Paragraph(p, None).alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
 
 def render_proposal(context: dict[str, Any]) -> bytes:
@@ -561,6 +641,7 @@ def render_proposal(context: dict[str, Any]) -> bytes:
         )
     doc = DocxTemplate(str(TEMPLATE_PATH))
     _enrich_subdocs(doc, context)
+    _justify_form_paragraphs(doc)
     doc.render(context)
     buf = BytesIO()
     doc.save(buf)

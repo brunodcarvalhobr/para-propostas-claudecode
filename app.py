@@ -24,7 +24,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.30"
+APP_VERSION = "2.0.35"
 
 
 @st.cache_data
@@ -432,10 +432,13 @@ def _init_state() -> None:
         st.session_state.tbl_contatos = f["contratante"]["contatos"] or [{"telefone": "", "email": ""}]
     if "tbl_sen_cons" not in st.session_state:
         st.session_state.tbl_sen_cons = f["honorarios_consultiva"]["tabela_senioridade"]
-    if "tbl_acoes" not in st.session_state:
-        st.session_state.tbl_acoes = f["honorarios_contenciosa"]["tabela_acoes"] or [{"natureza": "", "fase": "", "valor": ""}]
-    if "tbl_atos" not in st.session_state:
-        st.session_state.tbl_atos = f["honorarios_contenciosa"]["tabela_atos"]
+    # Sufixo _cont: chaves precisam casar com o prefixo usado no render do modo
+    # unico (_render_honorarios_contenciosa_modalidades(..., "cont") -> tbl_*_cont).
+    # Sem isso, os 8 atos processuais pre-preenchidos nao apareciam (chave morta).
+    if "tbl_acoes_cont" not in st.session_state:
+        st.session_state.tbl_acoes_cont = f["honorarios_contenciosa"]["tabela_acoes"] or [{"natureza": "", "fase": "", "valor": ""}]
+    if "tbl_atos_cont" not in st.session_state:
+        st.session_state.tbl_atos_cont = f["honorarios_contenciosa"]["tabela_atos"]
     if "tbl_sen_extra" not in st.session_state:
         st.session_state.tbl_sen_extra = f["honorarios_contenciosa"]["horas_extra_senioridade"]
     if "tbl_despesas" not in st.session_state:
@@ -576,7 +579,9 @@ def _clear_escopo_widget_keys(prefix: str) -> None:
 
 def _to_multi_cons_cb() -> None:
     form = st.session_state.form
-    texto = form["escopo"]["atuacao_consultiva"]
+    # Callback roda antes do corpo do script: o dict ainda tem o valor do ciclo
+    # anterior. Lemos a chave do widget para nao perder a ultima edicao.
+    texto = st.session_state.get("atuacao_consultiva_ta", form["escopo"]["atuacao_consultiva"])
     form["escopo"]["escopos_consultivos"] = [
         {"letra": "A", "descricao": texto, "honorarios": _hon_cons_default()},
         {"letra": "B", "descricao": "", "honorarios": _hon_cons_default()},
@@ -606,7 +611,7 @@ def _del_escopo_cons_cb(idx: int) -> None:
 
 def _to_multi_cont_cb() -> None:
     form = st.session_state.form
-    texto = form["escopo"]["atuacao_contenciosa"]
+    texto = st.session_state.get("atuacao_contenciosa_ta", form["escopo"]["atuacao_contenciosa"])
     form["escopo"]["escopos_contenciosos"] = [
         {"letra": "A", "descricao": texto, "honorarios": _hon_cont_default()},
         {"letra": "B", "descricao": "", "honorarios": _hon_cont_default()},
@@ -1102,8 +1107,8 @@ def _step_honorarios() -> None:
                     key="cont_exito_cb",
                 )
                 if form["honorarios_contenciosa"]["exito_ativo"]:
-                    _pct_raw = form["honorarios_contenciosa"]["exito_percentual"]
-                    _pct_val = int(_pct_raw) if str(_pct_raw).strip().rstrip("%").isdigit() else None
+                    _pct_raw = str(form["honorarios_contenciosa"]["exito_percentual"]).strip().rstrip("%")
+                    _pct_val = int(_pct_raw) if _pct_raw.isdigit() else None
                     _pct_input = st.number_input(
                         "Percentual de êxito",
                         min_value=1,
