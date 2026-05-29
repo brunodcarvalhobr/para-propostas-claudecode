@@ -16,7 +16,10 @@ from typing import Any
 
 from html import escape as _xml_escape
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 from docxtpl import DocxTemplate
 
 _W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
@@ -552,6 +555,44 @@ def _enrich_subdocs(doc: DocxTemplate, context: dict[str, Any]) -> None:
         item["subdoc"] = _build_contenciosa_subdoc(doc, item)
 
 
+# Folhas (nomes de campo) das tags Jinja de texto LIVRE digitado no formulario.
+# Sao os unicos campos cujo conteudo e prosa do usuario e deve sair justificado.
+# Valores monetarios, nomes e demais dados curtos ficam de fora de proposito.
+_FORM_TEXT_LEAVES = (
+    "atuacao_consultiva",
+    "atuacao_contenciosa",
+    "sla_descricao",
+    "descricao",                        # disposicoes + itens de escopo/despesas (loops)
+    "endereco_completo",
+    "contatos_texto",
+    "valor_projeto_forma_pagamento",    # consultiva + contenciosa
+    "valor_projeto_fases_cobertas",
+    "preco_mensal_criterio_excedentes",
+)
+# Casa uma tag de saida {{ ... <folha> ... }} (com ou sem caminho/pontos/espacos).
+_FORM_TEXT_TAG_RE = re.compile(
+    r"\{\{[^{}]*\b(?:" + "|".join(_FORM_TEXT_LEAVES) + r")\b[^{}]*\}\}"
+)
+
+
+def _justify_form_paragraphs(doc: DocxTemplate) -> None:
+    """Forca alinhamento justificado nos paragrafos do template que carregam
+    tags de texto livre do formulario.
+
+    O template define <w:jc w:val="both"/> em alguns desses paragrafos, mas
+    nao em todos — Escopo Consultivo/Contencioso, SLA, Disposicoes, endereco e
+    contatos herdavam o alinhamento a esquerda. Aplicado ANTES do render porque
+    docxtpl serializa o estado atual de doc.docx (get_xml -> body); o jc inserido
+    aqui persiste no documento final. Idempotente para paragrafos ja justificados.
+    """
+    body = doc.get_docx().element.body
+    for p in body.iter(qn("w:p")):
+        text = "".join(t.text or "" for t in p.iter(qn("w:t")))
+        if "{{" not in text or not _FORM_TEXT_TAG_RE.search(text):
+            continue
+        Paragraph(p, None).alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+
 def render_proposal(context: dict[str, Any]) -> bytes:
     """Renderiza a proposta a partir do template Jinja2 e retorna os bytes do .docx."""
     if not TEMPLATE_PATH.exists():
@@ -561,6 +602,7 @@ def render_proposal(context: dict[str, Any]) -> bytes:
         )
     doc = DocxTemplate(str(TEMPLATE_PATH))
     _enrich_subdocs(doc, context)
+    _justify_form_paragraphs(doc)
     doc.render(context)
     buf = BytesIO()
     doc.save(buf)

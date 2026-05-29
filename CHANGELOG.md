@@ -19,6 +19,9 @@ All notable changes to this project will be documented in this file.
 - `Proposta_Teste_Simples.docx`, `Proposta_Demo_*.docx` (geráveis via scripts; agora gitignored).
 - `scripts/demo_mista_completa.py` (substituído por `generate_demo.py` + `generate_demo_simples.py`).
 
+### Fixed
+- **Texto do formulário sai justificado no `.docx`.** Vários parágrafos de texto livre (Escopo Consultivo, Escopo Contencioso, SLA, Disposições, critério de excedentes, fases cobertas, forma de pagamento, endereço e contatos) não tinham `<w:jc>` no template e herdavam alinhamento à esquerda. `template_engine._justify_form_paragraphs` agora força `w:jc=both` nesses parágrafos antes do render, de forma idempotente. Coberto por `tests/test_template_engine.py`.
+
 ---
 
 ## [Histórico]
