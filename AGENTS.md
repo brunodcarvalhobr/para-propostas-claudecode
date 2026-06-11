@@ -184,6 +184,12 @@ O `template_engine.py` aplica 5 transformações no XML após renderizar:
 4. `_force_font_size_10` — normaliza todas as fontes para 10pt
 5. `_dedupe_para_ids` — garante `w14:paraId` únicos (duplicatas corrompem o arquivo no Word)
 
+Além disso, `_ensure_do_not_expand_shift_return` injeta a flag de compatibilidade
+`doNotExpandShiftReturn` em `word/settings.xml`: todo texto livre do formulário sai
+**justificado** (inclusive multilinha/Enter) sem o Word esticar a linha que termina
+em quebra manual. Não reintroduzir o antigo `_left_align_multiline` (removia a
+justificação de parágrafos com `<w:br/>` — substituído pela flag).
+
 ---
 
 ## 10. O que NÃO fazer

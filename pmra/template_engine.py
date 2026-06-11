@@ -50,27 +50,27 @@ _DOCS_TO_PROCESS = (
 )
 
 
-_JC_BOTH = '<w:jc w:val="both"/>'
+_DO_NOT_EXPAND_SHIFT_RETURN = "<w:doNotExpandShiftReturn/>"
 
 
-def _left_align_multiline(xml: str) -> str:
-    """Remove a justificacao de paragrafos com quebra de linha do usuario.
+def _ensure_do_not_expand_shift_return(settings_xml: str) -> str:
+    """Garante a flag de compatibilidade doNotExpandShiftReturn em settings.xml.
 
-    Justificar so faz sentido em texto corrido. Quando o usuario aperta Enter no
-    formulario, o docxtpl insere <w:br/> no run; ao justificar, o Word estica
-    horrivelmente a linha que termina na quebra (SLA em lista, contatos, itens de
-    Disposicoes). Um paragrafo justificado (w:jc=both) que contenha <w:br/> e,
-    portanto, texto de campo com Enter — removemos o w:jc=both para que volte a
-    alinhar a esquerda. O unico <w:br/> estatico do template ("Escopo de
-    Trabalho") nao e justificado, logo nao e afetado.
+    Sem ela, o Word estica horrivelmente a linha que termina em quebra manual
+    (<w:br/>, o Enter do formulario) dentro de paragrafo justificado. Com ela,
+    texto multilinha sai justificado como o texto corrido: linhas curtas antes
+    da quebra ficam naturalmente a esquerda e linhas longas justificam.
+    Substitui o antigo _left_align_multiline, que desfazia a justificacao.
     """
-    def repl(m: re.Match[str]) -> str:
-        p = m.group(0)
-        if _JC_BOTH in p and "<w:br/>" in p:
-            return p.replace(_JC_BOTH, "", 1)
-        return p
-
-    return _P_RE.sub(repl, xml)
+    if "doNotExpandShiftReturn" in settings_xml:
+        return settings_xml
+    if "<w:compat>" in settings_xml:
+        return settings_xml.replace("<w:compat>", "<w:compat>" + _DO_NOT_EXPAND_SHIFT_RETURN, 1)
+    return settings_xml.replace(
+        "</w:settings>",
+        "<w:compat>" + _DO_NOT_EXPAND_SHIFT_RETURN + "</w:compat></w:settings>",
+        1,
+    )
 
 
 def _split_linebreaks(xml: str) -> str:
@@ -234,12 +234,18 @@ def _post_process(docx_bytes: bytes) -> bytes:
                         zout.writestr(item, data)
                         continue
                     xml = _split_linebreaks(xml)
-                    xml = _left_align_multiline(xml)
                     xml = _collapse_empty_paragraphs(xml)
                     xml = _remove_table_outer_bottom_borders(xml)
                     xml = _force_font_size_10(xml)
                     xml = _dedupe_para_ids(xml)
                     data = xml.encode("utf-8")
+                elif item.filename == "word/settings.xml":
+                    try:
+                        data = _ensure_do_not_expand_shift_return(
+                            data.decode("utf-8")
+                        ).encode("utf-8")
+                    except UnicodeDecodeError:
+                        pass
                 zout.writestr(item, data)
     return dst.getvalue()
 
@@ -527,7 +533,7 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
 
     if hon.get("show_valor_ato"):
         _subdoc_append(sd, _para_xml(
-            "Os honorários serão apurados por ato processual efetivamente praticado pelo "
+            "Os honorários serão apurados por ato efetivamente praticado pelo "
             "Contratado, conforme os valores abaixo."
         ))
         _subdoc_append(sd, _blank_para_xml())
@@ -537,7 +543,7 @@ def _build_contenciosa_subdoc(doc: DocxTemplate, hon: dict[str, Any]):
         ]
         if rows:
             _subdoc_append(sd, _table_xml(
-                ["Ato Processual", "Descrição", "Valor (R$)"], rows, [2800, 4334, 2500]
+                ["Ato", "Descrição", "Valor (R$)"], rows, [2800, 4334, 2500]
             ))
 
     if hon.get("show_preco_mensal"):

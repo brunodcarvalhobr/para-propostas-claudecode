@@ -26,7 +26,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.40"
+APP_VERSION = "2.0.41"
 
 
 @st.cache_data
@@ -164,7 +164,7 @@ components.html("""
 # current == 0, para evitar overhead de ~50-100ms por rerun em outras etapas.
 
 def _inject_input_masks() -> None:
-    components.html("""
+    components.html(r"""
 <script>
 (function () {
   function digits(v, n) { return (v || '').replace(/\D/g, '').slice(0, n); }
@@ -509,6 +509,15 @@ def _init_state() -> None:
             for p in path:
                 v = v[p]
             st.session_state[widget_key] = v
+
+    # Hora extra "nenhuma" vive num checkbox proprio; o radio so conhece os
+    # dois modos com valor. Clamp evita ValueError do st.radio (opcao ausente).
+    if "cont_extra_sem_cb" not in st.session_state:
+        st.session_state.cont_extra_sem_cb = (
+            f["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "nenhuma"
+        )
+    if st.session_state.get("horas_extra_modo_radio") not in ("senioridade", "horaFixa"):
+        st.session_state.horas_extra_modo_radio = "senioridade"
 
     # Tabelas em chaves dedicadas — inicializadas apenas uma vez
     if "tbl_contatos" not in st.session_state:
@@ -1058,7 +1067,7 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
     )
     c1, c2, c3, c4 = st.columns(4)
     cm["valor_acao"]            = c1.checkbox("Valor Mensal Por Processo",  key=f"{prefix}_va")
-    cm["valor_ato_processual"]  = c2.checkbox("Valor por ato processual",   key=f"{prefix}_vap")
+    cm["valor_ato_processual"]  = c2.checkbox("Valor por ato",              key=f"{prefix}_vap")
     cm["preco_mensal_massa"]    = c3.checkbox("Preço mensal",               key=f"{prefix}_pm")
     cm["valor_projeto"]         = c4.checkbox("Preço Global",               key=f"{prefix}_vp")
 
@@ -1090,11 +1099,11 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
         )
         hon["tabela_atos"] = _render_rows(
             f"tbl_atos_{prefix}",
-            {"ato": "Ato processual", "descricao": "Descrição", "valor": "Valor"},
+            {"ato": "Ato", "descricao": "Descrição", "valor": "Valor"},
             help_text="",
             col_widths=[3, 4, 2],
             field_formatters={"valor": _on_money_change},
-            placeholders={"ato": "Ato processual", "descricao": "Descrição", "valor": "R$ 0,00"},
+            placeholders={"ato": "Ato", "descricao": "Descrição", "valor": "R$ 0,00"},
         )
 
     if cm["preco_mensal_massa"]:
@@ -1274,39 +1283,52 @@ def _step_honorarios() -> None:
                     # Zera o valor quando desativado para nao vazar para o documento
                     form["despesas"]["taxa_manutencao_processual"] = ""
 
-            # Horas para servicos extra escopo sempre aparece quando ha
-            # modalidade contenciosa. Em proposta mista, mesmo que ja exista
-            # valor de hora na consultiva, e necessario definir separadamente
-            # para o escopo contencioso porque consultivo e contencioso sao
-            # tratados como escopos independentes no documento final.
+            # Horas para servicos extra escopo aparece quando ha modalidade
+            # contenciosa (em mista, definida a parte da consultiva porque os
+            # escopos sao independentes no documento). O usuario pode optar por
+            # nao definir valores (modo "nenhuma") — a Diretoria recomenda
+            # manter, e a secao some do documento quando desativada.
             with st.container(border=True):
                 st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">schedule</span>Horas para serviços extra escopo</div>', unsafe_allow_html=True)
-                _info_note("Obrigatório inserir ao menos uma das modalidades para serviços excedentes.")
-                modos = ("senioridade", "horaFixa")
-                form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
-                    "Modo de cobrança",
-                    options=modos,
-                    format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
-                    horizontal=True,
-                    key="horas_extra_modo_radio",
+                sem_horas_extra = st.checkbox(
+                    "Deseja remover valores por hora para demandas extra-escopo?",
+                    key="cont_extra_sem_cb",
                 )
-                if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
-                    form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_rows(
-                        "tbl_sen_extra",
-                        {"categoria": "Categoria", "valor": "Valor por hora"},
-                        help_text="Ex: Sócio | R$ 1.050,00",
-                        col_widths=[3, 2],
-                        field_formatters={"valor": _on_money_change},
-                        placeholders={"categoria": "Categoria", "valor": "R$ 0,00"},
-                    )
+                st.caption(
+                    "(A Diretoria do PMRA recomenda que sempre seja definido ao menos "
+                    "um tipo de pagamento por hora extra-escopo, de forma que o "
+                    "escritório possa cobrar por demandas fora do originalmente "
+                    "contratado sem proposta específica. Assim, só desative esta "
+                    "opção se tiver certeza.)"
+                )
+                if sem_horas_extra:
+                    form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = "nenhuma"
                 else:
-                    form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
-                        "Valor por hora — extra escopo",
-                        placeholder="Ex: R$ 500,00",
-                        key="cont_extra_valor",
-                        on_change=_on_money_change,
-                        args=("cont_extra_valor",),
+                    modos = ("senioridade", "horaFixa")
+                    form["honorarios_contenciosa"]["horas_extra_escopo_modo"] = st.radio(
+                        "Modo de cobrança",
+                        options=modos,
+                        format_func=lambda x: "Tabela por senioridade" if x == "senioridade" else "Hora Média (valor único)",
+                        horizontal=True,
+                        key="horas_extra_modo_radio",
                     )
+                    if form["honorarios_contenciosa"]["horas_extra_escopo_modo"] == "senioridade":
+                        form["honorarios_contenciosa"]["horas_extra_senioridade"] = _render_rows(
+                            "tbl_sen_extra",
+                            {"categoria": "Categoria", "valor": "Valor por hora"},
+                            help_text="Ex: Sócio | R$ 1.050,00",
+                            col_widths=[3, 2],
+                            field_formatters={"valor": _on_money_change},
+                            placeholders={"categoria": "Categoria", "valor": "R$ 0,00"},
+                        )
+                    else:
+                        form["honorarios_contenciosa"]["horas_extra_valor"] = st.text_input(
+                            "Valor por hora — extra escopo",
+                            placeholder="Ex: R$ 500,00",
+                            key="cont_extra_valor",
+                            on_change=_on_money_change,
+                            args=("cont_extra_valor",),
+                        )
         else:
             # Sem modalidade contenciosa selecionada — Taxa de manutencao tambem nao
             # se aplica.
@@ -1672,7 +1694,7 @@ elif current == 4:
     }
     mod_labels_cont = {
         "valor_acao": "Valor Mensal Por Processo",
-        "valor_ato_processual": "Valor por ato processual",
+        "valor_ato_processual": "Valor por ato",
         "preco_mensal_massa": "Preço mensal",
         "valor_projeto": "Preço Global",
     }
