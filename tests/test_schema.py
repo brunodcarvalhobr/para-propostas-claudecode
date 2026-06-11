@@ -62,3 +62,20 @@ class TestEscopoSlaContenciosa:
         e = Escopo(modalidade="mista", sla_ativo=True, sla_descricao="X")
         assert e.sla_ativo is True
         assert e.sla_descricao == "X"
+
+
+class TestHorasExtraNenhuma:
+    def test_nenhuma_zera_valores(self):
+        from pmra.schema import HonorariosContenciosa, SenioridadeRow
+        h = HonorariosContenciosa(
+            horas_extra_escopo_modo="nenhuma",
+            horas_extra_senioridade=[SenioridadeRow(categoria="Sócio", valor="R$ 1.000,00")],
+            horas_extra_valor="R$ 500,00",
+        )
+        assert h.horas_extra_senioridade == []
+        assert h.horas_extra_valor == ""
+
+    def test_modo_com_valor_preserva(self):
+        from pmra.schema import HonorariosContenciosa
+        h = HonorariosContenciosa(horas_extra_escopo_modo="horaFixa", horas_extra_valor="R$ 500,00")
+        assert h.horas_extra_valor == "R$ 500,00"

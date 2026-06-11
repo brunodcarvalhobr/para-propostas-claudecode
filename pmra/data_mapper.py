@@ -223,6 +223,11 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
         "escopo": {
             "show_consultiva":    show_consultiva,
             "show_contenciosa":   show_contenciosa,
+            # Subtitulo do caminho escopo unico so aparece em proposta mista,
+            # quando distingue as duas secoes; com modalidade unica o titulo
+            # "Escopo de Trabalho" basta.
+            "show_subtitulo_consultivo":  show_consultiva and show_contenciosa,
+            "show_subtitulo_contencioso": show_consultiva and show_contenciosa,
             "atuacao_consultiva": form.escopo.atuacao_consultiva,
             "atuacao_contenciosa": form.escopo.atuacao_contenciosa,
             "titulo_secao": (
@@ -257,6 +262,9 @@ def form_to_context(form: ProposalForm) -> dict[str, Any]:
             **_build_contenciosa_ctx(form.honorarios_contenciosa, show_contenciosa),
             "show_exito": show_contenciosa and form.honorarios_contenciosa.exito_ativo,
             "exito_percentual": form.honorarios_contenciosa.exito_percentual,
+            "show_horas_extra": (
+                show_contenciosa and form.honorarios_contenciosa.horas_extra_escopo_modo != "nenhuma"
+            ),
             "show_extra_senioridade": (
                 show_contenciosa and form.honorarios_contenciosa.horas_extra_escopo_modo == "senioridade"
             ),

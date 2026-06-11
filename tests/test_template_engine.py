@@ -1,13 +1,13 @@
 """Testes do template_engine — regra de justificacao do texto do formulario.
 
-Regra: texto livre do formulario sai justificado QUANDO e texto corrido (sem
-quebras). Se o usuario aperta Enter (gera '\\n'), o paragrafo volta a alinhar a
-esquerda — caso contrario o Word estica horrivelmente a linha antes da quebra.
+Regra: TODO texto livre do formulario sai justificado, inclusive multilinha
+(Enter). O esticamento da linha antes da quebra manual e suprimido pela flag
+de compatibilidade doNotExpandShiftReturn injetada em word/settings.xml.
 
 - `_justify_form_paragraphs` (pre-render) forca w:jc=both nos paragrafos de
   texto do formulario.
-- `_left_align_multiline` (pos-render) remove o w:jc=both dos paragrafos cujo
-  texto contem '\\n'.
+- `_ensure_do_not_expand_shift_return` (pos-render) garante a flag no
+  settings.xml de todo documento gerado.
 """
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ def _render_mista() -> str:
     return _document_xml(render_proposal(form_to_context(form)))
 
 
-def _render_multilinha() -> str:
+def _render_multilinha_bytes() -> bytes:
     """Mesma proposta, mas com texto MULTILINHA (Enter) nos campos livres."""
     form = proposal_form_default()
     form.contratante.tipo_pessoa = "juridica"
@@ -111,7 +111,7 @@ def _render_multilinha() -> str:
     form.honorarios_contenciosa.preco_mensal_valor = "R$ 8.000,00"
     form.disposicoes.ativo = True
     form.disposicoes.descricao = "MARCA_DISP_ML clausula um.\n\nMARCA_DISP_ML2 clausula dois."
-    return _document_xml(render_proposal(form_to_context(form)))
+    return render_proposal(form_to_context(form))
 
 
 class TestJustificacaoTextoFormulario:
@@ -169,32 +169,45 @@ class TestJustificacaoTextoFormulario:
         assert _jc_of_paragraph_containing(xml, "MARCA_ESCOPO_B") == "both"
 
 
-class TestTextoMultilinhaAlinhadoEsquerda:
-    """Texto com quebra de linha (Enter) NAO deve ser justificado."""
+class TestTextoMultilinhaJustificado:
+    """Texto com quebra de linha (Enter) TAMBEM sai justificado.
+
+    O esticamento da linha pre-quebra e suprimido por doNotExpandShiftReturn
+    no settings.xml — sem a flag, justificar multilinha deformava o texto
+    (motivo do antigo _left_align_multiline, removido).
+    """
 
     @pytest.fixture(scope="class")
-    def xml(self) -> str:
-        return _render_multilinha()
+    def docx_bytes(self) -> bytes:
+        return _render_multilinha_bytes()
+
+    @pytest.fixture(scope="class")
+    def xml(self, docx_bytes) -> str:
+        return _document_xml(docx_bytes)
 
     @pytest.mark.parametrize(
         "marker",
         [
             "MARCA_CONSULTIVO_ML",   # Escopo Consultivo com 2 paragrafos
             "MARCA_CONTENCIOSO_ML",
-            "MARCA_SLA_ML",          # SLA em lista (caso do print do usuario)
+            "MARCA_SLA_ML",          # SLA em lista
             "MARCA_DISP_ML",         # Disposicoes com paragrafos separados
             "MARCA_CONTATO_A",       # contatos_texto com 2 contatos => multilinha
         ],
     )
-    def test_texto_multilinha_nao_justificado(self, xml, marker):
-        jc = _jc_of_paragraph_containing(xml, marker)
-        assert jc != "both", (
-            f"texto multilinha {marker!r} foi justificado (w:jc={jc}); "
-            f"deveria ficar alinhado a esquerda para nao esticar as linhas"
+    def test_texto_multilinha_justificado(self, xml, marker):
+        assert _jc_of_paragraph_containing(xml, marker) == "both", (
+            f"texto multilinha {marker!r} deveria sair justificado (w:jc=both)"
         )
 
-    def test_consultivo_continuo_ainda_justifica(self, xml):
-        """Sanidade: o caso multilinha nao deve afetar o caminho de texto corrido."""
+    def test_settings_tem_do_not_expand_shift_return(self, docx_bytes):
+        """A flag que evita o esticamento da linha pre-quebra esta presente."""
+        with zipfile.ZipFile(BytesIO(docx_bytes)) as zf:
+            settings = zf.read("word/settings.xml").decode("utf-8")
+        assert "doNotExpandShiftReturn" in settings
+
+    def test_consultivo_continuo_segue_justificado(self):
+        """Sanidade: o caminho de texto corrido permanece justificado."""
         cont_xml = _render_mista()
         assert _jc_of_paragraph_containing(cont_xml, "MARCA_CONSULTIVO") == "both"
 
@@ -245,3 +258,68 @@ class TestHonorarioInlinePorEscopo:
         # subtítulo por escopo permanece
         assert "Honorários — Escopo Consultivo A" in xml
         assert "Honorários — Escopo Consultivo B" in xml
+
+
+def _texto_visivel(xml: str) -> str:
+    return "".join(_T_RE.findall(xml))
+
+
+def _render_contenciosa_unica(horas_extra_modo: str = "horaFixa") -> str:
+    """Proposta de modalidade unica contenciosa, escopo unico."""
+    form = proposal_form_default()
+    form.contratante.tipo_pessoa = "juridica"
+    form.contratante.razao_social = "Banco Exemplo S.A."
+    form.contratante.cnpj = "11.222.333/0001-81"
+    form.escopo.modalidade = "contenciosa"
+    form.escopo.atuacao_contenciosa = "MARCA_CONT_UNICA defesa em processos."
+    form.honorarios_contenciosa.modalidades.valor_ato_processual = True
+    form.honorarios_contenciosa.horas_extra_escopo_modo = horas_extra_modo
+    if horas_extra_modo == "horaFixa":
+        form.honorarios_contenciosa.horas_extra_valor = "R$ 500,00"
+    return _document_xml(render_proposal(form_to_context(form)))
+
+
+class TestTitulosEscopoUnico:
+    """Modalidade unica + escopo unico: sem subtitulo redundante sob o titulo."""
+
+    def test_contenciosa_unica_sem_subtitulo(self):
+        texto = _texto_visivel(_render_contenciosa_unica())
+        assert "Escopo de Trabalho" in texto
+        assert "Escopo Contencioso:" not in texto
+        assert "MARCA_CONT_UNICA" in texto
+
+    def test_mista_mantem_subtitulos(self):
+        texto = _texto_visivel(_render_mista())
+        assert "Escopo Consultivo:" in texto
+        assert "Escopo Contencioso:" in texto
+
+    def test_titulo_sem_quebra_embutida(self):
+        """O <w:br/> que dobrava o espacamento apos o titulo foi removido."""
+        xml = _render_contenciosa_unica()
+        for m in _P_RE.finditer(xml):
+            p = m.group(0)
+            if "Escopo de Trabalho" in "".join(_T_RE.findall(p)):
+                assert "<w:br/>" not in p, "titulo da secao nao deve conter <w:br/>"
+                return
+        raise AssertionError("titulo 'Escopo de Trabalho' nao encontrado")
+
+
+class TestHorasExtraOpcional:
+    """Modo 'nenhuma' esconde a secao inteira de horas extra escopo."""
+
+    def test_modo_nenhuma_esconde_secao(self):
+        texto = _texto_visivel(_render_contenciosa_unica(horas_extra_modo="nenhuma"))
+        assert "Horas para Serviços Extra Escopo" not in texto
+
+    def test_modo_hora_fixa_mantem_secao(self):
+        texto = _texto_visivel(_render_contenciosa_unica(horas_extra_modo="horaFixa"))
+        assert "Horas para Serviços Extra Escopo" in texto
+
+
+class TestValorPorAto:
+    """Titulo da modalidade renomeado: cobre frentes nao-processuais (Ouvidoria)."""
+
+    def test_titulo_sem_processual(self):
+        texto = _texto_visivel(_render_contenciosa_unica())
+        assert "Valor por Ato Processual" not in texto
+        assert "Valor por Ato" in texto

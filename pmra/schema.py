@@ -17,7 +17,7 @@ UF_OPTIONS = ("",) + UFS
 
 TipoPessoa = Literal["fisica", "juridica"]
 ModalidadeEscopo = Literal["consultiva", "contenciosa", "mista"]
-HorasExtraEscopoModo = Literal["senioridade", "horaFixa"]
+HorasExtraEscopoModo = Literal["senioridade", "horaFixa", "nenhuma"]
 
 
 class Contato(BaseModel):
@@ -163,6 +163,15 @@ class HonorariosContenciosa(BaseModel):
     horas_extra_escopo_modo: HorasExtraEscopoModo = "senioridade"
     horas_extra_senioridade: list[SenioridadeRow] = Field(default_factory=list)
     horas_extra_valor: str = ""
+
+    @model_validator(mode="after")
+    def _zera_horas_extra_se_nenhuma(self) -> "HonorariosContenciosa":
+        # Usuario optou por nao definir hora extra-escopo — zera para garantir
+        # que nem o template nem o resumo renderizem a secao.
+        if self.horas_extra_escopo_modo == "nenhuma":
+            self.horas_extra_senioridade = []
+            self.horas_extra_valor = ""
+        return self
 
 
 class DespesaItem(BaseModel):

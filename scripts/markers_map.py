@@ -88,9 +88,16 @@ SE_BLOCO: dict[str, str] = {
     "{%p if contenciosa.show_preco_mensal %}": "[SE_CONT_PRECO_MENSAL]",
     "{%p if contenciosa.show_valor_projeto %}": "[SE_CONT_PRECO_GLOBAL]",
     "{%p if contenciosa.show_exito %}": "[SE_CONT_EXITO]",
+    "{%p if contenciosa.show_horas_extra %}": "[SE_CONT_HORAS_EXTRA]",
     "{%p if contenciosa.show_extra_senioridade %}": "[SE_CONT_EXTRA_SENIORIDADE]",
     "{%p if contenciosa.show_extra_hora_fixa %}": "[SE_CONT_EXTRA_HORA_MEDIA]",
     "{%p if disposicoes.show %}": "[SE_DISPOSICOES]",
+
+    # Subtitulos de escopo unico ("Escopo Consultivo:"/"Escopo Contencioso:").
+    # Escondidos quando a proposta tem uma unica modalidade — o titulo
+    # "Escopo de Trabalho" basta; em mista, distinguem as duas secoes.
+    "{%p if escopo.show_subtitulo_consultivo %}":  "[SE_SUBTITULO_CONSULTIVO]",
+    "{%p if escopo.show_subtitulo_contencioso %}": "[SE_SUBTITULO_CONTENCIOSO]",
 
     # Multi-escopo — condicoes compostas geradas por scripts/update_template.py.
     # Cada escopo (consultivo/contencioso) tem 4 modos exclusivos:
