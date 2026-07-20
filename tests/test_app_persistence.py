@@ -46,6 +46,17 @@ def test_campo_mascarado_persiste_ao_navegar():
     assert at.text_input(key="cnpj_input").value == "11.222.333/0001-81"
 
 
+def test_cnpj_alfanumerico_mesma_mascara():
+    """CNPJ alfanumérico (IN RFB 2.229/2024): letras nas 12 primeiras posições,
+    DVs numéricos, mesma máscara, maiúsculas normalizadas."""
+    at = _fresh()
+    at.text_input(key="cnpj_input").set_value("12abc34501de35")
+    at.button(key="nav_next").click()
+    at.run()
+    at.button(key="nav_prev").click().run()
+    assert at.text_input(key="cnpj_input").value == "12.ABC.345/01DE-35"
+
+
 def test_textarea_escopo_persiste_via_stepper():
     at = _fresh()
     at.button(key="step_btn_1").click().run()
