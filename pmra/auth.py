@@ -42,15 +42,32 @@ def _load_design_system() -> None:
 
 _MAX_LOGIN_ATTEMPTS = 5
 
+# Caminhos padrao onde o Streamlit procura secrets (local e Community Cloud).
+_SECRETS_FILES = (
+    Path.home() / ".streamlit" / "secrets.toml",
+    _ROOT / ".streamlit" / "secrets.toml",
+)
+
+
+def _read_expected_password() -> str:
+    """Le APP_PASSWORD sem disparar o banner "No secrets found" do Streamlit.
+
+    Tocar em st.secrets sem nenhum secrets.toml faz o Streamlit renderizar
+    um erro DENTRO do app com os caminhos internos do servidor (uso local
+    sem senha). Checar a existencia dos arquivos antes evita o vazamento.
+    """
+    if not any(p.exists() for p in _SECRETS_FILES):
+        return ""
+    try:
+        return st.secrets.get("APP_PASSWORD", "")
+    except Exception:
+        # st.secrets pode levantar em arquivo malformado — tratamos como sem senha.
+        return ""
+
 
 def check_password() -> bool:
     """Retorna True se o usuario esta autenticado (ou se nao ha senha configurada)."""
-    expected = ""
-    try:
-        expected = st.secrets.get("APP_PASSWORD", "")
-    except Exception:
-        # st.secrets pode levantar se nao houver arquivo de secrets — tratamos como sem senha.
-        expected = ""
+    expected = _read_expected_password()
 
     if not expected:
         return True

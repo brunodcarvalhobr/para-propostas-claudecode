@@ -458,19 +458,38 @@ div[role="listbox"] {
         padding: 12px 16px;
     }
 
-    /* (a) STEPPER MOBILE — empilha botões (1 por linha) E remove sticky:
-       em mobile, header fixo atrapalha porque ocupa muito espaço vertical
-       (5 botões empilhados ~250px) e impede o usuário de ver o conteúdo
-       enquanto preenche. Rola junto com a página. */
+    /* (a) STEPPER MOBILE: trilho horizontal com scroll lateral, sem sticky.
+       Substitui o empilhamento antigo (5 botões x ~50px = ~250px de altura
+       antes do conteúdo): as pills mantêm largura natural e o excedente
+       rola para o lado, como tabs. Scrollbar oculta para visual limpo;
+       o corte da última pill visível sinaliza que há mais à direita. */
     [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row {
         position: static !important;
-        flex-wrap: wrap !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px !important;
     }
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row::-webkit-scrollbar {
+        display: none;
+    }
+    /* Base fixa responsiva por pill (110-160px): sem isso o
+       use_container_width=True do botao estica cada coluna para 100% e so a
+       primeira pill aparece no trilho. max-content nao funciona aqui: o
+       Streamlit grava width inline em px no .stButton e o intrinseco da
+       coluna nunca colapsa. O botao preenche a coluna e o ResizeObserver
+       do Streamlit reajusta o width inline sozinho. */
     [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
       > [data-testid="stColumn"] {
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
-        width: 100% !important;
+        flex: 0 0 clamp(110px, 30vw, 160px) !important;
+        min-width: 0 !important;
+        width: auto !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stHorizontalBlock"].pmra-stepper-row
+      > [data-testid="stColumn"] button {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
     }
 
     /* (b) TABELAS row-by-row MOBILE — labels individuais visíveis sob cada
@@ -576,6 +595,21 @@ div[role="listbox"] {
     font-size: 12.5px !important;
     letter-spacing: 0.01em;
 }
+/* O nowrap acima nao alcanca o <p> que o Streamlit cria DENTRO do botao:
+   overflow-wrap do markdown quebrava "Próximo" no meio da palavra em
+   viewport estreito. Nowrap explicito em todos os descendentes. */
+[data-testid="stBaseButton-secondary"] > button,
+[data-testid="stBaseButton-primary"] > button,
+button[data-testid="stBaseButton-secondary"],
+button[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-secondary"] > button *,
+[data-testid="stBaseButton-primary"] > button *,
+button[data-testid="stBaseButton-secondary"] *,
+button[data-testid="stBaseButton-primary"] * {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+}
 
 /* Sticky stepper compacto: bg paper translucido + padding reduzido para
    ocupar pouca altura quando fixo no topo. Identifica o stepper como o
@@ -646,20 +680,69 @@ h3 {
     align-items: center !important;
 }
 
-/* Labels — TIPO DE PESSOA, MATÉRIAS, etc. Mesma tipografia que .pmra-sub-hdr
-   (tamanho e letter-spacing idênticos) — única diferença é a cor (cinza
-   neutro vs ember). Garante coesão visual entre rótulos de seção e de campo.
+/* Labels de CAMPO em caixa normal e corpo 12.5px: 30+ rótulos seguidos em
+   CAPS espaçadas cansam e dificultam o scan; caixa normal lê mais rápido.
+   A hierarquia visual fica com os marcadores de seção (.pmra-sub-hdr), que
+   permanecem uppercase — campo e seção agora se distinguem de imediato.
    Padding-bottom cria respiro entre label e input. */
 label {
     font-family: var(--font-sans) !important;
-    font-size: 11px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.14em !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.01em !important;
     color: var(--color-ink-600) !important;
     font-weight: 500 !important;
     line-height: 1.4 !important;
     padding-bottom: 6px !important;
 }
+
+/* Aviso suave sob um campo (ex.: CPF/CNPJ com DV inválido): âmbar, pequeno,
+   não-bloqueante — informa sem interromper o fluxo. */
+.pmra-field-warn {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #92400e;
+    background: #fef3c7;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-top: 6px;
+}
+
+/* Variante positiva: confirmacao discreta (ex.: dados achados na Receita). */
+.pmra-field-ok {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #14532d;
+    background: #dcfce7;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-top: 6px;
+}
+
+/* Pré-visualização do .docx (mammoth): "folha" branca com scroll próprio,
+   tipografia serifada aproximando o documento e tabelas com borda visível. */
+.pmra-docx-preview {
+    background: #ffffff;
+    border: 1px solid rgba(26,53,87,0.18);
+    border-radius: 12px;
+    padding: 32px 36px;
+    max-height: 620px;
+    overflow-y: auto;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #1a1a1a;
+}
+.pmra-docx-preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+}
+.pmra-docx-preview td, .pmra-docx-preview th {
+    border: 1px solid #1A3557;
+    padding: 4px 8px;
+    vertical-align: top;
+}
+.pmra-docx-preview p { margin: 0 0 8px; }
 /* Garante espaço entre o sub-header de uma seção e o widget que vem logo
    abaixo (label do input ou um checkbox standalone). */
 .pmra-sub-hdr + [data-testid="stElementContainer"],

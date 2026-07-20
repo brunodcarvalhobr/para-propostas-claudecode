@@ -10,10 +10,9 @@ no repositório irmão.
 
 ## Stack
 
-- **Streamlit** — UI e estado de formulário
+- **Streamlit** — UI e estado de formulário (tabelas dinâmicas via inputs linha a linha, `_render_rows` em `app.py`)
 - **Pydantic v2** — validação dos dados
 - **docxtpl** — template Word com Jinja2 (`{%p if %}`, `{%tr for %}`, `{{var}}`)
-- **pandas** — back-end para `st.data_editor` (tabelas dinâmicas)
 
 ## Estrutura
 

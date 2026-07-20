@@ -23,6 +23,8 @@ def _fmt_money(v: str) -> str:
 
     '500'        → 'R$ 500,00'
     '1050'       → 'R$ 1.050,00'
+    '1.050'      → 'R$ 1.050,00'  (ponto + 3 dígitos = milhar)
+    '700.50'     → 'R$ 700,50'    (ponto + 1-2 dígitos = decimal)
     '1.050,50'   → 'R$ 1.050,50'
     'R$ 1.050,00'→ 'R$ 1.050,00'  (sem alteração)
     'texto livre'→ 'texto livre'   (sem alteração)
@@ -48,8 +50,14 @@ def _fmt_money(v: str) -> str:
             # Formato BR: ponto = milhar, vírgula = decimal
             amount = float(cleaned.replace(".", "").replace(",", "."))
         else:
-            # Sem vírgula: trata ponto como milhar (ex.: "1.050" → 1050)
-            amount = float(cleaned.replace(".", ""))
+            # Sem vírgula: grupo de milhar BR tem exatamente 3 dígitos, então
+            # ponto seguido de 1-2 dígitos no fim só pode ser decimal
+            # ("700.50" → 700,50). Antes, "700.50" virava R$ 70.050,00.
+            inteiro, sep, frac = cleaned.rpartition(".")
+            if sep and inteiro and len(frac) in (1, 2):
+                amount = float(inteiro.replace(".", "") + "." + frac)
+            else:
+                amount = float(cleaned.replace(".", ""))
         formatted = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f"R$ {formatted}"
     except (ValueError, OverflowError):

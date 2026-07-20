@@ -20,6 +20,7 @@ import pytest
 from pmra.data_mapper import form_to_context
 from pmra.defaults import proposal_form_default
 from pmra.schema import (
+    AcaoRow,
     Contato,
     Endereco,
     EscopoConsultivoItem,
@@ -323,3 +324,36 @@ class TestValorPorAto:
         texto = _texto_visivel(_render_contenciosa_unica())
         assert "Valor por Ato Processual" not in texto
         assert "Valor por Ato" in texto
+
+
+# Celula de tabela sem cruzar fronteira de <w:tc> (tabelas podem aninhar).
+_TC_RE = re.compile(r"<w:tc>(?:(?!</?w:tc[ >]).)*?</w:tc>", flags=re.DOTALL)
+
+
+class TestCelulaSempreComParagrafo:
+    """Regressao: _collapse_empty_paragraphs removia o unico <w:p> de uma
+    celula quando a celula anterior tambem terminava em paragrafo vazio
+    (ex.: linha de acao com so o Valor preenchido), gerando <w:tc> sem
+    paragrafo, XML invalido que o Word abre como documento corrompido."""
+
+    def _assert_toda_celula_tem_paragrafo(self, xml: str) -> None:
+        sem_p = [m.group(0) for m in _TC_RE.finditer(xml) if "<w:p" not in m.group(0)]
+        assert not sem_p, f"{len(sem_p)} celula(s) de tabela sem <w:p>: XML invalido para o Word"
+
+    def test_linha_de_acao_so_com_valor(self):
+        form = proposal_form_default()
+        form.contratante.tipo_pessoa = "juridica"
+        form.contratante.razao_social = "Acme S.A."
+        form.contratante.cnpj = "11.222.333/0001-81"
+        form.escopo.modalidade = "contenciosa"
+        form.escopo.atuacao_contenciosa = "Defesa em processos."
+        form.honorarios_contenciosa.modalidades.valor_acao = True
+        form.honorarios_contenciosa.tabela_acoes = [
+            AcaoRow(natureza="Trabalhista", fase="Conhecimento", valor="R$ 5.000,00"),
+            AcaoRow(natureza="", fase="", valor="R$ 3.000,00"),  # 2 celulas adjacentes vazias
+        ]
+        self._assert_toda_celula_tem_paragrafo(_document_xml(render_proposal(form_to_context(form))))
+
+    def test_cenario_misto_completo(self):
+        """Sanidade: proposta mista padrao tambem sai com todas as celulas validas."""
+        self._assert_toda_celula_tem_paragrafo(_render_mista())

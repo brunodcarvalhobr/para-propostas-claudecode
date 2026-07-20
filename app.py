@@ -13,6 +13,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from pmra.auth import check_password
+from pmra.br_docs import cnpj_dv_ok, cnpj_lookup, cpf_dv_ok, viacep_lookup
 from pmra.data_mapper import form_to_context, _fmt_money as _money_fmt
 from pmra.defaults import proposal_form_default
 from pmra.schema import (
@@ -26,7 +27,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.41"
+APP_VERSION = "2.0.47"
 
 
 @st.cache_data
@@ -176,8 +177,14 @@ def _inject_input_masks() -> None:
     if (d.length <= 9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
     return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
   }
+  // CNPJ alfanumerico (IN RFB 2.229/2024): 12 primeiras posicoes aceitam
+  // letras e digitos (maiusculas); os 2 DVs continuam so numericos.
+  function cnpjChars(v) {
+    const s = (v || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+    return s.slice(0, 12) + s.slice(12).replace(/\D/g, '').slice(0, 2);
+  }
   function fmtCnpj(v) {
-    const d = digits(v, 14);
+    const d = cnpjChars(v);
     if (d.length <= 2) return d;
     if (d.length <= 5) return d.slice(0,2)+'.'+d.slice(2);
     if (d.length <= 8) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5);
@@ -197,31 +204,37 @@ def _inject_input_masks() -> None:
     return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
   }
 
+  // [funcao de mascara, classe de caractere "util" para posicionar o cursor]
+  // CNPJ conta alfanumericos (aceita letras); os demais contam so digitos.
   const LABEL_MASKS = {
-    'CPF': fmtCpf, 'CNPJ': fmtCnpj, 'CEP': fmtCep, 'Telefone': fmtTel,
+    'CPF': [fmtCpf, /\d/], 'CNPJ': [fmtCnpj, /[0-9A-Za-z]/],
+    'CEP': [fmtCep, /\d/], 'Telefone': [fmtTel, /\d/],
   };
 
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
 
-  function applyMask(input, maskFn) {
+  function applyMask(input, maskFn, charRe) {
     if (input._pmraMasked) return;
     input._pmraMasked = true;
     input.addEventListener('input', function (e) {
       if (e._pmra) return;
       const raw = this.value;
       const pos = this.selectionStart;
-      const digitsBeforeCursor = raw.slice(0, pos).replace(/\D/g, '').length;
+      let charsBeforeCursor = 0;
+      for (let i = 0; i < pos; i++) {
+        if (charRe.test(raw[i])) charsBeforeCursor++;
+      }
       const fmt = maskFn(raw);
       if (fmt === raw) return;
       setter.call(this, fmt);
       const ev = new Event('input', { bubbles: true });
       ev._pmra = true;
       this.dispatchEvent(ev);
-      // Reposiciona cursor contando dígitos
+      // Reposiciona cursor contando caracteres "uteis" da mascara
       let dc = 0, np = fmt.length;
       for (let i = 0; i < fmt.length; i++) {
-        if (/\d/.test(fmt[i])) dc++;
-        if (dc >= digitsBeforeCursor) { np = i + 1; break; }
+        if (charRe.test(fmt[i])) dc++;
+        if (dc >= charsBeforeCursor) { np = i + 1; break; }
       }
       this.setSelectionRange(np, np);
     });
@@ -233,8 +246,8 @@ def _inject_input_masks() -> None:
       const label = wrap.querySelector('label');
       const input = wrap.querySelector('input');
       if (!label || !input) return;
-      const maskFn = LABEL_MASKS[label.textContent.trim()];
-      if (maskFn) applyMask(input, maskFn);
+      const entry = LABEL_MASKS[label.textContent.trim()];
+      if (entry) applyMask(input, entry[0], entry[1]);
     });
   }
 
@@ -287,8 +300,17 @@ def _fmt_cpf(v: str) -> str:
     return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
 
 
+def _cnpj_chars(v: str) -> str:
+    """CNPJ alfanumérico (IN RFB nº 2.229/2024, vigente desde jul/2026):
+    as 12 primeiras posições aceitam letras e dígitos; os 2 dígitos
+    verificadores continuam exclusivamente numéricos. Letras normalizadas
+    para maiúsculas."""
+    s = re.sub(r"[^0-9A-Za-z]", "", str(v)).upper()
+    return s[:12] + re.sub(r"\D", "", s[12:])[:2]
+
+
 def _fmt_cnpj(v: str) -> str:
-    d = _digits(v, 14)
+    d = _cnpj_chars(v)
     if len(d) <= 2:
         return d
     if len(d) <= 5:
@@ -323,10 +345,72 @@ def _on_cpf_change() -> None:
     st.session_state["cpf_input"] = _fmt_cpf(st.session_state.get("cpf_input", ""))
 
 def _on_cnpj_change() -> None:
-    st.session_state["cnpj_input"] = _fmt_cnpj(st.session_state.get("cnpj_input", ""))
+    ss = st.session_state
+    ss["cnpj_input"] = _fmt_cnpj(ss.get("cnpj_input", ""))
+    # CNPJ completo dispara consulta a Receita (BrasilAPI) e preenche APENAS
+    # campos ainda vazios: razao social, endereco e 1o contato. Nunca
+    # sobrescreve o que o usuario digitou; sem rede, falha em silencio.
+    # Alfanumericos ficam de fora (a API publica ainda nao os cobre).
+    d = re.sub(r"[^0-9A-Za-z]", "", ss["cnpj_input"])
+    if len(d) != 14 or ss.get("_cnpj_lookup_done") == d:
+        return
+    ss["_cnpj_lookup_done"] = d
+    data = cnpj_lookup(d)
+    if not data:
+        return
+    c = ss.form["contratante"]
+    if not (ss.get("razao_social_input") or "").strip():
+        ss["razao_social_input"] = data["razao_social"]
+        c["razao_social"] = data["razao_social"]
+    end = c["endereco"]
+    if data["cep"] and not (ss.get("cep_input") or "").strip():
+        ss["cep_input"] = _fmt_cep(data["cep"])
+        end["cep"] = ss["cep_input"]
+    for wkey, fkey in (
+        ("logradouro_input", "logradouro"),
+        ("numero_input", "numero"),
+        ("bairro_input", "bairro"),
+        ("cidade_input", "cidade"),
+        ("uf_input", "uf"),
+    ):
+        if data[fkey] and not (ss.get(wkey) or "").strip():
+            ss[wkey] = data[fkey]
+            end[fkey] = data[fkey]
+    rows = ss.get("tbl_contatos") or [{"telefone": "", "email": ""}]
+    if data["telefone"] and not (ss.get("tbl_contatos__telefone__0") or "").strip():
+        fmt = _fmt_tel(data["telefone"])
+        ss["tbl_contatos__telefone__0"] = fmt
+        rows[0]["telefone"] = fmt
+    if data["email"] and not (ss.get("tbl_contatos__email__0") or "").strip():
+        ss["tbl_contatos__email__0"] = data["email"]
+        rows[0]["email"] = data["email"]
+    ss["tbl_contatos"] = rows
+    ss["_cnpj_razao_encontrada"] = data["razao_social"]
 
 def _on_cep_change() -> None:
-    st.session_state["cep_input"] = _fmt_cep(st.session_state.get("cep_input", ""))
+    ss = st.session_state
+    ss["cep_input"] = _fmt_cep(ss.get("cep_input", ""))
+    # CEP completo dispara consulta ao ViaCEP e preenche APENAS campos de
+    # endereco ainda vazios — nunca sobrescreve o que o usuario digitou.
+    # Guard _cep_lookup_done evita repetir a consulta no mesmo CEP a cada
+    # blur do campo. Sem rede/CEP inexistente, falha em silencio.
+    d = re.sub(r"\D", "", ss["cep_input"])
+    if len(d) != 8 or ss.get("_cep_lookup_done") == d:
+        return
+    ss["_cep_lookup_done"] = d
+    data = viacep_lookup(d)
+    if not data:
+        return
+    end = ss.form["contratante"]["endereco"]
+    for wkey, fkey in (
+        ("logradouro_input", "logradouro"),
+        ("bairro_input", "bairro"),
+        ("cidade_input", "cidade"),
+        ("uf_input", "uf"),
+    ):
+        if data[fkey] and not (ss.get(wkey) or "").strip():
+            ss[wkey] = data[fkey]
+            end[fkey] = data[fkey]
 
 def _on_tel_change(wk: str) -> None:
     st.session_state[wk] = _fmt_tel(st.session_state.get(wk, ""))
@@ -342,6 +426,24 @@ def _form_signature(form: dict) -> str:
     return hashlib.md5(
         json.dumps(form, sort_keys=True, default=str).encode("utf-8")
     ).hexdigest()
+
+
+@st.cache_data(show_spinner=False)
+def _docx_preview_html(docx_bytes: bytes) -> str:
+    """HTML aproximado do .docx (mammoth), para conferir sem abrir o Word.
+
+    Retorna "" se o mammoth não estiver instalado ou a conversão falhar —
+    a pré-visualização é conveniência, nunca pré-requisito.
+    """
+    try:
+        from io import BytesIO
+
+        import mammoth
+
+        return mammoth.convert_to_html(BytesIO(docx_bytes)).value
+    except Exception:
+        logger.exception("Falha na pré-visualização do docx")
+        return ""
 
 
 def _tem_modalidade_cons(form: dict) -> bool:
@@ -372,13 +474,19 @@ def _collect_warnings(form: dict) -> dict[int, list[str]]:
     if c["tipo_pessoa"] == "fisica":
         if not (c.get("nome") or "").strip():
             add(0, "Cliente (pessoa física) sem nome")
-        if not (c.get("cpf") or "").strip():
+        cpf = (c.get("cpf") or "").strip()
+        if not cpf:
             add(0, "Cliente sem CPF")
+        elif len(_digits(cpf, 11)) == 11 and not cpf_dv_ok(cpf):
+            add(0, "CPF com dígito verificador inválido")
     else:
         if not (c.get("razao_social") or "").strip():
             add(0, "Cliente (pessoa jurídica) sem razão social")
-        if not (c.get("cnpj") or "").strip():
+        cnpj = (c.get("cnpj") or "").strip()
+        if not cnpj:
             add(0, "Cliente sem CNPJ")
+        elif len(_cnpj_chars(cnpj)) == 14 and not cnpj_dv_ok(cnpj):
+            add(0, "CNPJ com dígito verificador inválido")
 
     esc = form["escopo"]
     modal = esc["modalidade"]
@@ -416,8 +524,6 @@ def _init_state() -> None:
         st.session_state.generated_sig = None
     if "visited" not in st.session_state:
         st.session_state.visited = set()
-    if "confirm_reset" not in st.session_state:
-        st.session_state.confirm_reset = False
 
     # Migracao para sessoes legadas: se form existe mas algum default novo
     # foi adicionado posteriormente (como sla_descricao), preenche com o
@@ -445,7 +551,16 @@ def _init_state() -> None:
     _INPUT_FORM_PATHS = (
         ("cpf_input",       ("contratante", "cpf")),
         ("cnpj_input",      ("contratante", "cnpj")),
+        ("razao_social_input", ("contratante", "razao_social")),
         ("cep_input",       ("contratante", "endereco", "cep")),
+        # Endereco em padrao key-only: o autofill via ViaCEP (callback do
+        # CEP) escreve nessas chaves; value= + escrita em session_state no
+        # mesmo widget gera conflito no Streamlit.
+        ("logradouro_input", ("contratante", "endereco", "logradouro")),
+        ("numero_input",     ("contratante", "endereco", "numero")),
+        ("bairro_input",     ("contratante", "endereco", "bairro")),
+        ("cidade_input",     ("contratante", "endereco", "cidade")),
+        ("uf_input",         ("contratante", "endereco", "uf")),
         ("cons_hf_valor",   ("honorarios_consultiva", "hora_fixa_valor")),
         ("cons_fm_valor",   ("honorarios_consultiva", "fixo_mensal_valor")),
         ("cons_fm_exc",     ("honorarios_consultiva", "fixo_mensal_excedente")),
@@ -553,7 +668,7 @@ form: dict = st.session_state.form
 # REGRA: todo BOTÃO novo deve casar com um dos padrões de `_is_acao_key` abaixo.
 def _is_acao_key(k: str) -> bool:
     return (
-        k.startswith(("step_btn_", "nav_", "reset_", "fix_step_"))
+        k.startswith(("step_btn_", "nav_", "reset_", "fix_step_", "draft_"))
         or "__del__" in k
         or k.endswith("__add")
         or (k.startswith(("escopo_cons_", "escopo_cont_")) and "_desc_" not in k)
@@ -622,14 +737,6 @@ def _go_to(n: int) -> None:
 _PRESERVE_ON_RESET = ("authenticated", "login_attempts")
 
 
-def _ask_reset_cb() -> None:
-    st.session_state.confirm_reset = True
-
-
-def _cancel_reset_cb() -> None:
-    st.session_state.confirm_reset = False
-
-
 def _reset_form_cb() -> None:
     """Limpa todo o estado (campos, etapa, doc gerado) e recomeça do zero.
 
@@ -639,6 +746,40 @@ def _reset_form_cb() -> None:
     preserved = {k: st.session_state[k] for k in _PRESERVE_ON_RESET if k in st.session_state}
     st.session_state.clear()
     st.session_state.update(preserved)
+
+
+# ── Rascunho (salvar/retomar) ─────────────────────────────────────────────────
+
+def _draft_json() -> str:
+    """Serializa o form atual para download como rascunho .json."""
+    return json.dumps(
+        {"_app": "pmra-docgen", "_versao": APP_VERSION, "form": st.session_state.form},
+        ensure_ascii=False,
+        indent=2,
+    )
+
+
+def _load_draft_cb() -> None:
+    """Restaura um rascunho .json: valida via Pydantic e recomeça a sessão
+    com o form carregado (mesma mecânica do reset: session limpa ANTES dos
+    widgets instanciarem; _init_state re-semeia as chaves a partir do form).
+    """
+    up = st.session_state.get("draft_uploader")
+    if up is None:
+        return
+    try:
+        payload = json.loads(up.getvalue().decode("utf-8"))
+        raw = payload.get("form", payload)  # aceita o arquivo com ou sem envelope
+        proposal = ProposalForm.model_validate(raw)
+    except Exception:
+        logger.exception("Rascunho inválido")
+        st.session_state["draft_error"] = True
+        return
+    preserved = {k: st.session_state[k] for k in _PRESERVE_ON_RESET if k in st.session_state}
+    st.session_state.clear()
+    st.session_state.update(preserved)
+    st.session_state["form"] = proposal.model_dump()
+    st.session_state["draft_loaded"] = True
 
 
 current: int = st.session_state.step
@@ -723,6 +864,43 @@ def _clear_escopo_widget_keys(prefix: str) -> None:
             del st.session_state[k]
 
 
+# Tabelas por-escopo do modo multi (ss_key indexado -> campo em item["honorarios"]).
+_MULTI_TBL_SPECS_CONS = (
+    ("tbl_sen_cons_", "tabela_senioridade", ("categoria", "valor")),
+)
+_MULTI_TBL_SPECS_CONT = (
+    ("tbl_acoes_cont_", "tabela_acoes", ("natureza", "fase", "valor")),
+    ("tbl_atos_cont_", "tabela_atos", ("ato", "descricao", "valor")),
+)
+
+
+def _sync_and_clear_multi_tbls(lst: list[dict], specs: tuple) -> None:
+    """Persiste as tabelas por-escopo no form e apaga as chaves indexadas.
+
+    Excluir um escopo desloca os índices dos seguintes, mas as chaves
+    tbl_*_{i} da session_state não se deslocam junto — sem esta limpeza a
+    tabela do escopo excluído "vazava" para o escopo que assumia o índice.
+    Após o clear, _render_rows re-semeia cada tabela a partir de
+    item["honorarios"] (parâmetro initial).
+    """
+    ss = st.session_state
+    for i, item in enumerate(lst):
+        for prefix, field, cols in specs:
+            ss_key = f"{prefix}{i}"
+            rows = ss.get(ss_key)
+            if rows is None:
+                continue
+            # Célula do widget é a fonte da verdade no momento do callback
+            # (mesma razão de _apply_formats): o form pode estar 1 rerun atrás.
+            item["honorarios"][field] = [
+                {c: ss.get(f"{ss_key}__{c}__{j}", row.get(c, "")) for c in cols}
+                for j, row in enumerate(rows)
+            ]
+    for k in list(ss.keys()):
+        if any(k.startswith(p) and k[len(p):][:1].isdigit() for p, _f, _c in specs):
+            del ss[k]
+
+
 def _to_multi_cons_cb() -> None:
     form = st.session_state.form
     # Callback roda antes do corpo do script: o dict ainda tem o valor do ciclo
@@ -742,10 +920,11 @@ def _add_escopo_cons_cb() -> None:
 
 
 def _del_escopo_cons_cb(idx: int) -> None:
-    _clear_escopo_widget_keys("escopo_cons_desc_")
-    _clear_escopo_widget_keys("cons_")
     form = st.session_state.form
     lst = form["escopo"]["escopos_consultivos"]
+    _sync_and_clear_multi_tbls(lst, _MULTI_TBL_SPECS_CONS)
+    _clear_escopo_widget_keys("escopo_cons_desc_")
+    _clear_escopo_widget_keys("cons_")
     lst.pop(idx)
     if len(lst) == 1:
         form["escopo"]["atuacao_consultiva"] = lst[0]["descricao"]
@@ -772,10 +951,11 @@ def _add_escopo_cont_cb() -> None:
 
 
 def _del_escopo_cont_cb(idx: int) -> None:
-    _clear_escopo_widget_keys("escopo_cont_desc_")
-    _clear_escopo_widget_keys("cont_")
     form = st.session_state.form
     lst = form["escopo"]["escopos_contenciosos"]
+    _sync_and_clear_multi_tbls(lst, _MULTI_TBL_SPECS_CONT)
+    _clear_escopo_widget_keys("escopo_cont_desc_")
+    _clear_escopo_widget_keys("cont_")
     lst.pop(idx)
     if len(lst) == 1:
         form["escopo"]["atuacao_contenciosa"] = lst[0]["descricao"]
@@ -835,6 +1015,7 @@ def _render_rows(
     field_formatters: dict[str, callable] | None = None,
     text_areas: list[str] | None = None,
     placeholders: dict[str, str] | None = None,
+    initial: list[dict] | None = None,
 ) -> list[dict]:
     """Renderiza tabela como linhas de inputs individuais com botão ✕ por linha.
 
@@ -842,10 +1023,13 @@ def _render_rows(
     o valor em session_state (chamada via on_change).
     placeholders: mapa campo → texto placeholder (aparece quando input vazio,
     serve de hint do conteudo esperado em mobile onde os headers somem).
+    initial: linhas usadas para semear a tabela quando a ss_key ainda não
+    existe (ex.: tabelas por-escopo re-semeadas do form após excluir escopo).
     """
     rows: list[dict] = st.session_state.get(ss_key, [])
     if not rows:
-        rows = [{f: "" for f in columns}]
+        rows = [dict(r) for r in (initial or []) if any(str(v).strip() for v in r.values())]
+        rows = rows or [{f: "" for f in columns}]
         st.session_state[ss_key] = rows
 
     col_keys = list(columns.keys())
@@ -974,6 +1158,7 @@ def _render_honorarios_consultiva(hon: dict, prefix: str) -> None:
             col_widths=[3, 2],
             field_formatters={"valor": _on_money_change},
             placeholders={"categoria": "Categoria", "valor": "R$ 0,00"},
+            initial=hon.get("tabela_senioridade"),
         )
 
     if cm["hora_fixa"]:
@@ -1084,6 +1269,7 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
             col_widths=[3, 3, 2],
             field_formatters={"valor": _on_money_change},
             placeholders={"natureza": "Natureza da ação", "fase": "Preencher", "valor": "R$ 0,00"},
+            initial=hon.get("tabela_acoes"),
         )
 
     if cm["valor_ato_processual"]:
@@ -1104,6 +1290,7 @@ def _render_honorarios_contenciosa_modalidades(hon: dict, prefix: str) -> None:
             col_widths=[3, 4, 2],
             field_formatters={"valor": _on_money_change},
             placeholders={"ato": "Ato", "descricao": "Descrição", "valor": "R$ 0,00"},
+            initial=hon.get("tabela_atos"),
         )
 
     if cm["preco_mensal_massa"]:
@@ -1377,11 +1564,18 @@ if current == 0:
                 key="cpf_input",
                 on_change=_on_cpf_change,
             )
+            # Validacao SUAVE: avisa DV invalido apenas com o numero completo;
+            # nunca bloqueia (numeros temporarios/de teste sao permitidos).
+            _cpf_digits = _digits(form["contratante"]["cpf"], 11)
+            if len(_cpf_digits) == 11 and not cpf_dv_ok(_cpf_digits):
+                c2.markdown(
+                    '<div class="pmra-field-warn">⚠ CPF com dígito verificador inválido. Confira antes de gerar.</div>',
+                    unsafe_allow_html=True,
+                )
         else:
             c1, c2 = st.columns([2, 1])
             form["contratante"]["razao_social"] = c1.text_input(
                 "Razão Social",
-                value=form["contratante"]["razao_social"],
                 key="razao_social_input",
             )
             form["contratante"]["cnpj"] = c2.text_input(
@@ -1390,25 +1584,40 @@ if current == 0:
                 key="cnpj_input",
                 on_change=_on_cnpj_change,
             )
+            _cnpj_chars_v = _cnpj_chars(form["contratante"]["cnpj"])
+            if len(_cnpj_chars_v) == 14 and not cnpj_dv_ok(_cnpj_chars_v):
+                c2.markdown(
+                    '<div class="pmra-field-warn">⚠ CNPJ com dígito verificador inválido. Confira antes de gerar.</div>',
+                    unsafe_allow_html=True,
+                )
+            elif len(_cnpj_chars_v) == 14 and st.session_state.get("_cnpj_razao_encontrada"):
+                c2.markdown(
+                    '<div class="pmra-field-ok">✓ Dados carregados da Receita Federal.</div>',
+                    unsafe_allow_html=True,
+                )
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">location_on</span>Endereço</div>', unsafe_allow_html=True)
         end = form["contratante"]["endereco"]
 
-        c1, c2 = st.columns([3, 1])
-        end["logradouro"] = c1.text_input("Logradouro", value=end["logradouro"], key="logradouro_input")
-        end["numero"] = c2.text_input("Número/Complemento", value=end["numero"], key="numero_input")
-
-        c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-        end["bairro"] = c1.text_input("Bairro", value=end["bairro"], key="bairro_input")
-        end["cep"] = c2.text_input("CEP", placeholder="00000-000", key="cep_input", on_change=_on_cep_change)
-        end["cidade"] = c3.text_input("Cidade", value=end["cidade"], key="cidade_input")
-        end["uf"] = c4.selectbox(
-            "UF",
-            options=UF_OPTIONS,
-            index=UF_OPTIONS.index(end["uf"]) if end["uf"] in UF_OPTIONS else 0,
-            key="uf_input",
+        # CEP primeiro: ao completar 8 digitos, o ViaCEP preenche logradouro/
+        # bairro/cidade/UF vazios automaticamente (callback do CEP). Campos em
+        # padrao key-only (pre-populados em _INPUT_FORM_PATHS) para o autofill
+        # poder escrever nas chaves.
+        c1, c2, c3 = st.columns([2, 4, 2])
+        end["cep"] = c1.text_input(
+            "CEP", placeholder="00000-000", key="cep_input", on_change=_on_cep_change,
+            help="Preenche logradouro, bairro, cidade e UF automaticamente (ViaCEP).",
         )
+        end["logradouro"] = c2.text_input("Logradouro", key="logradouro_input")
+        end["numero"] = c3.text_input("Número/Complemento", key="numero_input")
+
+        c1, c2, c3 = st.columns([3, 3, 1])
+        end["bairro"] = c1.text_input("Bairro", key="bairro_input")
+        end["cidade"] = c2.text_input("Cidade", key="cidade_input")
+        if st.session_state.get("uf_input") not in UF_OPTIONS:
+            st.session_state["uf_input"] = ""
+        end["uf"] = c3.selectbox("UF", options=UF_OPTIONS, key="uf_input")
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">contact_phone</span>Responsável e contatos</div>', unsafe_allow_html=True)
@@ -1660,7 +1869,7 @@ elif current == 4:
     cidade_uf = "/".join(p for p in [end["cidade"], end["uf"]] if p) or "—"
 
     def _esc(s: str) -> str:
-        return html.escape(str(s)) if s else "—"
+        return html.escape(str(s)) if s else "não informado"
 
     # ── Card Contratante
     contratante_linhas = [
@@ -1759,7 +1968,7 @@ elif current == 4:
             for m in warnings_by_step[s]
         )
         _warn_note(
-            "<strong>Pontos de atenção</strong> — campos importantes em branco podem "
+            "<strong>Pontos de atenção</strong>: campos importantes em branco podem "
             "gerar seções vazias na proposta:<br>" + linhas
         )
         fix_cols = st.columns(len(warnings_by_step))
@@ -1837,48 +2046,62 @@ elif current == 4:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
         )
+
+        # Pré-visualização aproximada: elimina o ciclo baixar → abrir Word →
+        # conferir → corrigir → repetir. O .docx baixado é o que vale.
+        _preview_html = _docx_preview_html(st.session_state.generated_doc)
+        if _preview_html:
+            with st.expander("👁 Pré-visualizar a proposta antes de baixar"):
+                st.caption(
+                    "Visualização aproximada para conferência rápida do conteúdo. "
+                    "Fontes, cores e quebras de página podem diferir; o arquivo "
+                    ".docx é a versão final."
+                )
+                st.markdown(
+                    f'<div class="pmra-docx-preview">{_preview_html}</div>',
+                    unsafe_allow_html=True,
+                )
     elif _stale:
         _warn_note(
             "O formulário foi alterado desde a última geração. Clique em "
             "<strong>Gerar proposta</strong> novamente para atualizar o arquivo antes de baixar."
         )
 
-    # ── Nova proposta (limpa tudo, com confirmação) ───────────────────────────
-    if not st.session_state.get("confirm_reset"):
-        _, _rc, _ = st.columns([2, 1.4, 2])
-        _rc.button(
-            "Nova proposta",
-            key="reset_btn",
-            on_click=_ask_reset_cb,
-            use_container_width=True,
-            help="Limpa todos os campos e começa uma proposta do zero.",
+    # ── Nova proposta: confirmação em modal (st.dialog), presa ao contexto
+    # do botão em vez de um aviso solto no fim da página.
+    @st.dialog("Começar nova proposta?")
+    def _reset_dialog() -> None:
+        st.markdown(
+            "Isso vai **limpar todos os campos**, inclusive a proposta já gerada. "
+            "Esta ação não pode ser desfeita."
         )
-    else:
-        _warn_note(
-            "Isso vai <strong>limpar todos os campos</strong> e começar uma proposta do "
-            "zero — inclusive a proposta já gerada. Esta ação não pode ser desfeita."
-        )
-        _, _yc, _nc, _ = st.columns([2, 1.3, 1.3, 2])
-        _yc.button(
+        st.caption("Dica: baixe um rascunho antes, se quiser guardar o preenchimento atual.")
+        c_sim, c_nao = st.columns(2)
+        c_sim.button(
             "Sim, limpar tudo",
             key="reset_yes",
             type="primary",
             on_click=_reset_form_cb,
             use_container_width=True,
         )
-        _nc.button(
-            "Cancelar",
-            key="reset_no",
-            on_click=_cancel_reset_cb,
-            use_container_width=True,
-        )
+        if c_nao.button("Cancelar", key="reset_no", use_container_width=True):
+            st.rerun()
+
+    _, _rc, _ = st.columns([2, 1.4, 2])
+    if _rc.button(
+        "Nova proposta",
+        key="reset_btn",
+        use_container_width=True,
+        help="Limpa todos os campos e começa uma proposta do zero.",
+    ):
+        _reset_dialog()
 
 
 # ── Navegação: botões Anterior / Próximo ──────────────────────────────────────
 
 st.divider()
 # Mais espaco entre Anterior e Proximo (coluna central de gap)
-_, nav_prev, _gap, nav_next, _ = st.columns([2, 1, 0.4, 1, 2])
+_, nav_prev, _gap, nav_next, _ = st.columns([1, 1.4, 0.3, 1.4, 1])
 
 if current > 0:
     nav_prev.button(
@@ -1896,6 +2119,54 @@ if current < len(STEPS) - 1:
         use_container_width=True,
         key="nav_next",
     )
+
+# ── Rascunho: salvar/retomar (sempre acessível, discreto) ────────────────────
+# Antídoto para a maior perda de trabalho do app: refresh/queda de conexão
+# zera a sessão do Streamlit. O rascunho .json permite salvar a qualquer
+# momento e retomar de onde parou (ou duplicar uma proposta parecida).
+
+if st.session_state.pop("draft_loaded", False):
+    st.success("Rascunho carregado. Todos os campos foram restaurados.")
+if st.session_state.pop("draft_error", False):
+    st.error("Arquivo de rascunho inválido. Use um .json salvo por este app.")
+
+with st.expander("💾 Rascunho: salvar agora ou retomar um arquivo salvo"):
+    st.caption(
+        "O formulário vive apenas nesta aba: atualizar a página apaga tudo. "
+        "Baixe o rascunho para pausar com segurança, retomar em outro momento "
+        "ou reaproveitar como base de uma proposta parecida."
+    )
+    dcol1, dcol2 = st.columns([1, 2])
+    _draft_client = (
+        form["contratante"]["nome"]
+        if form["contratante"]["tipo_pessoa"] == "fisica"
+        else form["contratante"]["razao_social"]
+    )
+    _draft_safe = (
+        "".join(ch if ch.isalnum() else "_" for ch in (_draft_client or "")).strip("_")
+        or "sem_nome"
+    )
+    dcol1.download_button(
+        "Baixar rascunho (.json)",
+        data=_draft_json(),
+        file_name=f"PMRA_Rascunho_{_draft_safe}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+        mime="application/json",
+        use_container_width=True,
+        key="draft_save_btn",
+    )
+    dcol2.file_uploader(
+        "Retomar rascunho",
+        type=["json"],
+        key="draft_uploader",
+        label_visibility="collapsed",
+    )
+    if st.session_state.get("draft_uploader") is not None:
+        st.button(
+            "Carregar rascunho (substitui os campos atuais)",
+            type="primary",
+            key="draft_load_btn",
+            on_click=_load_draft_cb,
+        )
 
 st.markdown(f"""
 <div class="pmra-footer">

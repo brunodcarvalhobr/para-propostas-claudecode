@@ -46,6 +46,44 @@ def test_campo_mascarado_persiste_ao_navegar():
     assert at.text_input(key="cnpj_input").value == "11.222.333/0001-81"
 
 
+def test_cnpj_alfanumerico_mesma_mascara():
+    """CNPJ alfanumérico (IN RFB 2.229/2024): letras nas 12 primeiras posições,
+    DVs numéricos, mesma máscara, maiúsculas normalizadas."""
+    at = _fresh()
+    at.text_input(key="cnpj_input").set_value("12abc34501de35")
+    at.button(key="nav_next").click()
+    at.run()
+    at.button(key="nav_prev").click().run()
+    assert at.text_input(key="cnpj_input").value == "12.ABC.345/01DE-35"
+
+
+def test_excluir_escopo_multi_nao_vaza_tabela():
+    """Regressão: excluir um escopo no modo multi (forma de pagamento por escopo)
+    deixava as chaves tbl_*_{i} para trás; a tabela do escopo excluído "vazava"
+    para o escopo que assumia o índice."""
+    at = _fresh()
+    # Etapa Escopo: contenciosa com 3 escopos (excluir 1 mantém o modo multi)
+    at.button(key="step_btn_1").click().run()
+    at.radio(key="modalidade_radio").set_value("contenciosa").run()
+    at.button(key="escopo_cont_to_multi").click().run()
+    at.button(key="escopo_cont_add").click().run()
+    # Etapa Honorários: pagamento por escopo, tabela de ações distinta em A e B
+    at.button(key="step_btn_2").click().run()
+    at.checkbox(key="fpce_cont").set_value(True).run()
+    at.checkbox(key="cont_0_va").set_value(True).run()
+    at.text_input(key="tbl_acoes_cont_0__natureza__0").set_value("SOMENTE_DO_A").run()
+    at.checkbox(key="cont_1_va").set_value(True).run()
+    at.text_input(key="tbl_acoes_cont_1__natureza__0").set_value("SOMENTE_DO_B").run()
+    # Exclui o escopo A; o antigo B assume o índice 0
+    at.button(key="step_btn_1").click().run()
+    at.button(key="escopo_cont_del_0").click().run()
+    at.button(key="step_btn_2").click().run()
+    assert not at.exception, at.exception
+    assert at.checkbox(key="cont_0_va").value is True
+    assert at.text_input(key="tbl_acoes_cont_0__natureza__0").value == "SOMENTE_DO_B"
+    assert "SOMENTE_DO_A" not in str(at.session_state.form["escopo"]["escopos_contenciosos"])
+
+
 def test_textarea_escopo_persiste_via_stepper():
     at = _fresh()
     at.button(key="step_btn_1").click().run()

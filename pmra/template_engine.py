@@ -107,16 +107,24 @@ def _collapse_empty_paragraphs(xml: str) -> str:
     if not matches:
         return xml
 
-    # Marca quais paragrafos remover: empty consecutivo apos outro empty
+    # Marca quais paragrafos remover: empty consecutivo apos outro empty.
+    # "Consecutivo" exige ADJACENCIA no XML (nada entre os dois <w:p>): sem
+    # essa checagem, o unico paragrafo de uma celula de tabela era removido
+    # quando a celula anterior tambem terminava em paragrafo vazio (ex.: linha
+    # de acao so com Valor preenchido), deixando um <w:tc> sem <w:p>, XML
+    # invalido que o Word abre como "conteudo ilegivel".
     skip = [False] * len(matches)
     prev_empty = False
+    prev_end = -1
     for i, m in enumerate(matches):
+        adjacent = prev_end >= 0 and not xml[prev_end:m.start()].strip()
         if _is_empty_paragraph(m.group(0)):
-            if prev_empty:
+            if prev_empty and adjacent:
                 skip[i] = True
             prev_empty = True
         else:
             prev_empty = False
+        prev_end = m.end()
 
     if not any(skip):
         return xml
@@ -643,7 +651,7 @@ def render_proposal(context: dict[str, Any]) -> bytes:
     if not TEMPLATE_PATH.exists():
         raise FileNotFoundError(
             f"Template nao encontrado em {TEMPLATE_PATH}. "
-            "Rode: python scripts/build_template.py"
+            "O .docx com tags Jinja deve estar commitado em resources/templates/."
         )
     doc = DocxTemplate(str(TEMPLATE_PATH))
     _enrich_subdocs(doc, context)
