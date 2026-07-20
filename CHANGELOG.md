@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed (v2.0.48, cópia local, UX)
+- **CNPJ agora é o primeiro campo da identificação PJ** (antes da Razão Social), com dica azul compacta: "Preencha primeiro o CNPJ: o app consulta as bases públicas da Receita Federal e preenche razão social, endereço e contato automaticamente." O campo que puxa tudo abre o fluxo; o restante vira conferência.
+
 ### Added (v2.0.47, cópia local, UX)
 - **CNPJ carrega dados da Receita Federal (BrasilAPI)**: ao completar um CNPJ numérico válido, razão social, endereço completo e primeiro contato (telefone/e-mail) são preenchidos automaticamente, sempre respeitando o que o usuário já digitou. Confirmação verde discreta sob o campo ("Dados carregados da Receita Federal"); sem rede ou CNPJ alfanumérico (ainda fora da API), falha em silêncio e o aviso de DV continua valendo.
 - **Confirmação de "Nova proposta" virou modal (st.dialog)**: o aviso de limpeza, que aparecia solto no fim da página, agora abre preso ao botão, com dica de salvar rascunho antes.

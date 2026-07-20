@@ -27,7 +27,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.47"
+APP_VERSION = "2.0.48"
 
 
 @st.cache_data
@@ -1573,12 +1573,16 @@ if current == 0:
                     unsafe_allow_html=True,
                 )
         else:
-            c1, c2 = st.columns([2, 1])
-            form["contratante"]["razao_social"] = c1.text_input(
-                "Razão Social",
-                key="razao_social_input",
+            # CNPJ vem PRIMEIRO: e a porta de entrada do cadastro. Preenchido,
+            # o app consulta as bases publicas e completa o resto sozinho.
+            st.markdown(
+                '<div class="pmra-field-hint">💡 Preencha primeiro o <strong>CNPJ</strong>: '
+                'o app consulta as bases públicas da Receita Federal e preenche razão '
+                'social, endereço e contato automaticamente.</div>',
+                unsafe_allow_html=True,
             )
-            form["contratante"]["cnpj"] = c2.text_input(
+            c1, c2 = st.columns([1, 2])
+            form["contratante"]["cnpj"] = c1.text_input(
                 "CNPJ",
                 placeholder="00.000.000/0000-00",
                 key="cnpj_input",
@@ -1586,15 +1590,19 @@ if current == 0:
             )
             _cnpj_chars_v = _cnpj_chars(form["contratante"]["cnpj"])
             if len(_cnpj_chars_v) == 14 and not cnpj_dv_ok(_cnpj_chars_v):
-                c2.markdown(
+                c1.markdown(
                     '<div class="pmra-field-warn">⚠ CNPJ com dígito verificador inválido. Confira antes de gerar.</div>',
                     unsafe_allow_html=True,
                 )
             elif len(_cnpj_chars_v) == 14 and st.session_state.get("_cnpj_razao_encontrada"):
-                c2.markdown(
+                c1.markdown(
                     '<div class="pmra-field-ok">✓ Dados carregados da Receita Federal.</div>',
                     unsafe_allow_html=True,
                 )
+            form["contratante"]["razao_social"] = c2.text_input(
+                "Razão Social",
+                key="razao_social_input",
+            )
 
     with st.container(border=True):
         st.markdown('<div class="pmra-sub-hdr"><span class="material-symbols-outlined pmra-icon">location_on</span>Endereço</div>', unsafe_allow_html=True)
