@@ -90,12 +90,24 @@ def _filter_non_empty_rows(rows: list[dict]) -> list[dict]:
 
 
 def montar_endereco(end: Endereco) -> str:
-    linha1 = _non_empty(
-        ", ".join(p for p in [end.logradouro, end.numero] if p),
-        end.bairro,
-    )
-    cidade_uf = "/".join(p for p in [end.cidade, end.uf] if p)
-    return ", ".join(p for p in [linha1, end.cep, cidade_uf] if p)
+    """Concatena no padrao de qualificacao de contratos:
+    "Avenida X, n. 65, Bairro Centro, CEP 20031-170, Rio de Janeiro/RJ".
+
+    Prefixos ("n.", "Bairro", "CEP") so entram quando o usuario ainda nao
+    os digitou, evitando "n. nº 65" ou "Bairro Bairro Centro".
+    """
+    logradouro = end.logradouro.strip()
+    numero = end.numero.strip()
+    if numero and numero[0].isdigit():
+        numero = f"n. {numero}"
+    bairro = end.bairro.strip()
+    if bairro and not bairro.lower().startswith("bairro"):
+        bairro = f"Bairro {bairro}"
+    cep = end.cep.strip()
+    if cep and not cep.upper().startswith("CEP"):
+        cep = f"CEP {cep}"
+    cidade_uf = "/".join(p for p in [end.cidade.strip(), end.uf.strip()] if p)
+    return ", ".join(p for p in [logradouro, numero, bairro, cep, cidade_uf] if p)
 
 
 def montar_contatos(contatos: list[Contato]) -> str:

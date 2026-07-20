@@ -51,7 +51,22 @@ class TestMontarEndereco:
             logradouro="Av. Paulista", numero="1000", bairro="Bela Vista",
             cep="01310-100", cidade="Sao Paulo", uf="SP",
         )
-        assert montar_endereco(e) == "Av. Paulista, 1000, Bela Vista, 01310-100, Sao Paulo/SP"
+        assert montar_endereco(e) == (
+            "Av. Paulista, n. 1000, Bairro Bela Vista, CEP 01310-100, Sao Paulo/SP"
+        )
+
+    def test_prefixos_nao_duplicam(self):
+        e = Endereco(
+            logradouro="Rua Y", numero="nº 100", bairro="Bairro Centro",
+            cep="CEP 30130-000", cidade="Belo Horizonte", uf="MG",
+        )
+        assert montar_endereco(e) == (
+            "Rua Y, nº 100, Bairro Centro, CEP 30130-000, Belo Horizonte/MG"
+        )
+
+    def test_numero_sem_digito_fica_como_esta(self):
+        e = Endereco(logradouro="Rua Z", numero="S/N")
+        assert montar_endereco(e) == "Rua Z, S/N"
 
     def test_sem_numero(self):
         e = Endereco(logradouro="Rua X", bairro="Centro", cidade="BH", uf="MG")

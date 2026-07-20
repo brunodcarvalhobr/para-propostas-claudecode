@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from pmra.br_docs import cnpj_dv_ok, cnpj_parse, cpf_dv_ok, viacep_parse
+from pmra.br_docs import cnpj_dv_ok, cnpj_parse, cpf_dv_ok, titulo_pt, viacep_parse
 
 
 class TestCpfDv:
@@ -70,9 +70,9 @@ class TestCnpjParse:
         }
         out = cnpj_parse(payload)
         assert out["razao_social"] == "PETROLEO BRASILEIRO S A PETROBRAS"
-        assert out["logradouro"] == "AVENIDA REPUBLICA DO CHILE"
+        assert out["logradouro"] == "Avenida Republica do Chile"
         assert out["numero"] == "65"
-        assert out["cidade"] == "Rio De Janeiro"
+        assert out["cidade"] == "Rio de Janeiro"
         assert out["uf"] == "RJ"
         assert out["cep"] == "20031912"
         assert out["telefone"] == "2132244477"
@@ -82,6 +82,21 @@ class TestCnpjParse:
         assert cnpj_parse({"message": "CNPJ nao encontrado"}) is None
         assert cnpj_parse({}) is None
         assert cnpj_parse(None) is None
+
+
+class TestTituloPt:
+    @pytest.mark.parametrize(
+        "entrada,esperado",
+        [
+            ("RIO DE JANEIRO", "Rio de Janeiro"),
+            ("AVENIDA REPUBLICA DO CHILE", "Avenida Republica do Chile"),
+            ("BELA VISTA", "Bela Vista"),
+            ("centro", "Centro"),
+            ("", ""),
+        ],
+    )
+    def test_caixa(self, entrada, esperado):
+        assert titulo_pt(entrada) == esperado
 
 
 class TestViacepParse:

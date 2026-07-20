@@ -121,7 +121,7 @@ localmente antes de commitar.
 | Horas Extra Escopo = "Tabela Senioridade" / "Hora Fixa" | Mostra apenas a opção escolhida |
 | Tabelas dinâmicas (Ações, Atos, Senioridade) | Linhas via `{%tr for it in items %}` |
 | Múltiplos contatos | Concatenados em "Telefone: X; E-mail: Y" |
-| Endereço | Concatenado em "Logradouro N°, Bairro, CEP, Cidade/UF" |
+| Endereço | Concatenado em "Logradouro, n. 65, Bairro X, CEP 00000-000, Cidade/UF" |
 
 ## Como editar o template (PMRA_Template_Jinja.docx)
 

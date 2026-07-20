@@ -83,6 +83,26 @@ def viacep_parse(payload: dict) -> dict | None:
     return campos if any(campos.values()) else None
 
 
+_MINUSCULAS_PT = {
+    "de", "da", "do", "das", "dos", "e", "a", "o", "as", "os", "em",
+    "no", "na", "nos", "nas", "ao", "aos", "para", "por", "com", "sem",
+}
+
+
+def titulo_pt(texto: str) -> str:
+    """Title-case com conectivos portugueses em minusculas.
+
+    "RIO DE JANEIRO" → "Rio de Janeiro"; "AVENIDA REPUBLICA DO CHILE" →
+    "Avenida Republica do Chile". Nao restaura acentos: para a grafia
+    oficial o app cruza o CEP com o ViaCEP (ver cnpj_lookup).
+    """
+    out = []
+    for i, palavra in enumerate(texto.strip().split()):
+        pl = palavra.lower()
+        out.append(pl if (i > 0 and pl in _MINUSCULAS_PT) else pl.capitalize())
+    return " ".join(out)
+
+
 def cnpj_parse(payload: dict) -> dict | None:
     """Normaliza a resposta da BrasilAPI de CNPJ para os campos do formulario.
 
@@ -102,11 +122,12 @@ def cnpj_parse(payload: dict) -> dict | None:
     )
     return {
         "razao_social": razao,
-        "logradouro": logradouro,
+        # A API devolve endereco em MAIUSCULAS sem acento; titulo_pt corrige a
+        # caixa, e o cruzamento com o ViaCEP (cnpj_lookup) restaura os acentos.
+        "logradouro": titulo_pt(logradouro),
         "numero": (payload.get("numero") or "").strip(),
-        "bairro": (payload.get("bairro") or "").strip(),
-        # A API devolve municipio em MAIUSCULAS; title() aproxima a escrita usual.
-        "cidade": (payload.get("municipio") or "").strip().title(),
+        "bairro": titulo_pt((payload.get("bairro") or "").strip()),
+        "cidade": titulo_pt((payload.get("municipio") or "").strip()),
         "uf": (payload.get("uf") or "").strip().upper(),
         "cep": re.sub(r"\D", "", str(payload.get("cep") or ""))[:8],
         "telefone": re.sub(r"\D", "", str(payload.get("ddd_telefone_1") or ""))[:11],
@@ -130,10 +151,18 @@ def cnpj_lookup(cnpj_digits: str, timeout: float = 4.0) -> dict | None:
     ):
         try:
             data = cnpj_parse(_http_json(url, timeout))
-            if data:
-                return data
         except Exception:
             continue
+        if data:
+            # ViaCEP tem a grafia OFICIAL (acentos e caixa) de logradouro,
+            # bairro e cidade; sobrepoe a versao em CAPS da Receita.
+            if data["cep"]:
+                oficial = viacep_lookup(data["cep"])
+                if oficial:
+                    for campo in ("logradouro", "bairro", "cidade", "uf"):
+                        if oficial.get(campo):
+                            data[campo] = oficial[campo]
+            return data
     return None
 
 
