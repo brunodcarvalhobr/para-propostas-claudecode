@@ -27,7 +27,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.49"
+APP_VERSION = "2.0.50"
 
 
 @st.cache_data

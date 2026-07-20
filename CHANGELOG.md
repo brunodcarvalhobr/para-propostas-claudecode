@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.49] - 2026-07-20
+
 ### Changed (v2.0.49, cópia local, formatação)
 - **Endereço da Receita entra na proposta com grafia de contrato**: os dados em CAIXA ALTA sem acento da Receita passam por title-case português (conectivos minúsculos) e pelo cruzamento do CEP com o ViaCEP, que devolve a grafia oficial acentuada ("AVENIDA REPUBLICA DO CHILE" vira "Avenida República do Chile"). `montar_endereco` agora monta no padrão de qualificação: "Avenida República do Chile, n. 65, Bairro Centro, CEP 20031-170, Rio de Janeiro/RJ", sem duplicar prefixos que o usuário já digitou. Novo `titulo_pt` em `pmra/br_docs.py`, com testes.
 
