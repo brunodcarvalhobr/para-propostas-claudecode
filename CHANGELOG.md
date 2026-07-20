@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **CNPJ alfanumérico** (IN RFB nº 2.229/2024, vigente desde jul/2026): as 12 primeiras posições do CNPJ aceitam letras e dígitos (normalizadas para maiúsculas); os 2 dígitos verificadores continuam exclusivamente numéricos; máscara `XX.XXX.XXX/XXXX-99` inalterada. Antes, letras eram removidas silenciosamente e o documento saía com CNPJ errado. Ajustados o formatador Python (`_cnpj_chars`/`_fmt_cnpj`) e a máscara JS em tempo real (incluindo o reposicionamento de cursor, que contava apenas dígitos). CPF, CEP e telefone seguem numéricos. Travado em `tests/test_app_persistence.py::test_cnpj_alfanumerico_mesma_mascara`.
+
 ### Added
 - **Hora extra-escopo agora é opcional** (feedback de emissão): novo modo `"nenhuma"` em `horas_extra_escopo_modo` com checkbox "Deseja remover valores por hora para demandas extra-escopo?" e nota com a recomendação da Diretoria. Quando desativado, a seção "Horas para Serviços Extra Escopo" some do documento (novo condicional `[SE_CONT_HORAS_EXTRA]`); validator zera os valores para não vazarem.
 - **Avisos de campos importantes vazios** (UX): na revisão, um painel âmbar lista pendências que gerariam seções vazias (cliente sem nome/CPF-CNPJ, escopo sem descrição, modalidade de honorários não selecionada), com botões para revisar a etapa; o stepper marca com ⚠ etapas já visitadas com pendências. Não bloqueia a geração.

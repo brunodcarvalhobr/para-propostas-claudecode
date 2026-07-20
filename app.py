@@ -26,7 +26,7 @@ from pmra.template_engine import render_proposal
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent
-APP_VERSION = "2.0.41"
+APP_VERSION = "2.0.42"
 
 
 @st.cache_data
@@ -176,8 +176,14 @@ def _inject_input_masks() -> None:
     if (d.length <= 9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
     return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
   }
+  // CNPJ alfanumerico (IN RFB 2.229/2024): 12 primeiras posicoes aceitam
+  // letras e digitos (maiusculas); os 2 DVs continuam so numericos.
+  function cnpjChars(v) {
+    const s = (v || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+    return s.slice(0, 12) + s.slice(12).replace(/\D/g, '').slice(0, 2);
+  }
   function fmtCnpj(v) {
-    const d = digits(v, 14);
+    const d = cnpjChars(v);
     if (d.length <= 2) return d;
     if (d.length <= 5) return d.slice(0,2)+'.'+d.slice(2);
     if (d.length <= 8) return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5);
@@ -197,31 +203,37 @@ def _inject_input_masks() -> None:
     return '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
   }
 
+  // [funcao de mascara, classe de caractere "util" para posicionar o cursor]
+  // CNPJ conta alfanumericos (aceita letras); os demais contam so digitos.
   const LABEL_MASKS = {
-    'CPF': fmtCpf, 'CNPJ': fmtCnpj, 'CEP': fmtCep, 'Telefone': fmtTel,
+    'CPF': [fmtCpf, /\d/], 'CNPJ': [fmtCnpj, /[0-9A-Za-z]/],
+    'CEP': [fmtCep, /\d/], 'Telefone': [fmtTel, /\d/],
   };
 
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
 
-  function applyMask(input, maskFn) {
+  function applyMask(input, maskFn, charRe) {
     if (input._pmraMasked) return;
     input._pmraMasked = true;
     input.addEventListener('input', function (e) {
       if (e._pmra) return;
       const raw = this.value;
       const pos = this.selectionStart;
-      const digitsBeforeCursor = raw.slice(0, pos).replace(/\D/g, '').length;
+      let charsBeforeCursor = 0;
+      for (let i = 0; i < pos; i++) {
+        if (charRe.test(raw[i])) charsBeforeCursor++;
+      }
       const fmt = maskFn(raw);
       if (fmt === raw) return;
       setter.call(this, fmt);
       const ev = new Event('input', { bubbles: true });
       ev._pmra = true;
       this.dispatchEvent(ev);
-      // Reposiciona cursor contando dígitos
+      // Reposiciona cursor contando caracteres "uteis" da mascara
       let dc = 0, np = fmt.length;
       for (let i = 0; i < fmt.length; i++) {
-        if (/\d/.test(fmt[i])) dc++;
-        if (dc >= digitsBeforeCursor) { np = i + 1; break; }
+        if (charRe.test(fmt[i])) dc++;
+        if (dc >= charsBeforeCursor) { np = i + 1; break; }
       }
       this.setSelectionRange(np, np);
     });
@@ -233,8 +245,8 @@ def _inject_input_masks() -> None:
       const label = wrap.querySelector('label');
       const input = wrap.querySelector('input');
       if (!label || !input) return;
-      const maskFn = LABEL_MASKS[label.textContent.trim()];
-      if (maskFn) applyMask(input, maskFn);
+      const entry = LABEL_MASKS[label.textContent.trim()];
+      if (entry) applyMask(input, entry[0], entry[1]);
     });
   }
 
@@ -287,8 +299,17 @@ def _fmt_cpf(v: str) -> str:
     return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}"
 
 
+def _cnpj_chars(v: str) -> str:
+    """CNPJ alfanumérico (IN RFB nº 2.229/2024, vigente desde jul/2026):
+    as 12 primeiras posições aceitam letras e dígitos; os 2 dígitos
+    verificadores continuam exclusivamente numéricos. Letras normalizadas
+    para maiúsculas."""
+    s = re.sub(r"[^0-9A-Za-z]", "", str(v)).upper()
+    return s[:12] + re.sub(r"\D", "", s[12:])[:2]
+
+
 def _fmt_cnpj(v: str) -> str:
-    d = _digits(v, 14)
+    d = _cnpj_chars(v)
     if len(d) <= 2:
         return d
     if len(d) <= 5:
