@@ -1,0 +1,168 @@
+Assunto: Publicação do app PMRA Legal Tech em legaltech.pmra.com.br — instruções de deploy
+
+Olá,
+
+Segue o passo a passo para publicar nosso gerador de propostas em
+https://legaltech.pmra.com.br. O app é Python/Streamlit e roda como serviço
+(systemd) atrás do Apache já instalado no servidor.
+
+Hoje o domínio responde "Forbidden / 403" — isso é esperado: existe um
+VirtualHost ativo apontando para um docroot vazio. O passo 4 resolve.
+
+Todos os comandos são executados como root (ou com sudo).
+
+
+────────────────────────────────────────────────────────────────────────
+PRÉ-REQUISITOS
+────────────────────────────────────────────────────────────────────────
+
+- Debian/Ubuntu com Apache 2.4.47 ou superior (o servidor está no 2.4.68).
+- Python 3.11 (o instalador tenta instalar se não houver).
+- Git.
+- O repositório é PÚBLICO: o clone não exige usuário, senha ou chave.
+
+
+────────────────────────────────────────────────────────────────────────
+PASSO 1 — CLONE DO REPOSITÓRIO
+────────────────────────────────────────────────────────────────────────
+
+Atenção: usar a branch "producao-legaltech" (NÃO a "main").
+A "main" é o canal de outro ambiente e pode estar à frente do homologado.
+
+    sudo git clone --branch producao-legaltech \
+      https://github.com/brunodcarvalhobr/para-propostas-claudecode.git \
+      /var/www/legaltech.pmra.com.br
+
+Conferir se veio a branch certa (deve imprimir "producao-legaltech"):
+
+    git -C /var/www/legaltech.pmra.com.br rev-parse --abbrev-ref HEAD
+
+
+────────────────────────────────────────────────────────────────────────
+PASSO 2 — INSTALADOR
+────────────────────────────────────────────────────────────────────────
+
+    sudo bash /var/www/legaltech.pmra.com.br/deploy/install.sh
+
+O script cria o ambiente virtual Python, instala as dependências, registra
+o serviço systemd "pmra-propostas" e habilita os módulos do Apache
+(proxy, proxy_http, proxy_wstunnel, headers, ssl, rewrite).
+
+Ele é idempotente: pode ser reexecutado sem problema.
+
+Observação importante: o instalador NÃO ativa o VirtualHost sozinho, de
+propósito. Como o domínio já tem um VirtualHost 443 em uso e o servidor
+pode hospedar outros sites, ativar um vhost com caminho de certificado
+inexistente faria o próximo reload derrubar o Apache inteiro. Por isso a
+ativação é manual (passo 4).
+
+
+────────────────────────────────────────────────────────────────────────
+PASSO 3 — SENHA DE ACESSO
+────────────────────────────────────────────────────────────────────────
+
+Editar o arquivo abaixo e definir a senha (eu envio o valor separadamente,
+por outro canal):
+
+    sudo nano /var/www/legaltech.pmra.com.br/.streamlit/secrets.toml
+
+Conteúdo:
+
+    APP_PASSWORD = "definir-a-senha-aqui"
+
+Depois:
+
+    sudo systemctl restart pmra-propostas
+
+
+────────────────────────────────────────────────────────────────────────
+PASSO 4 — VIRTUALHOST DO APACHE (resolve o 403)
+────────────────────────────────────────────────────────────────────────
+
+O instalador já deixou o arquivo pronto em:
+
+    /etc/apache2/sites-available/legaltech.pmra.com.br.conf
+
+4.1. Identificar o VirtualHost que hoje atende o domínio:
+
+    sudo apache2ctl -S
+
+4.2. Abrir o vhost antigo, copiar as linhas SSLCertificateFile e
+     SSLCertificateKeyFile e colar no arquivo novo (substituindo os
+     caminhos de exemplo que estão lá).
+
+     Se preferir emitir um certificado novo:
+         sudo certbot --apache -d legaltech.pmra.com.br
+
+4.3. Trocar o vhost antigo pelo novo:
+
+    sudo a2dissite NOME-DO-VHOST-ANTIGO
+    sudo a2ensite legaltech.pmra.com.br
+
+4.4. Testar e recarregar:
+
+    sudo apache2ctl configtest
+    sudo systemctl reload apache2
+
+Alternativa: em vez de trocar o vhost, é possível colar o bloco de proxy do
+arquivo novo (as linhas ProxyPreserveHost / ProxyPass / ProxyPassReverse /
+ProxyTimeout) dentro do VirtualHost 443 já existente, mantendo os
+certificados como estão. O importante é que o proxy e o módulo
+proxy_wstunnel estejam ativos.
+
+
+────────────────────────────────────────────────────────────────────────
+PASSO 5 — CONFERÊNCIA
+────────────────────────────────────────────────────────────────────────
+
+    sudo systemctl status pmra-propostas
+        -> deve mostrar "active (running)"
+
+    curl -fsS http://127.0.0.1:8501/_stcore/health
+        -> deve responder "ok"
+
+Abrir https://legaltech.pmra.com.br no navegador: deve aparecer a tela de
+senha do app e, no rodapé, "PMRA · v2.0.51" (ou versão superior).
+
+
+────────────────────────────────────────────────────────────────────────
+ATUALIZAÇÕES FUTURAS
+────────────────────────────────────────────────────────────────────────
+
+Quando eu avisar que há uma nova versão liberada, basta rodar:
+
+    sudo bash /var/www/legaltech.pmra.com.br/deploy/update.sh
+
+O script atualiza o código, as dependências, reinicia o serviço e confere
+a saúde do app ao final. Não é necessário mexer no Apache novamente.
+
+
+────────────────────────────────────────────────────────────────────────
+PONTOS DE ATENÇÃO
+────────────────────────────────────────────────────────────────────────
+
+1. WebSocket é obrigatório. O Streamlit usa WebSocket (rota /_stcore/stream).
+   O VirtualHost fornecido já traz "upgrade=websocket" no ProxyPass e o
+   instalador habilita o módulo proxy_wstunnel. Sem isso, a página carrega
+   e congela em "Please wait...".
+
+2. Não abrir a porta 8501 no firewall. O app escuta apenas em 127.0.0.1;
+   a exposição pública deve ser exclusivamente pelo Apache, com HTTPS.
+
+3. Não editar arquivos do app diretamente no servidor. Toda alteração
+   entra por Git e chega pelo update.sh. A única exceção é o arquivo
+   .streamlit/secrets.toml, que é local e não versionado (é também o único
+   item que precisa de backup: todo o resto vem do repositório).
+
+4. Monitoramento: a URL https://legaltech.pmra.com.br/_stcore/health
+   responde "ok" e pode ser usada como health check de uptime.
+
+5. Logs, se algo falhar:
+       sudo journalctl -u pmra-propostas -n 100 --no-pager
+
+A documentação completa está no próprio repositório, em deploy/README.md.
+
+Qualquer dúvida, me chamem.
+
+Abraço,
+Bruno

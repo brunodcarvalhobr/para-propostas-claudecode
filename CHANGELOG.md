@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Pacote de hospedagem própria em `deploy/`** (`legaltech.pmra.com.br`): unit systemd (`pmra-propostas`, roda como `www-data` escutando só em `127.0.0.1:8501`), VirtualHost Apache 2.4 com `ProxyPass ... upgrade=websocket` (obrigatório para o Streamlit), `install.sh` idempotente e `update.sh` com health check. App instalado em `/var/www/legaltech.pmra.com.br/`.
+- **`deploy/EMAIL-INSTRUCOES.txt`**: roteiro consolidado em texto puro para enviar ao responsável pela hospedagem (clone da branch correta, instalador, senha, ativação do VirtualHost que resolve o 403 atual, conferência e atualizações futuras).
 - **Canal de deploy separado por branch**: `main` continua servindo o Streamlit Cloud (redeploy automático); o domínio próprio segue a branch **`producao-legaltech`**, promovida manualmente. Instruções de clone e promoção em `deploy/README.md`.
 
 ## [2.0.49] - 2026-07-20
