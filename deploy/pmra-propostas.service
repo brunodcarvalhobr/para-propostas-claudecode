@@ -1,0 +1,33 @@
+# Unit systemd do gerador de propostas PMRA (hospedagem propria).
+# Instalar em: /etc/systemd/system/pmra-propostas.service
+#   sudo cp deploy/pmra-propostas.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pmra-propostas
+#
+# O Streamlit escuta APENAS em 127.0.0.1:8501 — quem expoe o app na
+# internet e o nginx (deploy/legaltech.pmra.com.br.conf), com TLS.
+
+[Unit]
+Description=PMRA Legal Tech — Gerador de Propostas (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/legaltech.pmra.com.br
+ExecStart=/var/www/legaltech.pmra.com.br/.venv/bin/streamlit run app.py \
+    --server.address=127.0.0.1 \
+    --server.port=8501 \
+    --server.headless=true
+Restart=always
+RestartSec=3
+
+# Endurecimento basico
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/www/legaltech.pmra.com.br
+
+[Install]
+WantedBy=multi-user.target
