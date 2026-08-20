@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Sincronização automática `main` → `producao-legaltech`** (`.github/workflows/sync-producao.yml`): a branch do domínio próprio é espelhada a cada push em `main`, mas **só quando o CI passa** — o canal de produção nunca aponta para um commit que quebrou testes ou smoke test. Push via `GITHUB_TOKEN` (não dispara workflows, sem loop); sincronização manual disponível em Actions → Run workflow. Se as branches divergirem, o job falha de propósito em vez de descartar commits em silêncio. O servidor continua publicando sob comando (`deploy/update.sh`).
+
+### Added
 - **Pacote de hospedagem própria em `deploy/`** (`legaltech.pmra.com.br`): unit systemd (`pmra-propostas`, roda como `www-data` escutando só em `127.0.0.1:8501`), VirtualHost Apache 2.4 com `ProxyPass ... upgrade=websocket` (obrigatório para o Streamlit), `install.sh` idempotente e `update.sh` com health check. App instalado em `/var/www/legaltech.pmra.com.br/`.
 - **Canal de deploy separado por branch**: `main` continua servindo o Streamlit Cloud (redeploy automático); o domínio próprio segue a branch **`producao-legaltech`**, promovida manualmente. Instruções de clone e promoção em `deploy/README.md`.
 

@@ -43,20 +43,32 @@ Regras:
 | Ambiente | Branch | Como recebe código | Clone |
 |---|---|---|---|
 | **Streamlit Cloud** (link atual) | `main` | Automático a cada push em `main` | Nenhum — o próprio Streamlit Cloud puxa o repo |
-| **Domínio próprio** (`https://legaltech.pmra.com.br`) | `producao-legaltech` | Manual: promover `main` → `producao-legaltech` e rodar `update.sh` | `git clone --branch producao-legaltech https://github.com/brunodcarvalhobr/para-propostas-claudecode.git /var/www/legaltech.pmra.com.br` |
+| **Domínio próprio** (`https://legaltech.pmra.com.br`) | `producao-legaltech` | Espelhada automaticamente de `main` quando o CI passa; o servidor puxa com `update.sh` | `git clone --branch producao-legaltech https://github.com/brunodcarvalhobr/para-propostas-claudecode.git /var/www/legaltech.pmra.com.br` |
 
-> Os canais são **independentes**: push em `main` redeploya só o Streamlit Cloud;
-> o servidor próprio permanece na versão em que está até você promover. O link do
-> Cloud continua funcionando normalmente durante e depois desta instalação.
+**Sincronização automática das branches.** O workflow
+`.github/workflows/sync-producao.yml` espelha `main` → `producao-legaltech` a cada
+push em `main`, mas **só depois que o CI passa** — assim o canal do domínio próprio
+nunca fica apontando para um commit que quebrou testes ou smoke test. O push é feito
+com o `GITHUB_TOKEN`, que não dispara novos workflows (sem risco de loop).
 
-**Promover uma versão para o domínio próprio** (do seu computador):
+Também dá para sincronizar manualmente: aba **Actions → Sync producao-legaltech →
+Run workflow**.
+
+**O servidor não se atualiza sozinho.** A branch fica pronta, mas o código só chega
+ao ar quando alguém roda, no servidor:
 
 ```bash
-git fetch origin main
-git push origin origin/main:producao-legaltech   # avança o canal para o main atual
-# depois, no servidor:
 sudo bash /var/www/legaltech.pmra.com.br/deploy/update.sh
 ```
+
+Esse é o ponto de controle: o Streamlit Cloud redeploya na hora, enquanto o domínio
+próprio só muda quando você mandar.
+
+> **Se o sync falhar**, é porque alguém commitou direto na `producao-legaltech` e as
+> branches divergiram. O workflow falha de propósito, em vez de descartar o commit
+> em silêncio. Para resolver, decida o que fazer com o commit exclusivo do canal e
+> depois force o alinhamento:
+> `git push origin origin/main:producao-legaltech --force-with-lease`
 
 (Alternativa pela interface do GitHub: abrir PR `main` → `producao-legaltech` e mergear.)
 
@@ -121,7 +133,8 @@ Internet ──► Apache 2.4 (443, TLS já existente no domínio)
 
 | Ação | Comando |
 |---|---|
-| Promover `main` → domínio próprio | `git push origin origin/main:producao-legaltech` + `update.sh` no servidor |
+| Publicar no domínio próprio a versão já sincronizada | `sudo bash /var/www/legaltech.pmra.com.br/deploy/update.sh` |
+| Forçar o sync das branches fora do CI | Actions → **Sync producao-legaltech** → Run workflow |
 | Logs ao vivo | `journalctl -u pmra-propostas -f` |
 | Reiniciar | `sudo systemctl restart pmra-propostas` |
 | Health check (monitoramento) | `GET https://legaltech.pmra.com.br/_stcore/health` → `ok` |

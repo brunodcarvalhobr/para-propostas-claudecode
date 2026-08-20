@@ -1,0 +1,57 @@
+# Espelha main -> producao-legaltech (canal do dominio proprio).
+#
+# Dispara APOS o workflow "CI" terminar em main e SO quando ele passou: assim o
+# canal de producao nunca recebe um commit que quebrou testes ou smoke test.
+# O push usa o GITHUB_TOKEN, que por design NAO dispara novos workflows —
+# nao ha risco de loop.
+#
+# O servidor continua atualizando sob comando (deploy/update.sh); este workflow
+# apenas mantem a branch pronta com o que ja foi validado.
+name: Sync producao-legaltech
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:        # permite sincronizar manualmente pela aba Actions
+
+jobs:
+  sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # No disparo por workflow_run, usa exatamente o commit que passou no
+          # CI (main pode ja ter avancado desde entao).
+          ref: ${{ github.event.workflow_run.head_sha || 'main' }}
+
+      - name: Espelhar para producao-legaltech
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          VERSAO="$(grep -oP 'APP_VERSION = "\K[^"]+' app.py || echo '?')"
+
+          if git push origin "${SHA}:refs/heads/producao-legaltech"; then
+            echo "producao-legaltech -> ${SHA} (v${VERSAO})"
+            {
+              echo "### Canal do dominio proprio atualizado"
+              echo ""
+              echo "- Commit: \`${SHA}\`"
+              echo "- Versao: **v${VERSAO}**"
+              echo ""
+              echo "Para publicar no servidor:"
+              echo '```'
+              echo "sudo bash /var/www/legaltech.pmra.com.br/deploy/update.sh"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Push recusado — producao-legaltech divergiu de main (provavel commit feito direto no canal). Resolva manualmente: git push origin main:producao-legaltech --force-with-lease (isso DESCARTA commits exclusivos do canal)."
+            exit 1
+          fi
